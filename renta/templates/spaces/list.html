@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Все помещения | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold mb-3">Все помещения</h1>
+            <p class="text-muted">Найдите идеальное пространство для вашего бизнеса</p>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filter-card mb-4">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">Поиск</label>
+                <input type="text" name="search" class="form-control" placeholder="Название, описание, адрес..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small">Город</label>
+                <select name="city" class="form-select">
+                    <option value="">Все города</option>
+                    {% for city in cities %}
+                    <option value="{{ city.id }}" {% if city.id|stringformat:"i" == selected_city %}selected{% endif %}>{{ city.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small">Категория</label>
+                <select name="category" class="form-select">
+                    <option value="">Все категории</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category.id|stringformat:"i" == selected_category %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-gold w-100">
+                    <i class="fas fa-search me-1"></i> Найти
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Список помещений -->
+    <div class="row g-4">
+        {% for space in spaces %}
+        <div class="col-lg-4 col-md-6">
+            <div class="space-card h-100">
+                <div class="position-relative overflow-hidden">
+                    {% with space.get_main_image as image %}
+                    {% if image and image.image %}
+                    <img src="{{ image.image.url }}" class="space-image w-100" alt="{{ space.title }}" loading="lazy">
+                    {% else %}
+                    <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image w-100" alt="{{ space.title }}" loading="lazy">
+                    {% endif %}
+                    {% endwith %}
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                            <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
+                        </span>
+                    </div>
+                    <div class="position-absolute top-0 start-0 m-3">
+                        <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                            <i class="fas {{ space.category.icon }} me-1 gold-text"></i>{{ space.category.name }}
+                        </span>
+                    </div>
+                    {% if user.is_authenticated %}
+                    <button class="favorite-btn" data-space-id="{{ space.id }}">
+                        <i class="far fa-heart"></i>
+                    </button>
+                    {% endif %}
+                </div>
+
+                <div class="p-4">
+                    <h5 class="fw-bold mb-3">{{ space.title }}</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <small class="text-muted"><i class="fas fa-expand-arrows-alt me-1"></i>{{ space.area_sqm }} м²</small>
+                        <small class="text-muted"><i class="fas fa-users me-1"></i>до {{ space.max_capacity }} чел.</small>
+                    </div>
+                    <p class="text-muted small mb-4">{{ space.description|truncatewords:20 }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="price-tag">
+                            {% with space.prices.first as price %}
+                            {% if price %}от {{ price.price|floatformat:0 }} ₽/{{ price.period.name }}{% else %}Цена по запросу{% endif %}
+                            {% endwith %}
+                        </div>
+                        <a href="{% url 'space_detail' space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-search fa-3x mb-3 text-muted"></i>
+            <h4>Помещения не найдены</h4>
+            <p class="text-muted">Попробуйте изменить параметры поиска</p>
+            <a href="{% url 'spaces_list' %}" class="btn btn-gold mt-3">Сбросить фильтры</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Пагинация -->
+    {% if spaces.has_other_pages %}
+    <nav class="mt-5">
+        <ul class="pagination justify-content-center">
+            {% if spaces.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ spaces.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in spaces.paginator.page_range %}
+            {% if spaces.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > spaces.number|add:'-3' and num < spaces.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if spaces.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ spaces.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

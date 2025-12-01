@@ -1,0 +1,488 @@
+/*
+ * СТИЛИ ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ ООО "ИНТЕРЬЕР"
+ */
+
+/* ============== CSS ПЕРЕМЕННЫЕ ============== */
+:root {
+  /* Основные цвета */
+  --gold: #d4af37;
+  --gold-light: #e5c666;
+  --gold-dark: #b8941f;
+
+  /* Цвета темной темы (по умолчанию) */
+  --bg-color: #0d0d0d;
+  --bg-secondary: #141414;
+  --card-bg: #1a1a1a;
+  --text-color: #ffffff;
+  --text-muted: #a0a0a0;
+  --border-color: #333333;
+
+  /* Переходы */
+  --transition: all 0.3s ease;
+}
+
+/* Светлая тема */
+[data-theme="light"] {
+  --bg-color: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --card-bg: #ffffff;
+  --text-color: #1a1a1a;
+  --text-muted: #6c757d;
+  --border-color: #dee2e6;
+}
+
+/* ============== БАЗОВЫЕ СТИЛИ ============== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  min-height: 100vh;
+  transition: var(--transition);
+}
+
+body.loading {
+  overflow: hidden;
+}
+
+a {
+  color: var(--gold);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--gold-light);
+}
+
+/* ============== УТИЛИТЫ ============== */
+.gold-text {
+  color: var(--gold) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* ============== НАВИГАЦИЯ ============== */
+.navbar {
+  background: rgba(13, 13, 13, 0.95) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 0;
+  transition: var(--transition);
+}
+
+[data-theme="light"] .navbar {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.nav-link {
+  color: var(--text-color) !important;
+  font-weight: 500;
+  padding: 0.5rem 1rem !important;
+  transition: var(--transition);
+}
+
+.nav-link:hover {
+  color: var(--gold) !important;
+}
+
+/* Переключатель темы */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ============== КНОПКИ ============== */
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: #000 !important;
+  border: none;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold));
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+}
+
+.btn-outline-light {
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.btn-outline-light:hover {
+  background: var(--card-bg);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ============== HERO СЕКЦИЯ ============== */
+.hero-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 120px 0 80px;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at 20% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============== СТАТИСТИКА ============== */
+.stats-section {
+  background: var(--card-bg);
+  padding: 4rem 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stat-number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ============== КАРТОЧКИ ============== */
+.space-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.space-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--gold);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.space-image {
+  height: 220px;
+  object-fit: cover;
+  transition: var(--transition);
+}
+
+.space-card:hover .space-image {
+  transform: scale(1.05);
+}
+
+/* Карточки для фильтров и деталей */
+.filter-card,
+.detail-card,
+.price-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+/* ============== ФОРМЫ ============== */
+.form-control,
+.form-select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: var(--transition);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: var(--bg-secondary);
+  border-color: var(--gold);
+  color: var(--text-color);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+
+.form-label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ============== БЕЙДЖИ ============== */
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* ============== ЦЕНЫ ============== */
+.price-tag {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+/* ============== ХАРАКТЕРИСТИКИ ============== */
+.feature-icon {
+  width: 50px;
+  height: 50px;
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  color: var(--gold);
+  font-size: 1.25rem;
+}
+
+/* ============== ХЛЕБНЫЕ КРОШКИ ============== */
+.breadcrumb {
+  background: transparent;
+  padding: 0;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  color: var(--text-muted);
+}
+
+/* ============== АЛЕРТЫ ============== */
+.alert {
+  border-radius: 12px;
+  border: none;
+}
+
+/* ============== DROPDOWN ============== */
+.dropdown-menu-dark {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.dropdown-item {
+  color: var(--text-color);
+  padding: 0.75rem 1rem;
+  transition: var(--transition);
+}
+
+.dropdown-item:hover {
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold);
+}
+
+/* ============== АНИМАЦИИ ============== */
+.animate-fade-in {
+  animation: fadeIn 0.6s ease forwards;
+  opacity: 0;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
+}
+.delay-2 {
+  animation-delay: 0.2s;
+}
+.delay-3 {
+  animation-delay: 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============== FOOTER ============== */
+footer {
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+}
+
+/* ============== АДАПТИВНОСТЬ ============== */
+@media (max-width: 768px) {
+  .hero-section {
+    min-height: auto;
+    padding: 100px 0 60px;
+  }
+
+  .display-3 {
+    font-size: 2rem;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
+
+  .space-image {
+    height: 180px;
+  }
+}
+
+/* ============== СТРАНИЦА АВТОРИЗАЦИИ ============== */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.auth-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-card .form-group {
+  margin-bottom: 1.25rem;
+}
+
+/* ============== ЛИЧНЫЙ КАБИНЕТ ============== */
+.dashboard-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+  height: 100%;
+}
+
+.dashboard-stat {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.dashboard-stat .number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.dashboard-stat .label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+/* ============== ПАГИНАЦИЯ ============== */
+.pagination .page-link {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.pagination .page-link:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #000;
+}
+
+.pagination .page-item.active .page-link {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #000;
+}
+
+/* ============== ОТЗЫВЫ ============== */
+.review-card {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.review-rating {
+  color: var(--gold);
+}
+
+/* ============== ИЗБРАННОЕ ============== */
+.favorite-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favorite-btn:hover,
+.favorite-btn.active {
+  background: var(--gold);
+  color: #000;
+}
+
+.favorite-btn.active i {
+  font-weight: 900;
+}

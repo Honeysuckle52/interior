@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Избранное | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold mb-3">Избранное</h1>
+            <p class="text-muted">Помещения, которые вам понравились</p>
+        </div>
+    </div>
+    
+    {% if favorites %}
+    <div class="row g-4">
+        {% for fav in favorites %}
+        <div class="col-lg-4 col-md-6">
+            <div class="space-card h-100">
+                <div class="position-relative overflow-hidden">
+                    {% with fav.space.get_main_image as image %}
+                    {% if image and image.image %}
+                    <img src="{{ image.image.url }}" class="space-image w-100" alt="{{ fav.space.title }}" loading="lazy">
+                    {% else %}
+                    <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image w-100" alt="{{ fav.space.title }}" loading="lazy">
+                    {% endif %}
+                    {% endwith %}
+                    <button class="favorite-btn active" data-space-id="{{ fav.space.id }}">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                </div>
+                <div class="p-4">
+                    <h5 class="fw-bold mb-3">{{ fav.space.title }}</h5>
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ fav.space.city.name }}
+                    </p>
+                    <a href="{% url 'space_detail' fav.space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-heart fa-3x mb-3 text-muted"></i>
+        <h4>Список избранного пуст</h4>
+        <p class="text-muted">Добавляйте понравившиеся помещения в избранное</p>
+        <a href="{% url 'spaces_list' %}" class="btn btn-gold mt-3">Найти помещение</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

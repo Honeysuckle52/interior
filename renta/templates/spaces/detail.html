@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ space.title }} | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <!-- Хлебные крошки -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="gold-text">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'spaces_list' %}" class="gold-text">Помещения</a></li>
+            <li class="breadcrumb-item active text-muted">{{ space.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Галерея -->
+            <div class="mb-4">
+                {% with space.get_main_image as main_image %}
+                {% if main_image and main_image.image %}
+                <img src="{{ main_image.image.url }}" class="img-fluid rounded-3 w-100 mb-3" alt="{{ space.title }}" style="max-height: 450px; object-fit: cover;">
+                {% else %}
+                <img src="https://via.placeholder.com/800x450/1a1a1a/d4af37?text=INTERIOR" class="img-fluid rounded-3 w-100 mb-3" alt="{{ space.title }}" style="max-height: 450px; object-fit: cover;">
+                {% endif %}
+                {% endwith %}
+                
+                {% if space.images.count > 1 %}
+                <div class="row g-2">
+                    {% for image in space.images.all|slice:":4" %}
+                    <div class="col-3">
+                        <img src="{{ image.image.url }}" class="img-fluid rounded" alt="{{ space.title }}" style="height: 80px; object-fit: cover; width: 100%; cursor: pointer;">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <h1 class="display-5 fw-bold mb-3">{{ space.title }}</h1>
+            
+            <div class="d-flex flex-wrap gap-3 mb-4">
+                <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                    <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
+                </span>
+                <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                    <i class="fas {{ space.category.icon }} me-1 gold-text"></i>{{ space.category.name }}
+                </span>
+                {% if avg_rating %}
+                <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                    <i class="fas fa-star me-1 gold-text"></i>{{ avg_rating }}
+                </span>
+                {% endif %}
+            </div>
+            
+            <p class="lead text-muted mb-4">{{ space.description }}</p>
+            
+            <!-- Характеристики -->
+            <div class="detail-card mb-4">
+                <h5 class="fw-bold mb-4"><i class="fas fa-info-circle me-2 gold-text"></i>Характеристики</h5>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="feature-icon"><i class="fas fa-map-marker-alt"></i></div>
+                            <div>
+                                <small class="text-muted d-block">Адрес</small>
+                                <span>{{ space.city.name }}, {{ space.address }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="feature-icon"><i class="fas fa-expand-arrows-alt"></i></div>
+                            <div>
+                                <small class="text-muted d-block">Площадь</small>
+                                <span>{{ space.area_sqm }} м²</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="feature-icon"><i class="fas fa-users"></i></div>
+                            <div>
+                                <small class="text-muted d-block">Вместимость</small>
+                                <span>до {{ space.max_capacity }} человек</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="feature-icon"><i class="fas fa-tag"></i></div>
+                            <div>
+                                <small class="text-muted d-block">Категория</small>
+                                <span>{{ space.category.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Отзывы -->
+            {% if reviews %}
+            <div class="detail-card mb-4">
+                <h5 class="fw-bold mb-4"><i class="fas fa-comments me-2 gold-text"></i>Отзывы</h5>
+                {% for review in reviews %}
+                <div class="review-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>{{ review.author.username }}</strong>
+                        <span class="review-rating">
+                            {% for i in "12345" %}
+                            {% if forloop.counter <= review.rating %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                    <p class="text-muted mb-0">{{ review.comment }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Боковая панель с ценами -->
+            <div class="price-card sticky-top" style="top: 100px;">
+                <h5 class="fw-bold mb-4"><i class="fas fa-ruble-sign me-2 gold-text"></i>Стоимость аренды</h5>
+                
+                {% for price in space_prices %}
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom" style="border-color: var(--border-color) !important;">
+                    <span class="text-muted">{{ price.period.description }}:</span>
+                    <strong class="price-tag">{{ price.price|floatformat:0 }} ₽</strong>
+                </div>
+                {% empty %}
+                <p class="text-muted">Цена по запросу</p>
+                {% endfor %}
+                
+                {% if user.is_authenticated %}
+                    <a href="{% url 'create_booking' space.id %}" class="btn btn-gold w-100 mt-3 mb-2">
+                        <i class="fas fa-calendar-check me-2"></i>Забронировать
+                    </a>
+                    <button class="btn btn-outline-light w-100 favorite-btn {% if is_favorite %}active{% endif %}" data-space-id="{{ space.id }}">
+                        <i class="{% if is_favorite %}fas{% else %}far{% endif %} fa-heart me-2"></i>
+                        {% if is_favorite %}В избранном{% else %}В избранное{% endif %}
+                    </button>
+                {% else %}
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-gold w-100 mt-3 mb-2">
+                        <i class="fas fa-sign-in-alt me-2"></i>Войти для бронирования
+                    </a>
+                {% endif %}
+                
+                <div class="mt-4 pt-4 border-top" style="border-color: var(--border-color) !important;">
+                    <p class="text-muted small mb-2">Остались вопросы?</p>
+                    <a href="tel:89836903854" class="btn btn-outline-light w-100 mb-2">
+                        <i class="fas fa-phone me-2"></i>8 (983) 690-38-54
+                    </a>
+                    <a href="mailto:danil_naumov_90@bk.ru" class="btn btn-outline-light w-100">
+                        <i class="fas fa-envelope me-2"></i>Написать
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Похожие помещения -->
+    {% if related_spaces %}
+    <section class="mt-5 pt-5 border-top" style="border-color: var(--border-color) !important;">
+        <h3 class="fw-bold mb-4">Похожие помещения</h3>
+        <div class="row g-4">
+            {% for related in related_spaces %}
+            <div class="col-md-4">
+                <div class="space-card h-100">
+                    <div class="position-relative overflow-hidden">
+                        {% with related.get_main_image as image %}
+                        {% if image and image.image %}
+                        <img src="{{ image.image.url }}" class="space-image w-100" alt="{{ related.title }}" loading="lazy" style="height: 180px;">
+                        {% else %}
+                        <img src="https://via.placeholder.com/400x200/1a1a1a/d4af37?text=INTERIOR" class="space-image w-100" alt="{{ related.title }}" loading="lazy" style="height: 180px;">
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    <div class="p-3">
+                        <h6 class="fw-bold mb-2">{{ related.title }}</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ related.area_sqm }} м²</small>
+                            <a href="{% url 'space_detail' related.id %}" class="btn btn-gold btn-sm">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
