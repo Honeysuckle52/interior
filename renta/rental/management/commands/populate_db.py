@@ -57,7 +57,8 @@ class Command(BaseCommand):
                 self.create_pricing_periods()
                 self.create_statuses()
                 self.create_admin_user()
-                self.create_test_owners()
+                self.create_moderators()
+                self.create_test_users()
                 self.create_spaces(options['spaces'])
 
             self.stdout.write(self.style.SUCCESS(
@@ -84,7 +85,6 @@ class Command(BaseCommand):
         """Создание 20 городов в разных регионах России"""
         self.stdout.write('\n📍 Создание регионов и городов...')
 
-        # Данные: регион -> (код, [список городов])
         regions_data = {
             'Москва и Московская область': ('77', ['Москва', 'Подольск', 'Химки']),
             'Санкт-Петербург и Ленинградская область': ('78', ['Санкт-Петербург']),
@@ -253,49 +253,96 @@ class Command(BaseCommand):
         else:
             self.stdout.write('  → Администратор уже существует')
 
-    def create_test_owners(self):
-        """Создание тестовых владельцев помещений"""
-        self.stdout.write('\n👥 Создание тестовых владельцев...')
+    def create_moderators(self):
+        """Создание тестовых модераторов"""
+        self.stdout.write('\n👥 Создание модераторов...')
 
-        owners_data = [
-            ('owner1', 'Иван', 'Петров', 'ООО "Бизнес Центр"'),
-            ('owner2', 'Анна', 'Сидорова', 'ИП Сидорова А.В.'),
-            ('owner3', 'Сергей', 'Козлов', 'Арендодатель'),
+        moderators_data = [
+            ('moderator1', 'Елена', 'Смирнова', 'elena.smirnova@interior.ru'),
+            ('moderator2', 'Дмитрий', 'Волков', 'dmitry.volkov@interior.ru'),
+            ('moderator3', 'Ольга', 'Новикова', 'olga.novikova@interior.ru'),
         ]
 
-        for username, first_name, last_name, company in owners_data:
-            owner, created = User.objects.get_or_create(
+        created_count = 0
+        for username, first_name, last_name, email in moderators_data:
+            moderator, created = User.objects.get_or_create(
                 username=username,
                 defaults={
-                    'email': f'{username}@interior.ru',
+                    'email': email,
                     'first_name': first_name,
                     'last_name': last_name,
-                    'user_type': 'owner',
-                    'company': company,
+                    'user_type': 'moderator',
+                    'is_staff': True,  # Доступ в админ-панель
+                    'is_superuser': False,
                     'phone': f'+7 (9{random.randint(10,99)}) {random.randint(100,999)}-{random.randint(10,99)}-{random.randint(10,99)}'
                 }
             )
             if created:
-                owner.set_password('owner123')
-                owner.save()
-                UserProfile.objects.get_or_create(user=owner)
+                moderator.set_password('Moderator123!')
+                moderator.save()
+                UserProfile.objects.get_or_create(user=moderator)
+                created_count += 1
 
-        self.stdout.write(f'  → Владельцев создано: {User.objects.filter(user_type="owner").count()}')
+        self.stdout.write(f'  → Создано модераторов: {created_count}')
+        if created_count > 0:
+            self.stdout.write(self.style.WARNING(
+                '  → Логин: moderator1, moderator2, moderator3 / Пароль: Moderator123!'
+            ))
+
+    def create_test_users(self):
+        """Создание тестовых пользователей"""
+        self.stdout.write('\n👤 Создание тестовых пользователей...')
+
+        users_data = [
+            ('user1', 'Иван', 'Петров', 'ivan.petrov@mail.ru'),
+            ('user2', 'Анна', 'Сидорова', 'anna.sidorova@mail.ru'),
+            ('user3', 'Сергей', 'Козлов', 'sergey.kozlov@mail.ru'),
+            ('user4', 'Мария', 'Иванова', 'maria.ivanova@mail.ru'),
+            ('user5', 'Алексей', 'Николаев', 'alexey.nikolaev@mail.ru'),
+        ]
+
+        created_count = 0
+        for username, first_name, last_name, email in users_data:
+            user, created = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    'email': email,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'user_type': 'user',
+                    'is_staff': False,
+                    'is_superuser': False,
+                    'phone': f'+7 (9{random.randint(10,99)}) {random.randint(100,999)}-{random.randint(10,99)}-{random.randint(10,99)}'
+                }
+            )
+            if created:
+                user.set_password('User123!')
+                user.save()
+                UserProfile.objects.get_or_create(user=user)
+                created_count += 1
+
+        self.stdout.write(f'  → Создано пользователей: {created_count}')
+        if created_count > 0:
+            self.stdout.write(self.style.WARNING(
+                '  → Логин: user1-user5 / Пароль: User123!'
+            ))
 
     def create_spaces(self, count):
         """Создание тестовых помещений"""
         self.stdout.write(f'\n🏢 Создание {count} помещений...')
 
-        owners = list(User.objects.filter(user_type__in=['owner', 'admin']))
+        admin = User.objects.filter(user_type='admin').first()
+        if not admin:
+            admin = User.objects.filter(is_superuser=True).first()
+
         cities = list(City.objects.filter(is_active=True))
         categories = list(SpaceCategory.objects.filter(is_active=True))
         periods = list(PricingPeriod.objects.all())
 
-        if not owners or not cities or not categories:
+        if not admin or not cities or not categories:
             self.stdout.write(self.style.ERROR('  → Недостаточно данных для создания помещений'))
             return
 
-        # Шаблоны названий и описаний
         name_templates = {
             'office': [
                 'Современный офис "{city}"',
@@ -356,8 +403,8 @@ class Command(BaseCommand):
 
         descriptions = {
             'office': 'Светлое офисное помещение с современным ремонтом. Высокие потолки, панорамные окна, кондиционирование. Есть кухня и санузел. Подходит для IT-компаний, юридических фирм, консалтинга.',
-            'loft': 'Стильное лофт-пространство в бывшем промышленном здании. Высокие потолки, кирпичные стены, открытые коммуникации. Идеально для творческих меропр��ятий, съёмок, выставок.',
-            'coworking': 'Современное рабочее пространство с высокоскоростным интернетом. Есть переговорные, лаунж-зона, кухня. Включены все коммунальны�� услуги. Подходит для фрилансеров и небольших команд.',
+            'loft': 'Стильное лофт-пространство в бывшем промышленном здании. Высокие потолки, кирпичные стены, открытые коммуникации. Идеально для творческих мероприятий, съёмок, выставок.',
+            'coworking': 'Современное рабочее пространство с высокоскоростным интернетом. Есть переговорные, лаунж-зона, кухня. Включены все коммунальные услуги. Подходит для фрилансеров и небольших команд.',
             'conference': 'Оборудованный зал для проведения конференций, семинаров и тренингов. Проектор, экран, флипчарт, маркерная доска. Возможность организации кофе-брейков.',
             'photo-studio': 'Профессиональная фотостудия с полным комплектом оборудования. Циклорама, импульсный и постоянный свет, набор фонов. Гримёрка, зона отдыха для моделей.',
             'showroom': 'Элегантное выставочное пространство на первой линии. Панорамные витрины, качественное освещение. Идеально для презентаций, выставок, pop-up магазинов.',
@@ -369,18 +416,14 @@ class Command(BaseCommand):
         for i in range(count):
             city = random.choice(cities)
             category = random.choice(categories)
-            owner = random.choice(owners)
             street = random.choice(streets)
 
-            # Генерируем название
             templates = name_templates.get(category.slug, ['Помещение "{city}"'])
             title = random.choice(templates).format(city=city.name, street=street)
 
-            # Генерируем slug
             base_slug = slugify(unidecode(f"{city.name} {category.slug} {i}"))
             slug = base_slug
 
-            # Параметры помещения зависят от категории
             if category.slug in ['warehouse', 'retail']:
                 area = random.randint(50, 1000)
             elif category.slug in ['conference', 'photo-studio']:
@@ -400,30 +443,27 @@ class Command(BaseCommand):
                     'area_sqm': Decimal(str(area)),
                     'max_capacity': capacity,
                     'description': descriptions.get(category.slug, 'Помещение для аренды'),
-                    'owner': owner,
+                    'owner': admin,
                     'is_active': True,
-                    'is_featured': random.random() < 0.2,  # 20% рекомендуемых
+                    'is_featured': random.random() < 0.2,
                     'views_count': random.randint(0, 500),
                 }
             )
 
             if created:
-                # Генерируем цены для каждого периода
                 base_hour_price = random.randint(300, 3000)
 
                 price_multipliers = {
                     'hour': 1,
-                    'day': 6,  # ~6 часов по выгодной цене
-                    'week': 30,  # ~5 дней
-                    'month': 100,  # ~3.3 недели
+                    'day': 6,
+                    'week': 30,
+                    'month': 100,
                 }
 
                 for period in periods:
                     multiplier = price_multipliers.get(period.name, 1)
                     price = base_hour_price * multiplier
-                    # Добавляем небольшую вариацию
                     price = int(price * random.uniform(0.9, 1.1))
-                    # Округляем до красивого числа
                     price = round(price / 100) * 100
 
                     SpacePrice.objects.create(
@@ -447,7 +487,9 @@ class Command(BaseCommand):
         self.stdout.write(f'   • Городов: {City.objects.count()}')
         self.stdout.write(f'   • Категорий: {SpaceCategory.objects.count()}')
         self.stdout.write(f'   • Периодов аренды: {PricingPeriod.objects.count()}')
-        self.stdout.write(f'   • Пользователей: {User.objects.count()}')
+        self.stdout.write(f'   • Администраторов: {User.objects.filter(user_type="admin").count()}')
+        self.stdout.write(f'   • Модераторов: {User.objects.filter(user_type="moderator").count()}')
+        self.stdout.write(f'   • Пользователей: {User.objects.filter(user_type="user").count()}')
         self.stdout.write(f'   • Помещений: {Space.objects.count()}')
         self.stdout.write(f'   • Цен: {SpacePrice.objects.count()}')
         self.stdout.write('')

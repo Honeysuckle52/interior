@@ -33,8 +33,13 @@ class CustomUser(AbstractUser):
     """
     Расширенная модель пользователя.
 
+    Роли:
+        - user: Обычный пользователь (арендатор)
+        - moderator: Модератор (проверка отзывов, модерация контента)
+        - admin: Администратор (полный доступ)
+
     Attributes:
-        user_type: Тип пользователя (клиент, владелец, администратор)
+        user_type: Тип пользователя (пользователь, модератор, администратор)
         phone: Контактный телефон
         company: Название компании
         avatar: Фото профиля
@@ -42,8 +47,8 @@ class CustomUser(AbstractUser):
     """
 
     class UserType(models.TextChoices):
-        CLIENT = 'client', 'Клиент'
-        OWNER = 'owner', 'Владелец'
+        USER = 'user', 'Пользователь'
+        MODERATOR = 'moderator', 'Модератор'
         ADMIN = 'admin', 'Администратор'
 
     username = models.CharField(
@@ -59,9 +64,9 @@ class CustomUser(AbstractUser):
     user_type = models.CharField(
         max_length=10,
         choices=UserType.choices,
-        default=UserType.CLIENT,
+        default=UserType.USER,  # По умолчанию - обычный пользователь
         verbose_name='Тип пользователя',
-        db_index=True  # Added index for filtering
+        db_index=True
     )
     phone = models.CharField(max_length=20, blank=True, verbose_name='Телефон')
     company = models.CharField(max_length=100, blank=True, verbose_name='Компания')
@@ -94,14 +99,24 @@ class CustomUser(AbstractUser):
         return '/static/images/default-avatar.png'
 
     @property
-    def is_owner(self) -> bool:
-        """Проверить, является ли пользователь владельцем."""
-        return self.user_type == self.UserType.OWNER
+    def is_moderator(self) -> bool:
+        """Проверить, является ли пользователь модератором."""
+        return self.user_type == self.UserType.MODERATOR
 
     @property
-    def is_client(self) -> bool:
-        """Проверить, является ли пользователь клиентом."""
-        return self.user_type == self.UserType.CLIENT
+    def is_admin_user(self) -> bool:
+        """Проверить, является ли пользователь администратором."""
+        return self.user_type == self.UserType.ADMIN or self.is_superuser
+
+    @property
+    def is_regular_user(self) -> bool:
+        """Проверить, является ли пользователь обычным пользователем."""
+        return self.user_type == self.UserType.USER
+
+    @property
+    def can_moderate(self) -> bool:
+        """Проверить, может ли пользователь модерировать контент."""
+        return self.is_moderator or self.is_admin_user or self.is_staff
 
 
 class UserProfile(models.Model):

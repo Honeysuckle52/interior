@@ -53,22 +53,8 @@
                 {{ form.password2 }}
             </div>
 
-            <!-- Добавлено поле выбора типа аккаунта -->
-            <div class="form-group mb-3">
-                <label class="form-label">Тип аккаунта</label>
-                <div class="d-flex gap-4">
-                    {% for radio in form.user_type %}
-                    <div class="form-check">
-                        {{ radio.tag }}
-                        <label class="form-check-label" for="{{ radio.id_for_label }}">
-                            {{ radio.choice_label }}
-                        </label>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+            <!-- Убран выбор типа аккаунта - все регистрируются как пользователи -->
 
-            <!-- Добавлен чекбокс согласия с условиями -->
             <div class="form-group mb-4">
                 <div class="form-check">
                     {{ form.agree_terms }}

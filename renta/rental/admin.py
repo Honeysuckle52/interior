@@ -32,7 +32,7 @@ from .models import (
 from .forms import AdminUserCreationForm, AdminUserChangeForm
 
 
-# ============== КАСТОМНЫЙ ADMIN SITE С ОТЧЕТАМИ ==============
+# ============== КАСТОМНЫЙ ADMIN SITE С ОТЧЕТАМ�� ==============
 
 class InteriorAdminSite(AdminSite):
     """Кастомный AdminSite с дополнительными страницами отчетов."""
@@ -330,7 +330,7 @@ class InteriorAdminSite(AdminSite):
         }
 
     def _get_revenue_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
-        """Подготовит�� данные по доходам для экспорта."""
+        """Подготовить данные по доходам для экспорта."""
         bookings = self._get_bookings_queryset(date_from, date_to).filter(
             status__code__in=['confirmed', 'completed']
         )

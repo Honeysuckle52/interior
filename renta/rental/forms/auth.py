@@ -17,7 +17,6 @@ def validate_phone(value: str) -> None:
     """Валидация номера телефона без использования regex"""
     if not value:
         return
-    # Удаляем все кроме цифр и +
     cleaned = ''.join(c for c in value if c.isdigit() or c == '+')
     if len(cleaned) < 10 or len(cleaned) > 16:
         raise forms.ValidationError('Введите корректный номер телефона (10-15 цифр)')
@@ -40,7 +39,9 @@ def validate_username(value: str) -> None:
 
 class CustomUserCreationForm(forms.ModelForm):
     """
-    Расширенная форма регистрации пользователя (без UserCreationForm для совместимости с Python 3.14)
+    Форма регистрации пользователя.
+    Все пользователи регистрируются как обычные пользователи (user).
+    Роли moderator и admin назначаются только через админ-панель.
     """
     username = forms.CharField(
         max_length=150,
@@ -97,18 +98,6 @@ class CustomUserCreationForm(forms.ModelForm):
         })
     )
 
-    user_type = forms.ChoiceField(
-        choices=[
-            ('client', 'Арендатор (ищу помещение)'),
-            ('owner', 'Владелец (сдаю помещение)'),
-        ],
-        initial='client',
-        label='Тип аккаунта',
-        widget=forms.RadioSelect(attrs={
-            'class': 'form-check-input'
-        })
-    )
-
     password1 = forms.CharField(
         label='Пароль',
         widget=forms.PasswordInput(attrs={
@@ -137,7 +126,8 @@ class CustomUserCreationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ('username', 'email', 'first_name', 'last_name', 'phone', 'user_type')
+        fields = ('username', 'email', 'first_name', 'last_name', 'phone')
+        exclude = ('user_type',)
 
     def clean_email(self) -> str:
         """Проверка уникальности email"""
@@ -182,7 +172,7 @@ class CustomUserCreationForm(forms.ModelForm):
         user.phone = self.cleaned_data.get('phone', '')
         user.first_name = self.cleaned_data.get('first_name', '')
         user.last_name = self.cleaned_data.get('last_name', '')
-        user.user_type = self.cleaned_data.get('user_type', 'client')
+        user.user_type = 'user'
 
         if commit:
             user.save()
