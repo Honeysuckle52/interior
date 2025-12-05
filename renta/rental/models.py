@@ -19,6 +19,14 @@ if TYPE_CHECKING:
     from django.db.models.manager import RelatedManager
 
 
+def validate_username_simple(value):
+    """Простой валидатор username без regex"""
+    allowed = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')
+    if not all(c in allowed for c in value):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('Имя пользователя может содержать только латинские буквы, цифры и подчеркивание')
+
+
 # ============== ПОЛЬЗОВАТЕЛИ ==============
 
 class CustomUser(AbstractUser):
@@ -37,6 +45,16 @@ class CustomUser(AbstractUser):
         CLIENT = 'client', 'Клиент'
         OWNER = 'owner', 'Владелец'
         ADMIN = 'admin', 'Администратор'
+
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=[validate_username_simple],
+        error_messages={
+            'unique': 'Пользователь с таким именем уже существует.',
+        },
+        verbose_name='Имя пользователя'
+    )
 
     user_type = models.CharField(
         max_length=10,
@@ -794,7 +812,7 @@ class ActionLog(models.Model):
         object_id: ID объекта
         object_repr: Строковое представление объекта
         changes: JSON с изменениями
-        ip_address: IP адрес ��ользователя
+        ip_address: IP адрес ользователя
         user_agent: User-Agent браузера
     """
 

@@ -1,23 +1,58 @@
 """
 ФОРМЫ АУТЕНТИФИКАЦИИ
 """
-from __future__ import annotations  # для поддержки forward references
+from __future__ import annotations
 
-from typing import Any, Optional  # добавлены type hints
+from typing import Any, Optional
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, UserChangeForm
 from django.contrib.auth import authenticate
-from django.core.validators import RegexValidator
-from django.http import HttpRequest  # для типизации
+from django.contrib.auth.password_validation import validate_password
 
 from ..models import CustomUser, UserProfile
 
 
-class CustomUserCreationForm(UserCreationForm):
+def validate_phone(value: str) -> None:
+    """Валидация номера телефона без использования regex"""
+    if not value:
+        return
+    # Удаляем все кроме цифр и +
+    cleaned = ''.join(c for c in value if c.isdigit() or c == '+')
+    if len(cleaned) < 10 or len(cleaned) > 16:
+        raise forms.ValidationError('Введите корректный номер телефона (10-15 цифр)')
+    if cleaned.startswith('+') and len(cleaned) < 11:
+        raise forms.ValidationError('Введите корректный номер телефона')
+
+
+def validate_username(value: str) -> None:
+    """Валидация имени пользователя без использования regex"""
+    if not value:
+        raise forms.ValidationError('Имя пользователя обязательно')
+    if len(value) < 3:
+        raise forms.ValidationError('Имя пользователя должно содержать минимум 3 символа')
+    if len(value) > 150:
+        raise forms.ValidationError('Имя пользователя не должно превышать 150 символов')
+    allowed_chars = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')
+    if not all(c in allowed_chars for c in value):
+        raise forms.ValidationError('Имя пользователя может содержать только буквы, цифры и подчеркивание')
+
+
+class CustomUserCreationForm(forms.ModelForm):
     """
-    Расширенная форма регистрации пользователя
+    Расширенная форма регистрации пользователя (без UserCreationForm для совместимости с Python 3.14)
     """
+    username = forms.CharField(
+        max_length=150,
+        label='Логин',
+        validators=[validate_username],
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Логин для входа',
+            'autocomplete': 'username'
+        })
+    )
+
     email = forms.EmailField(
         required=True,
         label='Email',
@@ -32,12 +67,7 @@ class CustomUserCreationForm(UserCreationForm):
         required=False,
         max_length=20,
         label='Телефон',
-        validators=[
-            RegexValidator(
-                regex=r'^\+?[78]?[\s\-]?$$?\d{3}$$?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$',
-                message='Введите корректный номер телефона (например: +7 999 123-45-67)'
-            )
-        ],
+        validators=[validate_phone],
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': '+7 (999) 123-45-67',
@@ -79,6 +109,24 @@ class CustomUserCreationForm(UserCreationForm):
         })
     )
 
+    password1 = forms.CharField(
+        label='Пароль',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Придумайте пароль',
+            'autocomplete': 'new-password'
+        })
+    )
+
+    password2 = forms.CharField(
+        label='Подтверждение пароля',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Повторите пароль',
+            'autocomplete': 'new-password'
+        })
+    )
+
     agree_terms = forms.BooleanField(
         required=True,
         label='Я согласен с условиями использования',
@@ -89,54 +137,47 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta:
         model = CustomUser
-        fields = (
-            'username', 'email', 'first_name', 'last_name',
-            'phone', 'user_type', 'password1', 'password2'
-        )
-        widgets = {
-            'username': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Логин для входа',
-                'autocomplete': 'username'
-            }),
-        }
+        fields = ('username', 'email', 'first_name', 'last_name', 'phone', 'user_type')
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # type hints
-        super().__init__(*args, **kwargs)
-        # Стилизация полей паролей
-        self.fields['password1'].widget.attrs.update({
-            'class': 'form-control',
-            'placeholder': 'Придумайте пароль',
-            'autocomplete': 'new-password'
-        })
-        self.fields['password2'].widget.attrs.update({
-            'class': 'form-control',
-            'placeholder': 'Повторите пароль',
-            'autocomplete': 'new-password'
-        })
-
-        # Кастомные лейблы
-        self.fields['password1'].label = 'Пароль'
-        self.fields['password2'].label = 'Подтверждение пароля'
-        self.fields['username'].label = 'Логин'
-
-    def clean_email(self) -> str:  # type hints
+    def clean_email(self) -> str:
         """Проверка уникальности email"""
         email: str = self.cleaned_data.get('email', '')
         if CustomUser.objects.filter(email=email).exists():
             raise forms.ValidationError('Этот email уже зарегистрирован')
         return email
 
-    def clean_phone(self) -> str:  # type hints
+    def clean_username(self) -> str:
+        """Проверка уникальности username"""
+        username: str = self.cleaned_data.get('username', '')
+        if CustomUser.objects.filter(username=username).exists():
+            raise forms.ValidationError('Это имя пользователя уже занято')
+        return username
+
+    def clean_phone(self) -> str:
         """Нормализация номера телефона"""
         phone: str = self.cleaned_data.get('phone', '')
         if phone:
-            # Удаляем все кроме цифр и +
             phone = ''.join(c for c in phone if c.isdigit() or c == '+')
         return phone
 
-    def save(self, commit: bool = True) -> CustomUser:  # type hints
+    def clean_password1(self) -> str:
+        """Валидация пароля"""
+        password1 = self.cleaned_data.get('password1', '')
+        if password1:
+            validate_password(password1)
+        return password1
+
+    def clean_password2(self) -> str:
+        """Проверка совпадения паролей"""
+        password1 = self.cleaned_data.get('password1', '')
+        password2 = self.cleaned_data.get('password2', '')
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError('Пароли не совпадают')
+        return password2
+
+    def save(self, commit: bool = True) -> CustomUser:
         user = super().save(commit=False)
+        user.set_password(self.cleaned_data['password1'])
         user.email = self.cleaned_data['email']
         user.phone = self.cleaned_data.get('phone', '')
         user.first_name = self.cleaned_data.get('first_name', '')
@@ -145,7 +186,6 @@ class CustomUserCreationForm(UserCreationForm):
 
         if commit:
             user.save()
-            # Создаем профиль пользователя
             UserProfile.objects.get_or_create(user=user)
         return user
 
@@ -181,26 +221,25 @@ class CustomAuthenticationForm(AuthenticationForm):
         })
     )
 
-    def clean(self) -> dict[str, Any]:  # type hints
+    def clean(self) -> dict[str, Any]:
         """Позволяет входить по email или username"""
         username: Optional[str] = self.cleaned_data.get('username')
         password: Optional[str] = self.cleaned_data.get('password')
 
         if username and password:
-            # Проверяем, не email ли это
             if '@' in username:
                 try:
                     user = CustomUser.objects.get(email=username)
                     username = user.username
                 except CustomUser.DoesNotExist:
                     pass
-            
+
             self.user_cache = authenticate(
-                self.request, 
-                username=username, 
+                self.request,
+                username=username,
                 password=password
             )
-            
+
             if self.user_cache is None:
                 raise forms.ValidationError(
                     'Неверный логин/email или пароль',
@@ -211,5 +250,51 @@ class CustomAuthenticationForm(AuthenticationForm):
                     'Этот аккаунт деактивирован',
                     code='inactive'
                 )
-        
+
         return self.cleaned_data
+
+
+class AdminUserCreationForm(forms.ModelForm):
+    """Форма создания пользователя в админке (без проблемных regex)"""
+    username = forms.CharField(
+        max_length=150,
+        label='Имя пользователя',
+        validators=[validate_username],
+        widget=forms.TextInput(attrs={'class': 'vTextField'})
+    )
+
+    password1 = forms.CharField(
+        label='Пароль',
+        widget=forms.PasswordInput(attrs={'class': 'vTextField'})
+    )
+
+    password2 = forms.CharField(
+        label='Подтверждение пароля',
+        widget=forms.PasswordInput(attrs={'class': 'vTextField'})
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('username', 'email', 'first_name', 'last_name', 'phone', 'user_type')
+
+    def clean_password2(self) -> str:
+        password1 = self.cleaned_data.get('password1', '')
+        password2 = self.cleaned_data.get('password2', '')
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError('Пароли не совпадают')
+        return password2
+
+    def save(self, commit: bool = True) -> CustomUser:
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data['password1'])
+        if commit:
+            user.save()
+        return user
+
+
+class AdminUserChangeForm(UserChangeForm):
+    """Форма редактирования пользователя в админке"""
+
+    class Meta:
+        model = CustomUser
+        fields = '__all__'

@@ -29,6 +29,7 @@ from .models import (
     BookingStatus, Booking, TransactionStatus, Transaction,
     Review, Favorite, ActionLog
 )
+from .forms import AdminUserCreationForm, AdminUserChangeForm
 
 
 # ============== КАСТОМНЫЙ ADMIN SITE С ОТЧЕТАМИ ==============
@@ -329,7 +330,7 @@ class InteriorAdminSite(AdminSite):
         }
 
     def _get_revenue_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
-        """Подготовить данные по доходам для экспорта."""
+        """Подготовит�� данные по доходам для экспорта."""
         bookings = self._get_bookings_queryset(date_from, date_to).filter(
             status__code__in=['confirmed', 'completed']
         )
@@ -457,6 +458,9 @@ class BookingInline(admin.TabularInline):
 
 @admin.register(CustomUser, site=admin_site)
 class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
+    add_form = AdminUserCreationForm
+    form = AdminUserChangeForm
+
     list_display = [
         'username', 'email', 'get_full_name_display', 'user_type',
         'phone', 'is_active', 'get_bookings_count', 'created_at'
@@ -468,16 +472,27 @@ class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
 
     inlines = [UserProfileInline, BookingInline]
 
-    fieldsets = UserAdmin.fieldsets + (
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Личная информация', {'fields': ('first_name', 'last_name', 'email')}),
         ('Информация о клиенте', {
             'fields': ('user_type', 'phone', 'company', 'avatar', 'email_verified'),
             'classes': ('wide',)
         }),
+        ('Права доступа', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+            'classes': ('collapse',)
+        }),
+        ('Важные даты', {'fields': ('last_login', 'date_joined')}),
     )
 
-    add_fieldsets = UserAdmin.add_fieldsets + (
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2'),
+        }),
         ('Дополнительно', {
-            'fields': ('email', 'user_type', 'phone'),
+            'fields': ('user_type', 'phone'),
             'classes': ('wide',)
         }),
     )

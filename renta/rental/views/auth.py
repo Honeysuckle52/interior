@@ -7,6 +7,8 @@ Handles user login, registration, and logout.
 from __future__ import annotations
 
 import logging
+import traceback
+import re
 
 from django.contrib import messages
 from django.contrib.auth import login, logout
@@ -74,39 +76,59 @@ def register_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect('home')
 
+    form = CustomUserCreationForm()
+
     try:
         if request.method == 'POST':
-            form = CustomUserCreationForm(request.POST)
-            if form.is_valid():
-                try:
-                    user = form.save()
+            logger.info(f"Registration attempt with data: {request.POST.keys()}")
 
-                    # Create profile if not created in form
-                    if not hasattr(user, 'profile'):
-                        UserProfile.objects.create(user=user)
+            try:
+                form = CustomUserCreationForm(request.POST)
+            except Exception as form_init_error:
+                logger.error(f"Form initialization error: {form_init_error}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                messages.error(request, f'Ошибка инициализации формы: {str(form_init_error)}')
+                return render(request, 'auth/register.html', {'form': CustomUserCreationForm()})
 
-                    # Auto-login after registration
-                    login(request, user)
-                    messages.success(
-                        request,
-                        f'Добро пожаловать, {user.username}! Регистрация прошла успешно.'
-                    )
-                    return redirect('dashboard')
-                except DatabaseError as e:
-                    logger.error(f"Database error during registration: {e}", exc_info=True)
-                    messages.error(request, 'Ошибка при регистрации. Попробуйте снова.')
-            else:
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, error)
-        else:
-            form = CustomUserCreationForm()
+            try:
+                if form.is_valid():
+                    try:
+                        user = form.save()
+
+                        # Create profile if not created in form
+                        if not hasattr(user, 'profile'):
+                            UserProfile.objects.create(user=user)
+
+                        # Auto-login after registration
+                        login(request, user)
+                        messages.success(
+                            request,
+                            f'Добро пожаловать, {user.username}! Регистрация прошла успешно.'
+                        )
+                        return redirect('dashboard')
+                    except DatabaseError as e:
+                        logger.error(f"Database error during registration: {e}", exc_info=True)
+                        messages.error(request, 'Ошибка базы данных при регистрации. Попробуйте снова.')
+                else:
+                    logger.warning(f"Form validation errors: {form.errors}")
+                    for field, errors in form.errors.items():
+                        for error in errors:
+                            messages.error(request, f'{field}: {error}')
+            except re.error as regex_error:
+                logger.error(f"Regex error during validation: {regex_error}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                messages.error(request, f'Ошибка регулярного выражения: {str(regex_error)}')
+            except Exception as validation_error:
+                logger.error(f"Validation error: {validation_error}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                messages.error(request, f'Ошибка валидации: {str(validation_error)}')
 
         return render(request, 'auth/register.html', {'form': form})
 
     except Exception as e:
-        logger.error(f"Error in register_view: {e}", exc_info=True)
-        messages.error(request, 'Произошла ошибка при регистрации')
+        logger.error(f"Unexpected error in register_view: {e}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        messages.error(request, f'Произошла ошибка: {str(e)}')
         return render(request, 'auth/register.html', {'form': CustomUserCreationForm()})
 
 

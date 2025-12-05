@@ -123,9 +123,6 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-LOGS_DIR = BASE_DIR / 'logs'
-LOGS_DIR.mkdir(exist_ok=True)
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -140,11 +137,9 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
+        'database': {
             'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': LOGS_DIR / 'django.log',
-            'formatter': 'verbose',
+            'class': 'rental.logging_handlers.DatabaseLogHandler',
         },
         'console': {
             'level': 'INFO',
@@ -154,12 +149,12 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
+            'handlers': ['database', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
         'rental': {
-            'handlers': ['file', 'console'],
+            'handlers': ['database', 'console'],
             'level': 'DEBUG',
             'propagate': True,
         },
