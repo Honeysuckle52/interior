@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мои отзывы | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Личный кабинет</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Мои отзывы</li>
+                </ol>
+            </nav>
+
+            <h1 class="mb-4">
+                <i class="fas fa-star me-2 gold-text"></i>Мои отзывы
+            </h1>
+
+            {% if reviews %}
+                <div class="row g-4">
+                    {% for review in reviews %}
+                    <div class="col-12">
+                        <div class="card glass-card">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-3">
+                                        <a href="{% url 'space_detail' pk=review.space.pk %}">
+                                            {% if review.space.images.first %}
+                                                <img src="{{ review.space.images.first.image.url }}"
+                                                     alt="{{ review.space.title }}"
+                                                     class="img-fluid rounded"
+                                                     style="max-height: 120px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-secondary rounded d-flex align-items-center justify-content-center"
+                                                     style="height: 120px;">
+                                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5 class="mb-2">
+                                            <a href="{% url 'space_detail' pk=review.space.pk %}" class="text-decoration-none">
+                                                {{ review.space.title }}
+                                            </a>
+                                        </h5>
+                                        <div class="mb-2">
+                                            <span class="gold-text">
+                                                {% for i in "12345" %}
+                                                    {% if forloop.counter <= review.rating %}
+                                                        <i class="fas fa-star"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </span>
+                                            <span class="text-muted ms-2">{{ review.created_at|date:"d.m.Y H:i" }}</span>
+                                        </div>
+                                        <p class="text-muted mb-0">{{ review.comment|truncatewords:30 }}</p>
+                                    </div>
+                                    <div class="col-md-3 text-md-end mt-3 mt-md-0">
+                                        {% if review.is_approved %}
+                                            <span class="badge bg-success mb-2">
+                                                <i class="fas fa-check me-1"></i>Опубликован
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning mb-2">
+                                                <i class="fas fa-clock me-1"></i>На модерации
+                                            </span>
+                                        {% endif %}
+                                        <form method="post" action="{% url 'delete_review' pk=review.pk %}"
+                                              onsubmit="return confirm('Вы уверены, что хотите удалить этот отзыв?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                <i class="fas fa-trash me-1"></i>Удалить
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Пагинация -->
+                {% if reviews.has_other_pages %}
+                <nav aria-label="Страницы" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if reviews.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ reviews.previous_page_number }}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in reviews.paginator.page_range %}
+                            {% if reviews.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > reviews.number|add:'-3' and num < reviews.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if reviews.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ reviews.next_page_number }}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-star fa-4x text-muted mb-3"></i>
+                    <h4>У вас пока нет отзывов</h4>
+                    <p class="text-muted">Забронируйте помещение и оставьте первый отзыв!</p>
+                    <a href="{% url 'spaces_list' %}" class="btn btn-gold">
+                        <i class="fas fa-search me-2"></i>Найти помещение
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

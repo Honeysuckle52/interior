@@ -48,13 +48,14 @@ function initThemeToggle() {
  * Обработка кнопок избранного
  */
 function initFavoriteButtons() {
-  document.querySelectorAll(".favorite-btn").forEach((btn) => {
+  document.querySelectorAll(".favorite-btn, .favorite-inline").forEach((btn) => {
     btn.addEventListener("click", async function (e) {
       e.preventDefault()
       e.stopPropagation()
 
       const spaceId = this.dataset.spaceId
       const icon = this.querySelector("i")
+      const textEl = this.querySelector(".favorite-text")
 
       try {
         const response = await fetch(`/spaces/${spaceId}/favorite/`, {
@@ -71,10 +72,12 @@ function initFavoriteButtons() {
           this.classList.add("active")
           icon.classList.remove("far")
           icon.classList.add("fas")
+          if (textEl) textEl.textContent = "В избранном"
         } else {
           this.classList.remove("active")
           icon.classList.remove("fas")
           icon.classList.add("far")
+          if (textEl) textEl.textContent = "В избранное"
         }
 
         // Показываем уведомление

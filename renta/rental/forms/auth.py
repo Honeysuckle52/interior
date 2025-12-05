@@ -1,11 +1,15 @@
 """
 ФОРМЫ АУТЕНТИФИКАЦИИ
 """
+from __future__ import annotations  # для поддержки forward references
+
+from typing import Any, Optional  # добавлены type hints
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
+from django.http import HttpRequest  # для типизации
 
 from ..models import CustomUser, UserProfile
 
@@ -23,7 +27,7 @@ class CustomUserCreationForm(UserCreationForm):
             'autocomplete': 'email'
         })
     )
-    
+
     phone = forms.CharField(
         required=False,
         max_length=20,
@@ -40,7 +44,7 @@ class CustomUserCreationForm(UserCreationForm):
             'autocomplete': 'tel'
         })
     )
-    
+
     first_name = forms.CharField(
         required=False,
         max_length=150,
@@ -51,7 +55,7 @@ class CustomUserCreationForm(UserCreationForm):
             'autocomplete': 'given-name'
         })
     )
-    
+
     last_name = forms.CharField(
         required=False,
         max_length=150,
@@ -62,7 +66,7 @@ class CustomUserCreationForm(UserCreationForm):
             'autocomplete': 'family-name'
         })
     )
-    
+
     user_type = forms.ChoiceField(
         choices=[
             ('client', 'Арендатор (ищу помещение)'),
@@ -74,7 +78,7 @@ class CustomUserCreationForm(UserCreationForm):
             'class': 'form-check-input'
         })
     )
-    
+
     agree_terms = forms.BooleanField(
         required=True,
         label='Я согласен с условиями использования',
@@ -86,7 +90,7 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = CustomUser
         fields = (
-            'username', 'email', 'first_name', 'last_name', 
+            'username', 'email', 'first_name', 'last_name',
             'phone', 'user_type', 'password1', 'password2'
         )
         widgets = {
@@ -97,7 +101,7 @@ class CustomUserCreationForm(UserCreationForm):
             }),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # type hints
         super().__init__(*args, **kwargs)
         # Стилизация полей паролей
         self.fields['password1'].widget.attrs.update({
@@ -110,35 +114,35 @@ class CustomUserCreationForm(UserCreationForm):
             'placeholder': 'Повторите пароль',
             'autocomplete': 'new-password'
         })
-        
+
         # Кастомные лейблы
         self.fields['password1'].label = 'Пароль'
         self.fields['password2'].label = 'Подтверждение пароля'
         self.fields['username'].label = 'Логин'
 
-    def clean_email(self):
+    def clean_email(self) -> str:  # type hints
         """Проверка уникальности email"""
-        email = self.cleaned_data.get('email')
+        email: str = self.cleaned_data.get('email', '')
         if CustomUser.objects.filter(email=email).exists():
             raise forms.ValidationError('Этот email уже зарегистрирован')
         return email
 
-    def clean_phone(self):
+    def clean_phone(self) -> str:  # type hints
         """Нормализация номера телефона"""
-        phone = self.cleaned_data.get('phone', '')
+        phone: str = self.cleaned_data.get('phone', '')
         if phone:
             # Удаляем все кроме цифр и +
             phone = ''.join(c for c in phone if c.isdigit() or c == '+')
         return phone
 
-    def save(self, commit=True):
+    def save(self, commit: bool = True) -> CustomUser:  # type hints
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
         user.phone = self.cleaned_data.get('phone', '')
         user.first_name = self.cleaned_data.get('first_name', '')
         user.last_name = self.cleaned_data.get('last_name', '')
         user.user_type = self.cleaned_data.get('user_type', 'client')
-        
+
         if commit:
             user.save()
             # Создаем профиль пользователя
@@ -167,7 +171,7 @@ class CustomAuthenticationForm(AuthenticationForm):
             'autocomplete': 'current-password'
         })
     )
-    
+
     remember_me = forms.BooleanField(
         required=False,
         initial=True,
@@ -177,10 +181,10 @@ class CustomAuthenticationForm(AuthenticationForm):
         })
     )
 
-    def clean(self):
+    def clean(self) -> dict[str, Any]:  # type hints
         """Позволяет входить по email или username"""
-        username = self.cleaned_data.get('username')
-        password = self.cleaned_data.get('password')
+        username: Optional[str] = self.cleaned_data.get('username')
+        password: Optional[str] = self.cleaned_data.get('password')
 
         if username and password:
             # Проверяем, не email ли это

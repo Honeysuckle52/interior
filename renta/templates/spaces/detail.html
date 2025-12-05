@@ -51,10 +51,17 @@
                     <i class="fas fa-star me-1 gold-text"></i>{{ avg_rating }}
                 </span>
                 {% endif %}
+                <!-- Переделанная кнопка избранного - компактная иконка справа от заголовка -->
+                {% if user.is_authenticated %}
+                <div class="favorite-inline {% if is_favorite %}active{% endif %}" data-space-id="{{ space.id }}">
+                    <i class="{% if is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
+                    <span class="favorite-text">{% if is_favorite %}В избранном{% else %}В избранное{% endif %}</span>
+                </div>
+                {% endif %}
             </div>
-            
+
             <p class="lead text-muted mb-4">{{ space.description }}</p>
-            
+
             <!-- Характеристики -->
             <div class="detail-card mb-4">
                 <h5 class="fw-bold mb-4"><i class="fas fa-info-circle me-2 gold-text"></i>Характеристики</h5>
@@ -97,7 +104,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Отзывы -->
             {% if reviews %}
             <div class="detail-card mb-4">
@@ -118,12 +125,12 @@
             </div>
             {% endif %}
         </div>
-        
+
         <div class="col-lg-4">
             <!-- Боковая панель с ценами -->
             <div class="price-card sticky-top" style="top: 100px;">
                 <h5 class="fw-bold mb-4"><i class="fas fa-ruble-sign me-2 gold-text"></i>Стоимость аренды</h5>
-                
+
                 {% for price in space_prices %}
                 <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom" style="border-color: var(--border-color) !important;">
                     <span class="text-muted">{{ price.period.description }}:</span>
@@ -132,17 +139,13 @@
                 {% empty %}
                 <p class="text-muted">Цена по запросу</p>
                 {% endfor %}
-                
+
                 {% if user.is_authenticated %}
-                    <a href="{% url 'create_booking' space.id %}" class="btn btn-gold w-100 mt-3 mb-2">
+                    <a href="{% url 'create_booking' space.id %}" class="btn btn-gold w-100 mt-3 mb-3">
                         <i class="fas fa-calendar-check me-2"></i>Забронировать
                     </a>
-                    <button class="btn btn-outline-light w-100 favorite-btn {% if is_favorite %}active{% endif %}" data-space-id="{{ space.id }}">
-                        <i class="{% if is_favorite %}fas{% else %}far{% endif %} fa-heart me-2"></i>
-                        {% if is_favorite %}В избранном{% else %}В избранное{% endif %}
-                    </button>
                 {% else %}
-                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-gold w-100 mt-3 mb-2">
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-gold w-100 mt-3 mb-3">
                         <i class="fas fa-sign-in-alt me-2"></i>Войти для бронирования
                     </a>
                 {% endif %}

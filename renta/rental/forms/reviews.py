@@ -1,6 +1,9 @@
 """
 ФОРМЫ ОТЗЫВОВ
 """
+from __future__ import annotations  # для поддержки forward references
+
+from typing import Any  # добавлены type hints
 
 from django import forms
 from django.core.validators import MinLengthValidator
@@ -19,7 +22,7 @@ class ReviewForm(forms.ModelForm):
         (2, '2 - Плохо'),
         (1, '1 - Ужасно'),
     ]
-    
+
     rating = forms.ChoiceField(
         choices=RATING_CHOICES,
         label='Оценка',
@@ -27,7 +30,7 @@ class ReviewForm(forms.ModelForm):
             'class': 'form-check-input rating-input'
         })
     )
-    
+
     comment = forms.CharField(
         label='Ваш отзыв',
         validators=[MinLengthValidator(10, 'Отзыв должен содержать минимум 10 символов')],
@@ -43,7 +46,7 @@ class ReviewForm(forms.ModelForm):
         model = Review
         fields = ['rating', 'comment']
 
-    def clean_rating(self):
+    def clean_rating(self) -> int:  # type hints
         """Преобразование рейтинга в int"""
         rating = self.cleaned_data.get('rating')
         return int(rating)

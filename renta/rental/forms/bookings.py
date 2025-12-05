@@ -1,10 +1,13 @@
 """
 ФОРМЫ БРОНИРОВАНИЯ
 """
+from __future__ import annotations  # для поддержки forward references
+
+from typing import Any, Optional  # добавлены type hints
+from datetime import date, time
 
 from django import forms
 from django.utils import timezone
-from datetime import date, time
 
 from ..models import Booking, PricingPeriod
 
@@ -21,7 +24,7 @@ class BookingForm(forms.ModelForm):
             'min': date.today().isoformat()
         })
     )
-    
+
     start_time = forms.TimeField(
         label='Время начала',
         initial=time(9, 0),
@@ -30,7 +33,7 @@ class BookingForm(forms.ModelForm):
             'type': 'time'
         })
     )
-    
+
     period = forms.ModelChoiceField(
         queryset=PricingPeriod.objects.all(),
         label='Период аренды',
@@ -39,7 +42,7 @@ class BookingForm(forms.ModelForm):
             'id': 'booking-period'
         })
     )
-    
+
     periods_count = forms.IntegerField(
         min_value=1,
         max_value=100,
@@ -67,16 +70,16 @@ class BookingForm(forms.ModelForm):
             'comment': 'Комментарий',
         }
 
-    def clean_start_date(self):
+    def clean_start_date(self) -> date:  # type hints
         """Проверка даты начала"""
-        start_date = self.cleaned_data.get('start_date')
+        start_date: Optional[date] = self.cleaned_data.get('start_date')
         if start_date and start_date < date.today():
             raise forms.ValidationError('Дата начала не может быть в прошлом')
         return start_date
 
-    def clean_periods_count(self):
+    def clean_periods_count(self) -> int:  # type hints
         """Проверка количества периодов"""
-        periods_count = self.cleaned_data.get('periods_count')
+        periods_count: Optional[int] = self.cleaned_data.get('periods_count')
         if periods_count and periods_count < 1:
             raise forms.ValidationError('Минимум 1 период')
         if periods_count and periods_count > 100:

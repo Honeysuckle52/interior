@@ -1,6 +1,10 @@
 """
 ФОРМЫ ДЛЯ ПОМЕЩЕНИЙ
 """
+from __future__ import annotations  # для поддержки forward references
+
+from typing import Any, Optional  # добавлены type hints
+from decimal import Decimal  # для типизации
 
 from django import forms
 from django.utils.text import slugify
@@ -21,7 +25,7 @@ class SpaceFilterForm(forms.Form):
             'placeholder': 'Название, адрес, описание...'
         })
     )
-    
+
     city = forms.ModelChoiceField(
         queryset=City.objects.none(),
         required=False,
@@ -29,7 +33,7 @@ class SpaceFilterForm(forms.Form):
         label='Город',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    
+
     category = forms.ModelChoiceField(
         queryset=SpaceCategory.objects.none(),
         required=False,
@@ -37,7 +41,7 @@ class SpaceFilterForm(forms.Form):
         label='Категория',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    
+
     min_area = forms.DecimalField(
         required=False,
         min_value=0,
@@ -47,7 +51,7 @@ class SpaceFilterForm(forms.Form):
             'placeholder': 'от м²'
         })
     )
-    
+
     max_area = forms.DecimalField(
         required=False,
         min_value=0,
@@ -57,7 +61,7 @@ class SpaceFilterForm(forms.Form):
             'placeholder': 'до м²'
         })
     )
-    
+
     min_price = forms.DecimalField(
         required=False,
         min_value=0,
@@ -67,7 +71,7 @@ class SpaceFilterForm(forms.Form):
             'placeholder': 'от ₽'
         })
     )
-    
+
     max_price = forms.DecimalField(
         required=False,
         min_value=0,
@@ -77,7 +81,7 @@ class SpaceFilterForm(forms.Form):
             'placeholder': 'до ₽'
         })
     )
-    
+
     min_capacity = forms.IntegerField(
         required=False,
         min_value=1,
@@ -87,7 +91,7 @@ class SpaceFilterForm(forms.Form):
             'placeholder': 'чел.'
         })
     )
-    
+
     SORT_CHOICES = [
         ('newest', 'Сначала новые'),
         ('price_asc', 'Цена: по возрастанию'),
@@ -97,7 +101,7 @@ class SpaceFilterForm(forms.Form):
         ('popular', 'По популярности'),
         ('rating', 'По рейтингу'),
     ]
-    
+
     sort = forms.ChoiceField(
         required=False,
         choices=SORT_CHOICES,
@@ -106,7 +110,7 @@ class SpaceFilterForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # type hints
         super().__init__(*args, **kwargs)
         # Загружаем актуальные данные для select'ов
         self.fields['city'].queryset = City.objects.filter(
@@ -174,7 +178,7 @@ class SpaceForm(forms.ModelForm):
             'is_featured': 'Рекомендуемое',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # type hints
         super().__init__(*args, **kwargs)
         self.fields['city'].queryset = City.objects.filter(
             is_active=True
@@ -183,7 +187,7 @@ class SpaceForm(forms.ModelForm):
             is_active=True
         ).order_by('name')
 
-    def save(self, commit=True):
+    def save(self, commit: bool = True) -> Space:  # type hints
         space = super().save(commit=False)
         # Генерируем slug из названия
         if not space.slug:

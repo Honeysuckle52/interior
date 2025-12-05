@@ -1,0 +1,126 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Журнал действий{% endblock %}
+
+{% block content %}
+<h1>Журнал действий</h1>
+
+<div class="module" style="margin-bottom: 20px;">
+    <h2>Фильтры</h2>
+    <form method="get" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+        <div>
+            <label for="user">Пользователь:</label><br>
+            <select name="user" id="user" style="min-width: 150px;">
+                <option value="">Все</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {% if filters.user == u.id|stringformat:"s" %}selected{% endif %}>
+                    {{ u.username }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="action_type">Тип действия:</label><br>
+            <select name="action_type" id="action_type" style="min-width: 150px;">
+                <option value="">Все</option>
+                {% for code, label in action_types %}
+                <option value="{{ code }}" {% if filters.action_type == code %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="model">Модель:</label><br>
+            <input type="text" name="model" id="model" value="{{ filters.model }}" placeholder="Название модели">
+        </div>
+        <div>
+            <label for="date_from">С даты:</label><br>
+            <input type="date" name="date_from" id="date_from" value="{{ filters.date_from }}">
+        </div>
+        <div>
+            <label for="date_to">По дату:</label><br>
+            <input type="date" name="date_to" id="date_to" value="{{ filters.date_to }}">
+        </div>
+        <div>
+            <button type="submit" class="button">Применить</button>
+            <a href="{% url 'interior_admin:action_logs' %}" class="button">Сбросить</a>
+        </div>
+    </form>
+</div>
+
+<div class="module">
+    <table>
+        <thead>
+            <tr>
+                <th>Дата/Время</th>
+                <th>Пользователь</th>
+                <th>Действие</th>
+                <th>Модель</th>
+                <th>ID</th>
+                <th>Объект</th>
+                <th>IP адрес</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td style="white-space: nowrap;">{{ log.created_at|date:"d.m.Y H:i:s" }}</td>
+                <td>
+                    {% if log.user %}
+                        <a href="{% url 'interior_admin:rental_customuser_change' log.user.pk %}">
+                            {{ log.user.username }}
+                        </a>
+                    {% else %}
+                        <em>Аноним</em>
+                    {% endif %}
+                </td>
+                <td>
+                    <span style="
+                        background:{% if log.action_type == 'create' %}#28a745{% elif log.action_type == 'update' %}#007bff{% elif log.action_type == 'delete' %}#dc3545{% elif log.action_type == 'login' %}#28a745{% elif log.action_type == 'logout' %}#6c757d{% else %}#ffc107{% endif %};
+                        color: white;
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                    ">
+                        {{ log.get_action_type_display }}
+                    </span>
+                </td>
+                <td>{{ log.model_name }}</td>
+                <td>{{ log.object_id|default:"-" }}</td>
+                <td title="{{ log.object_repr }}">{{ log.object_repr|truncatechars:40 }}</td>
+                <td>{{ log.ip_address|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">Записи не найдены</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Пагинация -->
+{% if logs.has_other_pages %}
+<div style="margin-top: 20px; text-align: center;">
+    {% if logs.has_previous %}
+        <a href="?page=1{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo; Первая</a>
+        <a href="?page={{ logs.previous_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Предыдущая</a>
+    {% endif %}
+
+    <span style="margin: 0 15px;">
+        Страница {{ logs.number }} из {{ logs.paginator.num_pages }}
+    </span>
+
+    {% if logs.has_next %}
+        <a href="?page={{ logs.next_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Следующая</a>
+        <a href="?page={{ logs.paginator.num_pages }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Последняя &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<p style="margin-top: 20px;">
+    <a href="{% url 'interior_admin:reports' %}">&larr; Назад к отчетам</a>
+</p>
+{% endblock %}

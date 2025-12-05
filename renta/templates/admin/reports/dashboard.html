@@ -1,0 +1,155 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Аналитический дашборд{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1>Аналитический дашборд</h1>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px;">
+    <!-- График бронирований -->
+    <div class="module" style="flex: 1; min-width: 400px;">
+        <h2>Бронирования за 30 дней</h2>
+        <canvas id="bookingsChart" width="400" height="200"></canvas>
+    </div>
+
+    <!-- График доходов -->
+    <div class="module" style="flex: 1; min-width: 400px;">
+        <h2>Доходы за 30 дней</h2>
+        <canvas id="revenueChart" width="400" height="200"></canvas>
+    </div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px;">
+    <!-- Топ помещений -->
+    <div class="module" style="flex: 1; min-width: 300px;">
+        <h2>Топ-5 помещений</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Помещение</th>
+                    <th>Бронирований</th>
+                    <th>Доход</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for space in top_spaces %}
+                <tr>
+                    <td>
+                        <a href="{% url 'interior_admin:rental_space_change' space.pk %}">
+                            {{ space.title|truncatechars:30 }}
+                        </a>
+                    </td>
+                    <td>{{ space.bookings_count }}</td>
+                    <td>{{ space.revenue|floatformat:0|default:"0" }} ₽</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">Нет данных</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Распределение по статусам -->
+    <div class="module" style="flex: 1; min-width: 300px;">
+        <h2>Бронирования по статусам</h2>
+        <canvas id="statusChart" width="300" height="200"></canvas>
+    </div>
+</div>
+
+<p style="margin-top: 20px;">
+    <a href="{% url 'interior_admin:reports' %}">&larr; Назад к отчетам</a>
+</p>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Данные
+    const bookingsData = {{ bookings_by_day|safe }};
+    const revenueData = {{ revenue_by_day|safe }};
+    const statusData = {{ status_distribution|safe }};
+
+    // График бронирований
+    new Chart(document.getElementById('bookingsChart'), {
+        type: 'line',
+        data: {
+            labels: bookingsData.map(d => d.date),
+            datasets: [{
+                label: 'Бронирований',
+                data: bookingsData.map(d => d.count),
+                borderColor: '#417690',
+                backgroundColor: 'rgba(65, 118, 144, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // График доходов
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'bar',
+        data: {
+            labels: revenueData.map(d => d.date),
+            datasets: [{
+                label: 'Доход (₽)',
+                data: revenueData.map(d => d.amount),
+                backgroundColor: '#c4a000'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // Круговая диаграмма статусов
+    if (statusData && statusData.length > 0) {
+        const colors = {
+            'warning': '#ffc107',
+            'success': '#28a745',
+            'info': '#17a2b8',
+            'danger': '#dc3545',
+            'secondary': '#6c757d',
+            'primary': '#007bff'
+        };
+
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(d => d.status__name),
+                datasets: [{
+                    data: statusData.map(d => d.count),
+                    backgroundColor: statusData.map(d => colors[d.status__color] || '#6c757d')
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

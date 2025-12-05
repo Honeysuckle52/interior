@@ -72,7 +72,7 @@ class UserService:
                 setattr(user, field, value)
         user.save()
         
-        # Обновляем дополнительный профиль
+        # Обновляем дополнительный про��иль
         if profile_data:
             profile = UserService.get_or_create_profile(user)
             for field, value in profile_data.items():

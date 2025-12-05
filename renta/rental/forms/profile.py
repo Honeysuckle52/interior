@@ -1,6 +1,9 @@
 """
 ФОРМЫ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ
 """
+from __future__ import annotations  # для поддержки forward references
+
+from typing import Any  # добавлены type hints
 
 from django import forms
 from django.core.validators import RegexValidator
@@ -26,11 +29,11 @@ class UserProfileForm(forms.ModelForm):
             'placeholder': '+7 (999) 123-45-67'
         })
     )
-    
+
     class Meta:
         model = CustomUser
         fields = [
-            'first_name', 'last_name', 'email', 
+            'first_name', 'last_name', 'email',
             'phone', 'company', 'avatar'
         ]
         widgets = {
@@ -64,9 +67,9 @@ class UserProfileForm(forms.ModelForm):
             'avatar': 'Фото профиля',
         }
 
-    def clean_email(self):
+    def clean_email(self) -> str:  # type hints
         """Проверка уникальности email при изменении"""
-        email = self.cleaned_data.get('email')
+        email: str = self.cleaned_data.get('email', '')
         if CustomUser.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError('Этот email уже используется')
         return email
@@ -133,26 +136,26 @@ class ChangePasswordForm(forms.Form):
         })
     )
 
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self, user: CustomUser, *args: Any, **kwargs: Any) -> None:  # type hints
         self.user = user
         super().__init__(*args, **kwargs)
 
-    def clean_current_password(self):
-        current = self.cleaned_data.get('current_password')
+    def clean_current_password(self) -> str:  # type hints
+        current: str = self.cleaned_data.get('current_password', '')
         if not self.user.check_password(current):
             raise forms.ValidationError('Неверный текущий пароль')
         return current
 
-    def clean(self):
+    def clean(self) -> dict[str, Any]:  # type hints
         cleaned_data = super().clean()
         new1 = cleaned_data.get('new_password1')
         new2 = cleaned_data.get('new_password2')
-        
+
         if new1 and new2 and new1 != new2:
             raise forms.ValidationError('Пароли не совпадают')
         return cleaned_data
 
-    def save(self):
+    def save(self) -> CustomUser:  # type hints
         self.user.set_password(self.cleaned_data['new_password1'])
         self.user.save()
         return self.user

@@ -1,24 +1,35 @@
 """
 ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+
+Utility functions for the rental application.
 """
 
+from __future__ import annotations
+
+import re
+from decimal import Decimal
+from typing import Optional, Type
+
+from django.db import models
 from django.utils.text import slugify
 from unidecode import unidecode
-from decimal import Decimal
-import re
 
 
-def generate_unique_slug(model_class, title: str, exclude_pk=None) -> str:
+def generate_unique_slug(
+    model_class: Type[models.Model],
+    title: str,
+    exclude_pk: Optional[int] = None
+) -> str:
     """
-    Генерация уникального slug из названия
+    Generate a unique slug from title.
 
     Args:
-        model_class: класс модели Django
-        title: исходная строка для slug
-        exclude_pk: ID записи для исключения (при редактировании)
+        model_class: Django model class with slug field
+        title: Source string for slug
+        exclude_pk: Primary key to exclude (for updates)
 
     Returns:
-        str: уникальный slug
+        Unique slug string
     """
     base_slug = slugify(unidecode(title))
     if not base_slug:
@@ -41,65 +52,63 @@ def generate_unique_slug(model_class, title: str, exclude_pk=None) -> str:
     return slug
 
 
-def format_price(price) -> str:
+def format_price(price: Optional[Decimal | float | int]) -> str:
     """
-    Форматирование цены для отображения
+    Format price for display.
 
     Args:
-        price: число или Decimal
+        price: Numeric price value
 
     Returns:
-        str: отформатированная цена, например "1 500 ₽"
+        Formatted price string (e.g., "1 500 ₽")
     """
     if price is None:
         return '—'
 
-    price = Decimal(str(price))
-    formatted = '{:,.0f}'.format(price).replace(',', ' ')
+    price_decimal = Decimal(str(price))
+    formatted = '{:,.0f}'.format(price_decimal).replace(',', ' ')
     return f"{formatted} ₽"
 
 
-def format_area(area) -> str:
+def format_area(area: Optional[Decimal | float | int]) -> str:
     """
-    Форматирование площади
+    Format area for display.
 
     Args:
-        area: число или Decimal
+        area: Numeric area value
 
     Returns:
-        str: отформатированная площадь, например "150 м²"
+        Formatted area string (e.g., "150 м²")
     """
     if area is None:
         return '—'
 
-    area = Decimal(str(area))
-    if area == int(area):
-        return f"{int(area)} м²"
-    return f"{area:.1f} м²"
+    area_decimal = Decimal(str(area))
+    if area_decimal == int(area_decimal):
+        return f"{int(area_decimal)} м²"
+    return f"{area_decimal:.1f} м²"
 
 
-def normalize_phone(phone: str) -> str:
+def normalize_phone(phone: Optional[str]) -> str:
     """
-    Нормализация номера телефона
+    Normalize phone number to standard format.
 
     Args:
-        phone: строка с номером телефона
+        phone: Phone number string
 
     Returns:
-        str: нормализованный номер
+        Normalized phone number (e.g., "+71234567890")
     """
     if not phone:
         return ''
 
-    # Оставляем только цифры
+    # Keep only digits
     digits = re.sub(r'\D', '', phone)
 
-    # Приводим к формату +7XXXXXXXXXX
+    # Convert to +7XXXXXXXXXX format
     if len(digits) == 11:
         if digits.startswith('8'):
             digits = '7' + digits[1:]
-        elif digits.startswith('7'):
-            pass
         return f"+{digits}"
     elif len(digits) == 10:
         return f"+7{digits}"
@@ -109,49 +118,58 @@ def normalize_phone(phone: str) -> str:
 
 def format_phone(phone: str) -> str:
     """
-    Форматирование номера телефона для отображения
+    Format phone number for display.
 
     Args:
-        phone: нормализованный номер
+        phone: Phone number (preferably normalized)
 
     Returns:
-        str: красиво отформатированный номер
+        Formatted phone (e.g., "+7 (999) 123-45-67")
     """
     phone = normalize_phone(phone)
     if not phone or len(phone) != 12:
         return phone
 
-    # +7 (999) 123-45-67
     return f"{phone[:2]} ({phone[2:5]}) {phone[5:8]}-{phone[8:10]}-{phone[10:12]}"
 
 
-def truncate_text(text: str, max_length: int = 100, suffix: str = '...') -> str:
+def truncate_text(
+    text: str,
+    max_length: int = 100,
+    suffix: str = '...'
+) -> str:
     """
-    Обрезка текста до указанной длины
+    Truncate text to specified length.
 
     Args:
-        text: исходный текст
-        max_length: максимальная длина
-        suffix: суффикс для обрезанного текста
+        text: Source text
+        max_length: Maximum length
+        suffix: Suffix for truncated text
 
     Returns:
-        str: обрезанный текст
+        Truncated text
     """
     if not text or len(text) <= max_length:
         return text
 
-    return text[:max_length - len(suffix)].rsplit(' ', 1)[0] + suffix
+    truncated = text[:max_length - len(suffix)]
+    # Try to break at word boundary
+    last_space = truncated.rfind(' ')
+    if last_space > max_length // 2:
+        truncated = truncated[:last_space]
+
+    return truncated + suffix
 
 
 def calculate_duration_text(hours: int) -> str:
     """
-    Преобразование часов в читаемый текст
+    Convert hours to readable text.
 
     Args:
-        hours: количество часов
+        hours: Number of hours
 
     Returns:
-        str: текстовое представление, например "2 дня 5 часов"
+        Readable duration (e.g., "2 дня 5 часов")
     """
     if hours < 1:
         return 'менее часа'
@@ -159,7 +177,7 @@ def calculate_duration_text(hours: int) -> str:
     days = hours // 24
     remaining_hours = hours % 24
 
-    parts = []
+    parts: list[str] = []
 
     if days > 0:
         if days == 1:
@@ -182,13 +200,13 @@ def calculate_duration_text(hours: int) -> str:
 
 def get_rating_stars(rating: float) -> str:
     """
-    Получить звёзды рейтинга
+    Get star representation of rating.
 
     Args:
-        rating: рейтинг от 0 до 5
+        rating: Rating from 0 to 5
 
     Returns:
-        str: строка со звёздами
+        String with star characters
     """
     full_stars = int(rating)
     half_star = 1 if rating - full_stars >= 0.5 else 0

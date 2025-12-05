@@ -169,3 +169,73 @@ def render_space_card(space, is_favorite=False):
         'space': space,
         'is_favorite': is_favorite,
     }
+
+
+@register.filter
+def timesince_hours(value):
+    """
+    Количество часов от текущего момента до даты: {{ date|timesince_hours }}
+    Возвращает положительное число если дата в будущем, отрицательное если в прошлом.
+    """
+    from django.utils import timezone
+
+    if not value:
+        return 0
+
+    try:
+        now = timezone.now()
+        if timezone.is_naive(value):
+            value = timezone.make_aware(value)
+
+        delta = value - now
+        hours = delta.total_seconds() / 3600
+        return hours
+    except Exception:
+        return 0
+
+
+@register.filter
+def is_less_than_24_hours(value):
+    """
+    Проверяет, что до даты осталось менее 24 часов: {{ date|is_less_than_24_hours }}
+    """
+    from django.utils import timezone
+
+    if not value:
+        return False
+
+    try:
+        now = timezone.now()
+        if timezone.is_naive(value):
+            value = timezone.make_aware(value)
+
+        delta = value - now
+        hours = delta.total_seconds() / 3600
+        return 0 < hours < 24
+    except Exception:
+        return False
+
+
+@register.filter
+def duration_format(value):
+    """
+    Форматирование длительности в часах: {{ hours|duration_format }}
+    """
+    try:
+        hours = float(value)
+        if hours < 0:
+            return "уже началось"
+
+        if hours < 1:
+            minutes = int(hours * 60)
+            return f"{minutes} мин."
+        elif hours < 24:
+            return f"{int(hours)} ч."
+        else:
+            days = int(hours / 24)
+            remaining_hours = int(hours % 24)
+            if remaining_hours:
+                return f"{days} дн. {remaining_hours} ч."
+            return f"{days} дн."
+    except Exception:
+        return str(value)
