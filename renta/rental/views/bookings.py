@@ -19,54 +19,32 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from ..forms import BookingForm
-from ..models import (
-    Space, SpacePrice, PricingPeriod, Booking, BookingStatus
-)
-
+from ..models import Space, SpacePrice, PricingPeriod, Booking
+from ..services.status_service import StatusService
 
 logger = logging.getLogger(__name__)
 
 
 def _get_available_periods(space: Space) -> Any:
-    """Get available pricing periods for a space."""
+    """Получить доступные периоды для помещения"""
     try:
         return PricingPeriod.objects.filter(
             space_prices__space=space,
             space_prices__is_active=True
         ).distinct()
     except Exception as e:
-        logger.error(f"Error getting available periods: {e}", exc_info=True)
+        logger.error(f"Ошибка получения периодов: {e}", exc_info=True)
         return PricingPeriod.objects.none()
-
-
-def _get_or_create_status(code: str, defaults: dict[str, Any]) -> BookingStatus:
-    """Get or create a booking status."""
-    try:
-        status, _ = BookingStatus.objects.get_or_create(code=code, defaults=defaults)
-        return status
-    except Exception as e:
-        logger.error(f"Error getting/creating status '{code}': {e}", exc_info=True)
-        raise
 
 
 @login_required
 def create_booking(request: HttpRequest, pk: int) -> HttpResponse:
-    """
-    Create a new booking for a space.
-
-    Args:
-        request: HTTP request
-        pk: Space primary key
-
-    Returns:
-        Rendered booking form or redirect on success
-    """
+    """Создание бронирования"""
     try:
         space = get_object_or_404(
             Space.objects.select_related('city', 'category', 'owner')
             .prefetch_related('images', 'prices', 'prices__period'),
-            pk=pk,
-            is_active=True
+            pk=pk, is_active=True
         )
 
         prices = space.prices.filter(is_active=True).select_related('period')
@@ -82,58 +60,46 @@ def create_booking(request: HttpRequest, pk: int) -> HttpResponse:
                     booking.space = space
                     booking.tenant = request.user
 
-                    # Get price for selected period
+                    # Получаем цену
                     try:
                         price_obj = SpacePrice.objects.get(
-                            space=space,
-                            period=booking.period,
-                            is_active=True
+                            space=space, period=booking.period, is_active=True
                         )
                         booking.price_per_period = price_obj.price
                     except SpacePrice.DoesNotExist:
                         messages.error(request, 'Выбранный период недоступен')
                         return redirect('space_detail', pk=pk)
 
-                    # Calculate total amount
                     booking.total_amount = booking.price_per_period * booking.periods_count
 
-                    # Set dates
+                    # Установка дат
                     start_date = form.cleaned_data['start_date']
                     start_time = form.cleaned_data['start_time']
                     booking.start_datetime = timezone.make_aware(
                         datetime.combine(start_date, start_time)
                     )
 
-                    # Calculate end datetime
                     total_hours = booking.period.hours_count * booking.periods_count
                     booking.end_datetime = booking.start_datetime + timedelta(hours=total_hours)
 
-                    # Validate start date is in future
                     if booking.start_datetime <= timezone.now():
                         messages.error(request, 'Дата начала должна быть в будущем')
                         return render(request, 'bookings/create.html', {
                             'space': space, 'prices': prices, 'form': form
                         })
 
-                    # Set pending status
-                    booking.status = _get_or_create_status('pending', {
-                        'name': 'Ожидание',
-                        'color': 'warning',
-                        'sort_order': 1
-                    })
-
+                    booking.status = StatusService.get_pending()
                     booking.save()
 
                     messages.success(
                         request,
-                        f'Бронирование #{booking.id} успешно создано! '
-                        f'Сумма: {booking.total_amount} ₽'
+                        f'Бронирование #{booking.id} создано! Сумма: {booking.total_amount} ₽'
                     )
                     return redirect('booking_detail', pk=booking.pk)
 
                 except (DatabaseError, IntegrityError) as e:
-                    logger.error(f"Database error creating booking: {e}", exc_info=True)
-                    messages.error(request, 'Ошибка при создании бронирования. Попробуйте снова.')
+                    logger.error(f"Ошибка БД: {e}", exc_info=True)
+                    messages.error(request, 'Ошибка при создании. Попробуйте снова.')
             else:
                 for field, errors in form.errors.items():
                     for error in errors:
@@ -142,130 +108,79 @@ def create_booking(request: HttpRequest, pk: int) -> HttpResponse:
             form = BookingForm()
             form.fields['period'].queryset = available_periods
 
-        context = {
-            'space': space,
-            'prices': prices,
-            'form': form,
-        }
-        return render(request, 'bookings/create.html', context)
+        return render(request, 'bookings/create.html', {
+            'space': space, 'prices': prices, 'form': form
+        })
 
     except Http404:
         raise
     except Exception as e:
-        logger.error(f"Error in create_booking view for pk={pk}: {e}", exc_info=True)
-        messages.error(request, 'Произошла ошибка. Попробуйте позже.')
+        logger.error(f"Ошибка в create_booking pk={pk}: {e}", exc_info=True)
+        messages.error(request, 'Произошла ошибка')
         return redirect('spaces_list')
 
 
 @login_required
 def booking_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    """
-    Display booking details.
-
-    Args:
-        request: HTTP request
-        pk: Booking primary key
-
-    Returns:
-        Rendered booking detail template
-    """
+    """Детали бронирования"""
     try:
         booking = get_object_or_404(
             Booking.objects.select_related(
                 'space', 'space__city', 'space__category', 'space__owner',
                 'status', 'period', 'tenant'
             ).prefetch_related('space__images', 'transactions'),
-            pk=pk,
-            tenant=request.user
+            pk=pk, tenant=request.user
         )
 
-        context = {
+        return render(request, 'bookings/detail.html', {
             'booking': booking,
             'can_cancel': booking.is_cancellable,
-            'can_review': (
-                booking.status.code == 'completed' and
-                not hasattr(booking, 'review')
-            ),
-        }
-        return render(request, 'bookings/detail.html', context)
+            'can_review': booking.status.code == 'completed' and not hasattr(booking, 'review'),
+        })
 
     except Http404:
         raise
     except Exception as e:
-        logger.error(f"Error in booking_detail view for pk={pk}: {e}", exc_info=True)
-        messages.error(request, 'Ошибка при загрузке бронирования')
+        logger.error(f"Ошибка booking_detail pk={pk}: {e}", exc_info=True)
+        messages.error(request, 'Ошибка загрузки')
         return redirect('my_bookings')
 
 
 @login_required
 @require_POST
 def cancel_booking(request: HttpRequest, pk: int) -> HttpResponse:
-    """
-    Cancel a booking.
-
-    Args:
-        request: HTTP request
-        pk: Booking primary key
-
-    Returns:
-        Redirect to bookings list or detail page
-    """
+    """Отмена бронирования"""
     try:
         booking = get_object_or_404(Booking, pk=pk, tenant=request.user)
 
         if not booking.is_cancellable:
-            messages.error(request, 'Это бронирование нельзя отменить')
+            messages.error(request, 'Бронирование нельзя отменить')
             return redirect('booking_detail', pk=pk)
 
-        # Warning for late cancellation
-        hours_until_start = (booking.start_datetime - timezone.now()).total_seconds() / 3600
-        if hours_until_start < 24:
-            messages.warning(
-                request,
-                'Отмена менее чем за 24 часа до начала аренды может быть платной'
-            )
+        hours_until = (booking.start_datetime - timezone.now()).total_seconds() / 3600
+        if hours_until < 24:
+            messages.warning(request, 'Отмена менее чем за 24 часа может быть платной')
 
-        # Update status
-        booking.status = _get_or_create_status('cancelled', {
-            'name': 'Отменено',
-            'color': 'danger',
-            'sort_order': 4
-        })
+        booking.status = StatusService.get_cancelled()
         booking.save()
 
-        messages.success(request, f'Бронирование #{booking.id} успешно отменено')
+        messages.success(request, f'Бронирование #{booking.id} отменено')
         return redirect('my_bookings')
 
     except Http404:
         raise
     except Exception as e:
-        logger.error(f"Error in cancel_booking view for pk={pk}: {e}", exc_info=True)
-        messages.error(request, 'Ошибка при отмене бронирования')
+        logger.error(f"Ошибка cancel_booking pk={pk}: {e}", exc_info=True)
+        messages.error(request, 'Ошибка отмены')
         return redirect('my_bookings')
 
 
 @login_required
-def get_price_for_period(
-    request: HttpRequest,
-    space_id: int,
-    period_id: int
-) -> JsonResponse:
-    """
-    AJAX endpoint to get price for a specific period.
-
-    Args:
-        request: HTTP request
-        space_id: Space primary key
-        period_id: Period primary key
-
-    Returns:
-        JSON response with price information
-    """
+def get_price_for_period(request: HttpRequest, space_id: int, period_id: int) -> JsonResponse:
+    """AJAX: получение цены периода"""
     try:
         price = SpacePrice.objects.select_related('period').get(
-            space_id=space_id,
-            period_id=period_id,
-            is_active=True
+            space_id=space_id, period_id=period_id, is_active=True
         )
         return JsonResponse({
             'success': True,
@@ -274,13 +189,7 @@ def get_price_for_period(
             'period_name': price.period.description
         })
     except SpacePrice.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Цена не найдена'
-        }, status=404)
+        return JsonResponse({'success': False, 'error': 'Цена не найдена'}, status=404)
     except Exception as e:
-        logger.error(f"Error in get_price_for_period: {e}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'error': 'Произошла ошибка сервера'
-        }, status=500)
+        logger.error(f"Ошибка get_price_for_period: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Ошибка сервера'}, status=500)
