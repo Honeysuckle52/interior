@@ -58,24 +58,21 @@
                     <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image w-100" alt="{{ space.title }}" loading="lazy">
                     {% endif %}
                     {% endwith %}
-                    <!-- Категория слева сверху -->
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                            <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
+                        </span>
+                    </div>
                     <div class="position-absolute top-0 start-0 m-3">
                         <span class="badge bg-dark bg-opacity-75 px-3 py-2">
                             <i class="fas {{ space.category.icon }} me-1 gold-text"></i>{{ space.category.name }}
                         </span>
                     </div>
-                    <!-- Кнопка избранного в правом верхнем углу -->
                     {% if user.is_authenticated %}
                     <button class="favorite-btn" data-space-id="{{ space.id }}">
                         <i class="far fa-heart"></i>
                     </button>
                     {% endif %}
-                    <!-- Город снизу слева -->
-                    <div class="position-absolute bottom-0 start-0 m-3">
-                        <span class="badge bg-dark bg-opacity-75 px-3 py-2">
-                            <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
-                        </span>
-                    </div>
                 </div>
 
                 <div class="p-4">
@@ -87,9 +84,8 @@
                     <p class="text-muted small mb-4">{{ space.description|truncatewords:20 }}</p>
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="price-tag">
-                            <!-- Заменено hour на русское значение -->
                             {% with space.prices.first as price %}
-                            {% if price %}от {{ price.price|floatformat:0 }} ₽/{{ price.period.description }}{% else %}Цена по запросу{% endif %}
+                            {% if price %}от {{ price.price|floatformat:0 }} ₽/{{ price.period.name }}{% else %}Цена по запросу{% endif %}
                             {% endwith %}
                         </div>
                         <a href="{% url 'space_detail' space.id %}" class="btn btn-gold btn-sm">Подробнее</a>

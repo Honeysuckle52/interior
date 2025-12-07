@@ -137,6 +137,10 @@ LOGGING = {
         },
     },
     'handlers': {
+        'database': {
+            'level': 'WARNING',
+            'class': 'rental.logging_handlers.DatabaseLogHandler',
+        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -145,12 +149,12 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['database', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
         'rental': {
-            'handlers': ['console'],
+            'handlers': ['database', 'console'],
             'level': 'DEBUG',
             'propagate': True,
         },

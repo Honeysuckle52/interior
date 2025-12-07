@@ -148,7 +148,6 @@ a:hover {
   background: linear-gradient(135deg, var(--gold-light), var(--gold));
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
-  color: #000 !important;
 }
 
 .btn-outline-light {
@@ -338,71 +337,27 @@ a:hover {
   color: #1a1a1a !important;
 }
 
-/* ============== КЛИКАБЕЛЬНАЯ КАРТОЧКА БРОНИРОВАНИЯ ============== */
-.booking-card-link {
-  transition: var(--transition);
-  text-decoration: none;
-  display: block;
-}
-
-.booking-card-link:hover {
-  transform: translateY(-2px);
-  border-color: var(--gold) !important;
-}
-
-.booking-card-link .text-white {
-  color: var(--text-color) !important;
-}
-
 /* ============== ФОРМЫ ============== */
 .form-control,
 .form-select {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-color) !important;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
   transition: var(--transition);
 }
 
 .form-control:focus,
 .form-select:focus {
-  background-color: var(--card-bg);
-  border-color: var(--gold);
-  color: var(--text-color);
-  box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
+  background: var(--bg-secondary) !important;
+  border-color: var(--gold) !important;
+  color: var(--text-color) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
 }
 
 .form-control::placeholder {
   color: var(--text-muted);
-}
-
-/* Date и Time inputs для темной темы */
-input[type="date"],
-input[type="time"] {
-  background-color: var(--card-bg) !important;
-  border: 1px solid var(--border-color) !important;
-  color: var(--text-color) !important;
-  color-scheme: dark;
-}
-
-input[type="date"]:focus,
-input[type="time"]:focus {
-  border-color: var(--gold) !important;
-  box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25) !important;
-}
-
-/* Светлая тема - переопределяем */
-[data-theme="light"] input[type="date"],
-[data-theme="light"] input[type="time"] {
-  background-color: var(--card-bg) !important;
-  color: var(--text-color) !important;
-  color-scheme: light;
-}
-
-[data-theme="light"] .form-control,
-[data-theme="light"] .form-select {
-  background-color: var(--card-bg);
-  border-color: var(--border-color);
-  color: var(--text-color);
 }
 
 .form-label {
@@ -439,40 +394,12 @@ input[type="time"]:focus {
 }
 
 /* ============== ХЛЕБНЫЕ КРОШКИ ============== */
-/* Добавлены стили для хлебных крошек в темной теме */
 .breadcrumb {
   background: transparent;
   padding: 0;
-  margin-bottom: 1rem;
 }
 
 .breadcrumb-item + .breadcrumb-item::before {
-  color: var(--text-muted);
-  content: "/";
-  padding: 0 0.5rem;
-}
-
-.breadcrumb-link {
-  color: var(--gold) !important;
-  text-decoration: none;
-  transition: var(--transition);
-}
-
-.breadcrumb-link:hover {
-  color: var(--gold-light) !important;
-  text-decoration: underline;
-}
-
-.breadcrumb-current {
-  color: var(--text-color) !important;
-}
-
-/* Светлая тема */
-[data-theme="light"] .breadcrumb-current {
-  color: var(--text-color) !important;
-}
-
-[data-theme="light"] .breadcrumb-item + .breadcrumb-item::before {
   color: var(--text-muted);
 }
 
@@ -655,7 +582,6 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
 }
 
 .favorite-btn:hover,

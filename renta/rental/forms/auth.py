@@ -11,28 +11,12 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
 from ..models import CustomUser, UserProfile
-from ..services.validators import validate_russian_phone, normalize_phone
-
-
-def validate_username(value: str) -> None:
-    """Валидация имени пользователя без использования regex"""
-    if not value:
-        raise forms.ValidationError('Имя пользователя обязательно')
-    if len(value) < 3:
-        raise forms.ValidationError('Имя пользователя должно содержать минимум 3 символа')
-    if len(value) > 150:
-        raise forms.ValidationError('Имя пользователя не должно превышать 150 символов')
-    allowed_chars = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')
-    if not all(c in allowed_chars for c in value):
-        raise forms.ValidationError('Имя пользователя может содержать только буквы, цифры и подчеркивание')
+from ..services.validators import validate_phone, validate_username
 
 
 class CustomUserCreationForm(forms.ModelForm):
-    """
-    Форма регистрации пользователя.
-    Все пользователи регистрируются как обычные пользователи (user).
-    Роли moderator и admin назначаются только через админ-панель.
-    """
+    """Форма регистрации (роль user, остальные — через админку)"""
+
     username = forms.CharField(
         max_length=150,
         label='Логин',
@@ -58,7 +42,7 @@ class CustomUserCreationForm(forms.ModelForm):
         required=False,
         max_length=20,
         label='Телефон',
-        validators=[validate_russian_phone],
+        validators=[validate_phone],
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': '+7 (999) 123-45-67',
@@ -109,9 +93,7 @@ class CustomUserCreationForm(forms.ModelForm):
     agree_terms = forms.BooleanField(
         required=True,
         label='Я согласен с условиями использования',
-        widget=forms.CheckboxInput(attrs={
-            'class': 'form-check-input'
-        })
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
 
     class Meta:
@@ -123,22 +105,21 @@ class CustomUserCreationForm(forms.ModelForm):
         """Проверка уникальности email"""
         email: str = self.cleaned_data.get('email', '')
         if CustomUser.objects.filter(email=email).exists():
-            raise forms.ValidationError('Этот email уже зарегистрирован')
+            raise forms.ValidationError('Email уже зарегистрирован')
         return email
 
     def clean_username(self) -> str:
         """Проверка уникальности username"""
         username: str = self.cleaned_data.get('username', '')
         if CustomUser.objects.filter(username=username).exists():
-            raise forms.ValidationError('Это имя пользователя уже занято')
+            raise forms.ValidationError('Имя пользователя занято')
         return username
 
     def clean_phone(self) -> str:
-        """Нормализация номера телефона"""
+        """Нормализация телефона"""
+        from ..services.validators import normalize_phone
         phone: str = self.cleaned_data.get('phone', '')
-        if phone:
-            phone = normalize_phone(phone)
-        return phone
+        return normalize_phone(phone) if phone else ''
 
     def clean_password1(self) -> str:
         """Валидация пароля"""
@@ -171,9 +152,8 @@ class CustomUserCreationForm(forms.ModelForm):
 
 
 class CustomAuthenticationForm(AuthenticationForm):
-    """
-    Форма входа с возможностью входа по email
-    """
+    """Форма входа (логин или email)"""
+
     username = forms.CharField(
         label='Логин или Email',
         widget=forms.TextInput(attrs={
@@ -183,6 +163,7 @@ class CustomAuthenticationForm(AuthenticationForm):
             'autofocus': True
         })
     )
+
     password = forms.CharField(
         label='Пароль',
         widget=forms.PasswordInput(attrs={
@@ -196,13 +177,11 @@ class CustomAuthenticationForm(AuthenticationForm):
         required=False,
         initial=True,
         label='Запомнить меня',
-        widget=forms.CheckboxInput(attrs={
-            'class': 'form-check-input'
-        })
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
 
     def clean(self) -> dict[str, Any]:
-        """Позволяет входить по email или username"""
+        """Вход по email или username"""
         username: Optional[str] = self.cleaned_data.get('username')
         password: Optional[str] = self.cleaned_data.get('password')
 
@@ -214,28 +193,19 @@ class CustomAuthenticationForm(AuthenticationForm):
                 except CustomUser.DoesNotExist:
                     pass
 
-            self.user_cache = authenticate(
-                self.request,
-                username=username,
-                password=password
-            )
+            self.user_cache = authenticate(self.request, username=username, password=password)
 
             if self.user_cache is None:
-                raise forms.ValidationError(
-                    'Неверный логин/email или пароль',
-                    code='invalid_login'
-                )
+                raise forms.ValidationError('Неверный логин/email или пароль', code='invalid_login')
             elif not self.user_cache.is_active:
-                raise forms.ValidationError(
-                    'Этот аккаунт деактивирован',
-                    code='inactive'
-                )
+                raise forms.ValidationError('Аккаунт деактивирован', code='inactive')
 
         return self.cleaned_data
 
 
 class AdminUserCreationForm(forms.ModelForm):
-    """Форма создания пользователя в админке (без проблемных regex)"""
+    """Форма создания пользователя в админке"""
+
     username = forms.CharField(
         max_length=150,
         label='Имя пользователя',
@@ -273,7 +243,7 @@ class AdminUserCreationForm(forms.ModelForm):
 
 
 class AdminUserChangeForm(UserChangeForm):
-    """Форма редактирования пользователя в админке"""
+    """Форма редактирования в админке"""
 
     class Meta:
         model = CustomUser

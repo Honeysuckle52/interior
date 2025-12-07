@@ -7,17 +7,13 @@ Displays featured spaces, categories, and statistics.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Count, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
 from ..models import Space, City, SpaceCategory
 
-# Константы
-FEATURED_SPACES_LIMIT: int = 6
-POPULAR_SPACES_LIMIT: int = 4
 
 logger = logging.getLogger(__name__)
 
@@ -34,31 +30,31 @@ def home(request: HttpRequest) -> HttpResponse:
     """
     try:
         # Cities for search form
-        cities: QuerySet[City] = City.objects.filter(is_active=True).order_by('name')
+        cities = City.objects.filter(is_active=True).order_by('name')
 
         # Categories with space counts
-        categories: QuerySet[SpaceCategory] = SpaceCategory.objects.filter(is_active=True).annotate(
+        categories = SpaceCategory.objects.filter(is_active=True).annotate(
             spaces_count=Count('spaces', filter=Q(spaces__is_active=True))
         )
 
         # Featured spaces
-        featured_spaces: QuerySet[Space] = Space.objects.featured().with_relations()[:FEATURED_SPACES_LIMIT]
+        featured_spaces = Space.objects.featured().with_relations()[:6]
 
         # If not enough featured, get newest
-        if featured_spaces.count() < FEATURED_SPACES_LIMIT:
+        if featured_spaces.count() < 6:
             featured_spaces = Space.objects.active().with_relations().order_by(
                 '-created_at'
-            )[:FEATURED_SPACES_LIMIT]
+            )[:6]
 
         # Popular spaces by views
-        popular_spaces: QuerySet[Space] = Space.objects.active().select_related(
+        popular_spaces = Space.objects.active().select_related(
             'city', 'category'
         ).prefetch_related(
             'images', 'prices'
-        ).order_by('-views_count')[:POPULAR_SPACES_LIMIT]
+        ).order_by('-views_count')[:4]
 
         # Homepage statistics
-        stats: dict[str, int] = {
+        stats = {
             'spaces_count': Space.objects.active().count(),
             'cities_count': City.objects.filter(
                 is_active=True,
@@ -70,7 +66,7 @@ def home(request: HttpRequest) -> HttpResponse:
             ).distinct().count(),
         }
 
-        context: dict[str, Any] = {
+        context = {
             'cities': cities,
             'categories': categories,
             'featured_spaces': featured_spaces,

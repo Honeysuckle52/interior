@@ -1,107 +1,93 @@
 """
 ВАЛИДАТОРЫ
-Централизованные валидаторы для форм и моделей
+Единые валидаторы для форм и моделей
 """
+
 from __future__ import annotations
 
 import re
 from typing import Optional
 
 from django import forms
-from django.core.validators import RegexValidator
 
 
-# Поддерживаемые форматы:
-# - Международный: +7 (999) 123-45-67
-# - Российский: 8 (999) 123-45-67
-# - Без форматирования: 79991234567, 89991234567
-# - С пробелами и дефисами: 8 999 123 45 67
-# Исправлен regex: заменены $$? на $$? и $$? для корректного экранирования скобок
-RUSSIAN_PHONE_REGEX = r'^(\+7|8)[\s\-]?$$?\d{3}$$?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$'
-
-# Валидатор для использования в формах Django
-phone_regex_validator = RegexValidator(
-    regex=RUSSIAN_PHONE_REGEX,
-    message='Введите корректный номер телефона. Примеры: +7 (999) 123-45-67, 8 999 123 45 67'
-)
+# Паттерн для российских номеров телефона
+PHONE_PATTERN = re.compile(r'^\+?[78]?[\s\-]?$$?\d{3}$$?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$')
 
 
-def validate_russian_phone(value: str) -> None:
+def validate_phone(value: str) -> None:
     """
-    Валидация российского номера телефона.
+    Валидация номера телефона (российский формат)
 
-    Поддерживаемые форматы:
+    Допустимые форматы:
     - +7 (999) 123-45-67
-    - 8 (999) 123-45-67
-    - 79991234567
-    - 89991234567
     - 8 999 123 45 67
-    - +7-999-123-45-67
-
-    Args:
-        value: Строка с номером телефона
-
-    Raises:
-        forms.ValidationError: Если номер некорректен
+    - +79991234567
     """
     if not value:
         return
 
-    # Удаляем все кроме цифр и +
-    cleaned = ''.join(c for c in value if c.isdigit() or c == '+')
+    # Очистка от пробелов для проверки длины
+    digits = re.sub(r'\D', '', value)
 
-    # Проверяем базовую длину
-    if len(cleaned) < 11 or len(cleaned) > 12:
-        raise forms.ValidationError(
-            'Номер телефона должен содержать 11 цифр (с кодом страны)'
-        )
+    if len(digits) < 10 or len(digits) > 11:
+        raise forms.ValidationError('Номер должен содержать 10-11 цифр')
 
-    # Проверяем формат с помощью regex
-    if not re.match(RUSSIAN_PHONE_REGEX, value):
-        raise forms.ValidationError(
-            'Введите корректный номер телефона. Примеры: +7 (999) 123-45-67, 8 999 123 45 67'
-        )
+    if not PHONE_PATTERN.match(value):
+        raise forms.ValidationError('Введите корректный номер телефона')
 
 
 def normalize_phone(phone: Optional[str]) -> str:
     """
-    Нормализация номера телефона к стандартному формату +7XXXXXXXXXX.
+    Нормализация телефона в формат +7XXXXXXXXXX
 
     Args:
-        phone: Строка с номером телефона
+        phone: Исходный номер
 
     Returns:
-        Нормализованный номер (например, "+79991234567") или пустая строка
+        Нормализованный номер или пустая строка
     """
     if not phone:
         return ''
 
-    # Оставляем только цифры
     digits = re.sub(r'\D', '', phone)
 
-    # Преобразуем к формату +7XXXXXXXXXX
     if len(digits) == 11:
         if digits.startswith('8'):
             digits = '7' + digits[1:]
-        return f"+{digits}"
+        return f'+{digits}'
     elif len(digits) == 10:
-        return f"+7{digits}"
+        return f'+7{digits}'
 
     return phone
 
 
 def format_phone_display(phone: str) -> str:
     """
-    Форматирование номера телефона для отображения.
+    Форматирование телефона для отображения
 
     Args:
-        phone: Номер телефона (желательно нормализованный)
+        phone: Телефон (желательно нормализованный)
 
     Returns:
-        Отформатированный номер (например, "+7 (999) 123-45-67")
+        Отформатированный номер (+7 (999) 123-45-67)
     """
-    normalized = normalize_phone(phone)
-    if not normalized or len(normalized) != 12:
+    phone = normalize_phone(phone)
+    if not phone or len(phone) != 12:
         return phone
 
-    return f"{normalized[:2]} ({normalized[2:5]}) {normalized[5:8]}-{normalized[8:10]}-{normalized[10:12]}"
+    return f'{phone[:2]} ({phone[2:5]}) {phone[5:8]}-{phone[8:10]}-{phone[10:12]}'
+
+
+def validate_username(value: str) -> None:
+    """Валидация имени пользователя"""
+    if not value:
+        raise forms.ValidationError('Имя пользователя обязательно')
+    if len(value) < 3:
+        raise forms.ValidationError('Минимум 3 символа')
+    if len(value) > 150:
+        raise forms.ValidationError('Максимум 150 символов')
+
+    allowed = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_')
+    if not all(c in allowed for c in value):
+        raise forms.ValidationError('Только буквы, цифры и подчеркивание')

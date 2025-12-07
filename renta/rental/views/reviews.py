@@ -7,7 +7,6 @@ Handles review creation, listing, and deletion.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -20,9 +19,6 @@ from django.views.decorators.http import require_POST
 from ..forms import ReviewForm
 from ..models import Space, Review, Booking
 
-# Константы
-REVIEWS_PER_PAGE: int = 10
-COMPLETED_BOOKING_STATUS: str = 'completed'
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +37,7 @@ def create_review(request: HttpRequest, pk: int) -> HttpResponse:
         Redirect to space detail page
     """
     try:
-        space: Space = get_object_or_404(Space, pk=pk, is_active=True)
+        space = get_object_or_404(Space, pk=pk, is_active=True)
 
         # Check if user already reviewed this space
         if Review.objects.filter(space=space, author=request.user).exists():
@@ -51,15 +47,15 @@ def create_review(request: HttpRequest, pk: int) -> HttpResponse:
         form = ReviewForm(request.POST)
         if form.is_valid():
             try:
-                review: Review = form.save(commit=False)
+                review = form.save(commit=False)
                 review.space = space
                 review.author = request.user
 
                 # Link to completed booking if exists
-                completed_booking: Booking | None = Booking.objects.filter(
+                completed_booking = Booking.objects.filter(
                     space=space,
                     tenant=request.user,
-                    status__code=COMPLETED_BOOKING_STATUS
+                    status__code='completed'
                 ).first()
                 if completed_booking:
                     review.booking = completed_booking
@@ -105,7 +101,7 @@ def my_reviews(request: HttpRequest) -> HttpResponse:
             'space__images'
         ).order_by('-created_at')
 
-        paginator = Paginator(reviews, REVIEWS_PER_PAGE)
+        paginator = Paginator(reviews, 10)
         page_number = request.GET.get('page', 1)
 
         try:
@@ -113,8 +109,7 @@ def my_reviews(request: HttpRequest) -> HttpResponse:
         except (EmptyPage, PageNotAnInteger):
             reviews_page = paginator.get_page(1)
 
-        context: dict[str, Any] = {'reviews': reviews_page}
-        return render(request, 'account/reviews.html', context)
+        return render(request, 'account/reviews.html', {'reviews': reviews_page})
 
     except Exception as e:
         logger.error(f"Error in my_reviews view: {e}", exc_info=True)
@@ -138,8 +133,8 @@ def delete_review(request: HttpRequest, pk: int) -> HttpResponse:
         Redirect to space detail page
     """
     try:
-        review: Review = get_object_or_404(Review, pk=pk, author=request.user)
-        space_pk: int = review.space.pk
+        review = get_object_or_404(Review, pk=pk, author=request.user)
+        space_pk = review.space.pk
         review.delete()
         messages.success(request, 'Отзыв удалён')
         return redirect('space_detail', pk=space_pk)

@@ -17,13 +17,6 @@ from django.shortcuts import render, get_object_or_404
 
 from ..models import Space, City, SpaceCategory, Favorite
 
-# Константы пагинации
-DEFAULT_ITEMS_PER_PAGE: int = 12
-MAX_ITEMS_PER_PAGE: int = 48
-MIN_RATING: int = 1
-MAX_RATING: int = 5
-RELATED_SPACES_LIMIT: int = 4
-MAX_RECENT_REVIEWS: int = 10
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +108,7 @@ def _apply_sorting(spaces: QuerySet[Space], sort_by: str) -> QuerySet[Space]:
     Returns:
         Sorted queryset
     """
-    sort_options: dict[str, str] = {
+    sort_options = {
         'price_asc': 'min_price_value',
         'price_desc': '-min_price_value',
         'area_asc': 'area_sqm',
@@ -124,7 +117,7 @@ def _apply_sorting(spaces: QuerySet[Space], sort_by: str) -> QuerySet[Space]:
         'popular': '-views_count',
         'rating': '-avg_rating',
     }
-    order_field: str = sort_options.get(sort_by, '-created_at')
+    order_field = sort_options.get(sort_by, '-created_at')
     try:
         return spaces.order_by(order_field)
     except Exception as e:
@@ -144,18 +137,18 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
     """
     try:
         # Base queryset with optimizations
-        spaces: QuerySet[Space] = Space.objects.active().select_related(
+        spaces = Space.objects.active().select_related(
             'city', 'city__region', 'category', 'owner'
         ).prefetch_related(
             'images', 'prices', 'prices__period', 'reviews'
         )
 
         # Get filter data
-        cities: QuerySet[City] = City.objects.filter(is_active=True).order_by('name')
-        categories: QuerySet[SpaceCategory] = SpaceCategory.objects.filter(is_active=True).order_by('name')
+        cities = City.objects.filter(is_active=True).order_by('name')
+        categories = SpaceCategory.objects.filter(is_active=True).order_by('name')
 
         # Parse filter parameters
-        filters: dict[str, Any] = {
+        filters = {
             'search_query': request.GET.get('search', '').strip(),
             'city_id': _parse_int(request.GET.get('city', '')),
             'category_id': _parse_int(request.GET.get('category', '')),
@@ -165,7 +158,7 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
             'min_price': _parse_float(request.GET.get('min_price', '')),
             'max_price': _parse_float(request.GET.get('max_price', '')),
         }
-        sort_by: str = request.GET.get('sort', 'newest')
+        sort_by = request.GET.get('sort', 'newest')
 
         # Apply filters
         spaces = _apply_filters(spaces, filters)
@@ -181,10 +174,7 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
         spaces = _apply_sorting(spaces, sort_by)
 
         # Pagination
-        per_page: int = min(
-            _parse_int(request.GET.get('per_page', ''), DEFAULT_ITEMS_PER_PAGE) or DEFAULT_ITEMS_PER_PAGE,
-            MAX_ITEMS_PER_PAGE
-        )
+        per_page = min(_parse_int(request.GET.get('per_page', ''), 12) or 12, 48)
         paginator = Paginator(spaces, per_page)
         page_number = request.GET.get('page', 1)
 
@@ -201,7 +191,7 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
                 .values_list('space_id', flat=True)
             )
 
-        context: dict[str, Any] = {
+        context = {
             'spaces': spaces_page,
             'cities': cities,
             'categories': categories,
@@ -241,7 +231,7 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
         Rendered space detail template
     """
     try:
-        space: Space = get_object_or_404(
+        space = get_object_or_404(
             Space.objects.select_related(
                 'city', 'city__region', 'category', 'owner', 'owner__profile'
             ).prefetch_related(
@@ -269,7 +259,7 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
         space_prices = space.prices.filter(is_active=True).select_related('period')
 
         # Related spaces (same category or city)
-        related_spaces: QuerySet[Space] = Space.objects.active().filter(
+        related_spaces = Space.objects.active().filter(
             Q(category=space.category) | Q(city=space.city)
         ).exclude(
             pk=pk
@@ -279,37 +269,37 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
             'images', 'prices'
         ).annotate(
             min_price_value=Min('prices__price')
-        ).order_by('?')[:RELATED_SPACES_LIMIT]
+        ).order_by('?')[:4]
 
         # Approved reviews with stats
         approved_reviews = space.reviews.filter(is_approved=True)
         reviews = approved_reviews.select_related(
             'author', 'author__profile'
-        ).order_by('-created_at')[:MAX_RECENT_REVIEWS]
+        ).order_by('-created_at')[:10]
 
-        reviews_stats: dict[str, Any] = approved_reviews.aggregate(
+        reviews_stats = approved_reviews.aggregate(
             avg_rating=Avg('rating'),
             total_count=Count('id')
         )
-        avg_rating: float = reviews_stats['avg_rating'] or 0
-        reviews_count: int = reviews_stats['total_count'] or 0
+        avg_rating = reviews_stats['avg_rating'] or 0
+        reviews_count = reviews_stats['total_count'] or 0
 
         # Rating distribution
-        rating_distribution: dict[int, int] = {
+        rating_distribution = {
             i: approved_reviews.filter(rating=i).count()
-            for i in range(MIN_RATING, MAX_RATING + 1)
+            for i in range(1, 6)
         }
 
         # Check favorite and review permissions for authenticated users
-        is_favorite: bool = False
-        can_review: bool = False
+        is_favorite = False
+        can_review = False
         if request.user.is_authenticated:
             is_favorite = Favorite.objects.filter(
                 user=request.user, space=space
             ).exists()
             can_review = not space.reviews.filter(author=request.user).exists()
 
-        context: dict[str, Any] = {
+        context = {
             'space': space,
             'images': images,
             'main_image': main_image,
