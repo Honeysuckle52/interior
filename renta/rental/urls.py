@@ -20,7 +20,7 @@ from .views import (
     create_review,
 )
 from .views.favorites import check_favorite
-from .views.bookings import get_price_for_period
+from .views.bookings import get_price_for_period, confirm_booking, reject_booking, manage_bookings
 from .views.reviews import my_reviews, delete_review
 
 
@@ -52,6 +52,9 @@ urlpatterns = [
     path('spaces/<int:pk>/book/', create_booking, name='create_booking'),
     path('bookings/<int:pk>/', booking_detail, name='booking_detail'),
     path('bookings/<int:pk>/cancel/', cancel_booking, name='cancel_booking'),
+    path('bookings/<int:pk>/confirm/', confirm_booking, name='confirm_booking'),
+    path('bookings/<int:pk>/reject/', reject_booking, name='reject_booking'),
+    path('manage/bookings/', manage_bookings, name='manage_bookings'),
 
     # ============== ОТЗЫВЫ ==============
     path('spaces/<int:pk>/review/', create_review, name='create_review'),

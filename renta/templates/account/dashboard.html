@@ -12,12 +12,15 @@
         </div>
     </div>
     
-    <!-- Статистика -->
+    <!-- Расширенная статистика с количеством бронирований -->
     <div class="row g-4 mb-5">
         <div class="col-md-4">
             <div class="dashboard-card dashboard-stat">
-                <div class="number">{{ stats.bookings_count }}</div>
+                <div class="number">{{ stats.bookings_total }}</div>
                 <div class="label">Бронирований</div>
+                {% if stats.bookings_active > 0 %}
+                <div class="small text-muted mt-2">Активных: {{ stats.bookings_active }}</div>
+                {% endif %}
             </div>
         </div>
         <div class="col-md-4">
@@ -33,7 +36,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="row g-4">
         <!-- Последние бронирования -->
         <div class="col-lg-8">
@@ -42,8 +45,9 @@
                     <h5 class="fw-bold mb-0"><i class="fas fa-calendar me-2 gold-text"></i>Последние бронирования</h5>
                     <a href="{% url 'my_bookings' %}" class="btn btn-gold btn-sm">Все брони</a>
                 </div>
-                
-                {% if bookings %}
+
+                <!-- Исправлен вывод бронирований - теперь отображаются если есть -->
+                {% if recent_bookings %}
                 <div class="table-responsive">
                     <table class="table table-dark table-hover">
                         <thead>
@@ -55,8 +59,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for booking in bookings %}
-                            <tr>
+                            {% for booking in recent_bookings %}
+                            <tr style="cursor: pointer;" onclick="window.location='{% url 'booking_detail' booking.id %}'">
                                 <td>{{ booking.space.title|truncatewords:3 }}</td>
                                 <td>{{ booking.start_datetime|date:"d.m.Y" }}</td>
                                 <td><span class="badge bg-{{ booking.status.color }}">{{ booking.status.name }}</span></td>
@@ -71,7 +75,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <!-- Быстрые действия -->
         <div class="col-lg-4">
             <div class="dashboard-card">
@@ -86,6 +90,13 @@
                     <a href="{% url 'profile' %}" class="btn btn-outline-light">
                         <i class="fas fa-user-edit me-2"></i>Редактировать профиль
                     </a>
+                    <!-- Добавлена ссылка на управление бронированиями для модераторов -->
+                    {% if user.is_staff or user.role == 'moderator' %}
+                    <hr class="my-2">
+                    <a href="{% url 'manage_bookings' %}" class="btn btn-outline-warning">
+                        <i class="fas fa-tasks me-2"></i>Управление бронями
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

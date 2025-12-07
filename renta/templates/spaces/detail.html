@@ -8,9 +8,9 @@
     <!-- Хлебные крошки -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="gold-text">Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'spaces_list' %}" class="gold-text">Помещения</a></li>
-            <li class="breadcrumb-item active text-muted">{{ space.title }}</li>
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'spaces_list' %}" class="breadcrumb-link">Помещения</a></li>
+            <li class="breadcrumb-item active breadcrumb-current">{{ space.title }}</li>
         </ol>
     </nav>
 
@@ -25,7 +25,7 @@
                 <img src="https://via.placeholder.com/800x450/1a1a1a/d4af37?text=INTERIOR" class="img-fluid rounded-3 w-100 mb-3" alt="{{ space.title }}" style="max-height: 450px; object-fit: cover;">
                 {% endif %}
                 {% endwith %}
-                
+
                 {% if space.images.count > 1 %}
                 <div class="row g-2">
                     {% for image in space.images.all|slice:":4" %}
@@ -36,26 +36,26 @@
                 </div>
                 {% endif %}
             </div>
-            
+
             <h1 class="display-5 fw-bold mb-3">{{ space.title }}</h1>
-            
-            <div class="d-flex flex-wrap gap-3 mb-4">
-                <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+
+            <!-- Центрированные бейджи города и категории -->
+            <div class="d-flex flex-wrap gap-3 mb-4 align-items-center justify-content-start">
+                <span class="badge bg-dark bg-opacity-75 px-3 py-2 d-flex align-items-center">
                     <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
                 </span>
-                <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                <span class="badge bg-dark bg-opacity-75 px-3 py-2 d-flex align-items-center">
                     <i class="fas {{ space.category.icon }} me-1 gold-text"></i>{{ space.category.name }}
                 </span>
                 {% if avg_rating %}
-                <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                <span class="badge bg-dark bg-opacity-75 px-3 py-2 d-flex align-items-center">
                     <i class="fas fa-star me-1 gold-text"></i>{{ avg_rating }}
                 </span>
                 {% endif %}
-                <!-- Переделанная кнопка избранного - компактная иконка справа от заголовка -->
                 {% if user.is_authenticated %}
-                <div class="favorite-inline {% if is_favorite %}active{% endif %}" data-space-id="{{ space.id }}">
+                <div class="favorite-inline {% if is_favorite %}active{% endif %} d-flex align-items-center" data-space-id="{{ space.id }}">
                     <i class="{% if is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
-                    <span class="favorite-text">{% if is_favorite %}В избранном{% else %}В избранное{% endif %}</span>
+                    <span class="favorite-text ms-1">{% if is_favorite %}В избранном{% else %}В избранное{% endif %}</span>
                 </div>
                 {% endif %}
             </div>
