@@ -1,23 +1,25 @@
 """
 ФОРМЫ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ
 """
-from __future__ import annotations
+from __future__ import annotations  # для поддержки forward references
 
-from typing import Any
+from typing import Any  # добавлены type hints
 
 from django import forms
+from django.core.validators import RegexValidator
 
 from ..models import CustomUser, UserProfile
-from ..services.validators import validate_phone
+from ..services.validators import validate_russian_phone, normalize_phone
 
 
 class UserProfileForm(forms.ModelForm):
-    """Форма редактирования профиля"""
-
+    """
+    Форма редактирования основных данных профиля
+    """
     phone = forms.CharField(
         required=False,
         max_length=20,
-        validators=[validate_phone],
+        validators=[validate_russian_phone],
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': '+7 (999) 123-45-67'
@@ -26,22 +28,30 @@ class UserProfileForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ['first_name', 'last_name', 'email', 'phone', 'company', 'avatar']
+        fields = [
+            'first_name', 'last_name', 'email',
+            'phone', 'company', 'avatar'
+        ]
         widgets = {
             'first_name': forms.TextInput(attrs={
-                'class': 'form-control', 'placeholder': 'Имя'
+                'class': 'form-control',
+                'placeholder': 'Имя'
             }),
             'last_name': forms.TextInput(attrs={
-                'class': 'form-control', 'placeholder': 'Фамилия'
+                'class': 'form-control',
+                'placeholder': 'Фамилия'
             }),
             'email': forms.EmailInput(attrs={
-                'class': 'form-control', 'placeholder': 'Email'
+                'class': 'form-control',
+                'placeholder': 'Email'
             }),
             'company': forms.TextInput(attrs={
-                'class': 'form-control', 'placeholder': 'Компания (необязательно)'
+                'class': 'form-control',
+                'placeholder': 'Название компании (необязательно)'
             }),
             'avatar': forms.FileInput(attrs={
-                'class': 'form-control', 'accept': 'image/*'
+                'class': 'form-control',
+                'accept': 'image/*'
             }),
         }
         labels = {
@@ -53,23 +63,25 @@ class UserProfileForm(forms.ModelForm):
             'avatar': 'Фото профиля',
         }
 
-    def clean_email(self) -> str:
-        """Проверка уникальности email"""
+    def clean_email(self) -> str:  # type hints
+        """Проверка уникальности email при изменении"""
         email: str = self.cleaned_data.get('email', '')
         if CustomUser.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
-            raise forms.ValidationError('Email уже используется')
+            raise forms.ValidationError('Этот email уже используется')
         return email
 
     def clean_phone(self) -> str:
-        """Нормализация телефона"""
-        from ..services.validators import normalize_phone
+        """Нормализация номера телефона"""
         phone: str = self.cleaned_data.get('phone', '')
-        return normalize_phone(phone) if phone else ''
+        if phone:
+            phone = normalize_phone(phone)
+        return phone
 
 
 class UserProfileExtendedForm(forms.ModelForm):
-    """Форма дополнительных данных профиля"""
-
+    """
+    Форма дополнительных данных профиля (UserProfile)
+    """
     class Meta:
         model = UserProfile
         fields = ['bio', 'website', 'social_vk', 'social_telegram']
@@ -77,7 +89,7 @@ class UserProfileExtendedForm(forms.ModelForm):
             'bio': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 4,
-                'placeholder': 'Расскажите о себе...'
+                'placeholder': 'Расскажите немного о себе или своей компании...'
             }),
             'website': forms.URLInput(attrs={
                 'class': 'form-control',
@@ -89,7 +101,7 @@ class UserProfileExtendedForm(forms.ModelForm):
             }),
             'social_telegram': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '@username'
+                'placeholder': '@username или ссылка'
             }),
         }
         labels = {
@@ -101,52 +113,52 @@ class UserProfileExtendedForm(forms.ModelForm):
 
 
 class ChangePasswordForm(forms.Form):
-    """Форма смены пароля"""
-
+    """
+    Форма смены пароля
+    """
     current_password = forms.CharField(
         label='Текущий пароль',
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Текущий пароль'
+            'placeholder': 'Введите текущий пароль'
         })
     )
-
     new_password1 = forms.CharField(
         label='Новый пароль',
         min_length=8,
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Новый пароль'
+            'placeholder': 'Введите новый пароль'
         })
     )
-
     new_password2 = forms.CharField(
-        label='Подтверждение',
+        label='Подтверждение пароля',
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Повторите пароль'
+            'placeholder': 'Повторите новый пароль'
         })
     )
 
-    def __init__(self, user: CustomUser, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, user: CustomUser, *args: Any, **kwargs: Any) -> None:  # type hints
         self.user = user
         super().__init__(*args, **kwargs)
 
-    def clean_current_password(self) -> str:
+    def clean_current_password(self) -> str:  # type hints
         current: str = self.cleaned_data.get('current_password', '')
         if not self.user.check_password(current):
-            raise forms.ValidationError('Неверный пароль')
+            raise forms.ValidationError('Неверный текущий пароль')
         return current
 
-    def clean(self) -> dict[str, Any]:
+    def clean(self) -> dict[str, Any]:  # type hints
         cleaned_data = super().clean()
         new1 = cleaned_data.get('new_password1')
         new2 = cleaned_data.get('new_password2')
+
         if new1 and new2 and new1 != new2:
             raise forms.ValidationError('Пароли не совпадают')
         return cleaned_data
 
-    def save(self) -> CustomUser:
+    def save(self) -> CustomUser:  # type hints
         self.user.set_password(self.cleaned_data['new_password1'])
         self.user.save()
         return self.user

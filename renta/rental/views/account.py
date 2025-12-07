@@ -7,6 +7,7 @@ Handles user dashboard, profile, bookings, and favorites.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -19,6 +20,11 @@ from django.shortcuts import render, redirect
 from ..forms import UserProfileForm, UserProfileExtendedForm
 from ..models import Booking, Favorite, Review, UserProfile
 
+# Константы пагинации
+RECENT_BOOKINGS_LIMIT: int = 5
+RECENT_FAVORITES_LIMIT: int = 4
+BOOKINGS_PER_PAGE: int = 10
+FAVORITES_PER_PAGE: int = 12
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +50,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             'space', 'space__city', 'status', 'period'
         ).prefetch_related(
             'space__images'
-        ).order_by('-created_at')[:5]
+        ).order_by('-created_at')[:RECENT_BOOKINGS_LIMIT]
 
         # Recent favorites
         recent_favorites = Favorite.objects.filter(
@@ -53,10 +59,10 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             'space', 'space__city', 'space__category'
         ).prefetch_related(
             'space__images', 'space__prices'
-        ).order_by('-created_at')[:4]
+        ).order_by('-created_at')[:RECENT_FAVORITES_LIMIT]
 
         # User statistics
-        stats = {
+        stats: dict[str, Any] = {
             'bookings_total': Booking.objects.filter(tenant=user).count(),
             'bookings_active': Booking.objects.active().filter(tenant=user).count(),
             'favorites_count': Favorite.objects.filter(user=user).count(),
@@ -67,7 +73,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             ).aggregate(total=Sum('total_amount'))['total'] or 0,
         }
 
-        context = {
+        context: dict[str, Any] = {
             'recent_bookings': recent_bookings,
             'recent_favorites': recent_favorites,
             'stats': stats,
@@ -133,7 +139,7 @@ def profile(request: HttpRequest) -> HttpResponse:
             user_form = UserProfileForm(instance=user)
             profile_form = UserProfileExtendedForm(instance=user_profile)
 
-        context = {
+        context: dict[str, Any] = {
             'user_form': user_form,
             'profile_form': profile_form,
         }
@@ -168,7 +174,7 @@ def my_bookings(request: HttpRequest) -> HttpResponse:
         ).order_by('-created_at')
 
         # Filter by status
-        status_filter = request.GET.get('status', '')
+        status_filter: str = request.GET.get('status', '')
         if status_filter:
             bookings = bookings.filter(status__code=status_filter)
 
@@ -177,7 +183,7 @@ def my_bookings(request: HttpRequest) -> HttpResponse:
             'status__code', 'status__name', 'status__color'
         ).annotate(count=Count('id'))
 
-        paginator = Paginator(bookings, 10)
+        paginator = Paginator(bookings, BOOKINGS_PER_PAGE)
         page_number = request.GET.get('page', 1)
 
         try:
@@ -185,7 +191,7 @@ def my_bookings(request: HttpRequest) -> HttpResponse:
         except (EmptyPage, PageNotAnInteger):
             bookings_page = paginator.get_page(1)
 
-        context = {
+        context: dict[str, Any] = {
             'bookings': bookings_page,
             'status_filter': status_filter,
             'status_stats': status_stats,
@@ -222,7 +228,7 @@ def my_favorites(request: HttpRequest) -> HttpResponse:
             'space__images', 'space__prices', 'space__prices__period'
         ).order_by('-created_at')
 
-        paginator = Paginator(favorites, 12)
+        paginator = Paginator(favorites, FAVORITES_PER_PAGE)
         page_number = request.GET.get('page', 1)
 
         try:

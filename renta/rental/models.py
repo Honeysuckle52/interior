@@ -618,6 +618,7 @@ class Booking(models.Model):
     )
 
     comment = models.TextField(blank=True, verbose_name='Комментарий')
+    moderator_comment = models.TextField(blank=True, verbose_name='Комментарий модератора')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания', db_index=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
 

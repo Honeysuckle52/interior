@@ -1,7 +1,6 @@
 """
 ПРЕДСТАВЛЕНИЯ АУТЕНТИФИКАЦИИ
 
-Handles user login, registration, and logout.
 """
 
 from __future__ import annotations
@@ -27,7 +26,6 @@ logger = logging.getLogger(__name__)
 
 
 class CustomLoginView(LoginView):
-    """Custom login view with styled form."""
 
     form_class = CustomAuthenticationForm
     template_name = 'auth/login.html'
@@ -64,15 +62,7 @@ class CustomLoginView(LoginView):
 
 
 def register_view(request: HttpRequest) -> HttpResponse:
-    """
-    Handle user registration.
 
-    Args:
-        request: HTTP request
-
-    Returns:
-        Rendered registration form or redirect on success
-    """
     if request.user.is_authenticated:
         return redirect('home')
 
@@ -108,7 +98,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
                         return redirect('dashboard')
                     except DatabaseError as e:
                         logger.error(f"Database error during registration: {e}", exc_info=True)
-                        messages.error(request, 'Ошибка базы данных при регистрации. Попробуйте снова.')
+                        messages.error(request, 'Ошибка базы данных при регистрации. Попр��буйте снова.')
                 else:
                     logger.warning(f"Form validation errors: {form.errors}")
                     for field, errors in form.errors.items():
@@ -134,15 +124,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def logout_view(request: HttpRequest) -> HttpResponse:
-    """
-    Handle user logout (POST only for security).
 
-    Args:
-        request: HTTP request
-
-    Returns:
-        Redirect to home or confirmation page
-    """
     try:
         if request.method == 'POST':
             username = request.user.username

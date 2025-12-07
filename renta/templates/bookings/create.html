@@ -5,22 +5,23 @@
 
 {% block content %}
 <div class="container" style="padding-top: 100px;">
+    <!-- Исправлены хлебные крошки -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="gold-text">Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'space_detail' space.id %}" class="gold-text">{{ space.title }}</a></li>
-            <li class="breadcrumb-item active text-muted">Бронирование</li>
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'space_detail' space.id %}" class="breadcrumb-link">{{ space.title }}</a></li>
+            <li class="breadcrumb-item active breadcrumb-current">Бронирование</li>
         </ol>
     </nav>
-    
+
     <div class="row">
         <div class="col-lg-8">
             <div class="dashboard-card">
                 <h2 class="fw-bold mb-4"><i class="fas fa-calendar-check me-2 gold-text"></i>Бронирование</h2>
-                
+
                 <form method="post">
                     {% csrf_token %}
-                    
+
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Дата начала</label>
@@ -43,14 +44,14 @@
                             {{ form.comment }}
                         </div>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-gold btn-lg">
                         <i class="fas fa-check me-2"></i>Забронировать
                     </button>
                 </form>
             </div>
         </div>
-        
+
         <div class="col-lg-4">
             <div class="price-card">
                 <h5 class="fw-bold mb-3">{{ space.title }}</h5>
@@ -69,4 +70,22 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('input[type="date"]');
+    if (dateInput) {
+        // Устанавливаем минимальную дату на сегодня
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.setAttribute('min', today);
+
+        // Если дата не установлена, устанавливаем сегодня
+        if (!dateInput.value) {
+            dateInput.value = today;
+        }
+    }
+});
+</script>
 {% endblock %}

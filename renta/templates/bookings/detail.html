@@ -6,11 +6,16 @@
 
 {% block content %}
 <div class="container mt-5 pt-4">
+    <!-- Исправлены хлебные крошки - добавлены разделители и стили для темной темы -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'my_bookings' %}">Мои бронирования</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Бронирование #{{ booking.id }}</li>
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link">Главная</a></li>
+            {% if is_owner %}
+            <li class="breadcrumb-item"><a href="{% url 'my_bookings' %}" class="breadcrumb-link">Мои бронирования</a></li>
+            {% elif can_manage %}
+            <li class="breadcrumb-item"><a href="{% url 'manage_bookings' %}" class="breadcrumb-link">Управление бронированиями</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active breadcrumb-current" aria-current="page">Бронирование #{{ booking.id }}</li>
         </ol>
     </nav>
 
@@ -52,6 +57,21 @@
                                 {{ booking.space.city.name }}, {{ booking.space.address }}
                             </p>
 
+                            {% if can_manage and not is_owner %}
+                            <div class="alert alert-info py-2 mb-3">
+                                <small>
+                                    <i class="fas fa-user me-1"></i>
+                                    <strong>Арендатор:</strong> {{ booking.tenant.get_full_name_or_username }}
+                                    {% if booking.tenant.email %}
+                                    <br><i class="fas fa-envelope me-1"></i> {{ booking.tenant.email }}
+                                    {% endif %}
+                                    {% if booking.tenant.phone %}
+                                    <br><i class="fas fa-phone me-1"></i> {{ booking.tenant.phone }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endif %}
+
                             <hr>
 
                             <div class="row">
@@ -85,10 +105,67 @@
                                 <p class="mb-0">{{ booking.comment }}</p>
                             </div>
                             {% endif %}
+
+                            <!-- Показываем комментарий модератора если есть -->
+                            {% if booking.moderator_comment %}
+                            <div class="mt-3 alert alert-warning py-2">
+                                <small class="text-muted d-block mb-1">Комментарий модератора</small>
+                                <p class="mb-0">{{ booking.moderator_comment }}</p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Улучшенный блок управления с формой комментария -->
+            {% if can_manage %}
+            <div class="card glass-card mb-4">
+                <div class="card-body">
+                    <h5 class="text-info mb-3">
+                        <i class="fas fa-cog me-2"></i>Управление бронированием
+                    </h5>
+                    <p class="text-muted mb-3">
+                        Это бронирование ожидает подтверждения. Вы можете подтвердить или отклонить его.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-muted small">Комментарий модератора (необязательно)</label>
+                            <textarea id="moderatorComment" class="form-control" rows="2"
+                                      placeholder="Причина отклонения или дополнительная информация..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex gap-3">
+                                <form method="post" action="{% url 'confirm_booking' pk=booking.pk %}" id="confirmForm">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="moderator_comment" id="confirmComment">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-2"></i>Подтвердить
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'reject_booking' pk=booking.pk %}" id="rejectForm"
+                                      onsubmit="return confirm('Вы уверены, что хотите отклонить бронирование?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="moderator_comment" id="rejectComment">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-times me-2"></i>Отклонить
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+                // Копируем комментарий в скрытые поля форм при отправке
+                document.getElementById('confirmForm').addEventListener('submit', function() {
+                    document.getElementById('confirmComment').value = document.getElementById('moderatorComment').value;
+                });
+                document.getElementById('rejectForm').addEventListener('submit', function() {
+                    document.getElementById('rejectComment').value = document.getElementById('moderatorComment').value;
+                });
+            </script>
+            {% endif %}
 
             {% if can_cancel %}
             <div class="card glass-card">
