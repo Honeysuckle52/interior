@@ -1,0 +1,44 @@
+{% comment %}
+================================================================================
+КОМПОНЕНТ: Пагинация
+================================================================================
+Универсальная пагинация с сохранением GET параметров
+
+Параметры:
+- page_obj: объект страницы Django
+- preserve_params: список параметров для сохранения
+{% endcomment %}
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-5" aria-label="Навигация по страницам">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' and value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Предыдущая">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active" aria-current="page">
+                <span class="page-link">{{ num }}</span>
+            </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' and value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' and value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Следующая">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}

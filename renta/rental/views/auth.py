@@ -1,14 +1,12 @@
 """
 ПРЕДСТАВЛЕНИЯ АУТЕНТИФИКАЦИИ
-
-Handles user login, registration, and logout.
 """
 
 from __future__ import annotations
 
 import logging
-import traceback
-import re
+import random
+import string
 
 from django.contrib import messages
 from django.contrib.auth import login, logout
@@ -18,16 +16,24 @@ from django.db import DatabaseError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 
-from ..forms import CustomUserCreationForm, CustomAuthenticationForm
-from ..models import UserProfile
+from ..forms import (
+    CustomUserCreationForm,
+    CustomAuthenticationForm,
+    PasswordResetRequestForm,
+    PasswordResetConfirmForm,
+    EmailVerificationCodeForm
+)
+from ..models import UserProfile, CustomUser, EmailVerificationToken, PasswordResetToken
+from ..services.email_service import send_verification_email, send_password_reset_email, send_verification_code
 
 
 logger = logging.getLogger(__name__)
 
 
 class CustomLoginView(LoginView):
-    """Custom login view with styled form."""
+    """Кастомная страница входа"""
 
     form_class = CustomAuthenticationForm
     template_name = 'auth/login.html'
@@ -35,11 +41,51 @@ class CustomLoginView(LoginView):
     next_page = reverse_lazy('home')
 
     def form_valid(self, form) -> HttpResponse:
-        """Show success message on login."""
+        """Проверка подтверждения email перед входом"""
+        user = form.get_user()
+
+        if user.is_staff or user.is_superuser:
+            try:
+                messages.success(
+                    self.request,
+                    f'Добро пожаловать, {user.username}!'
+                )
+                return super().form_valid(form)
+            except Exception as e:
+                logger.error(f"Error in admin login: {e}", exc_info=True)
+                messages.error(self.request, 'Ошибка при входе')
+                return super().form_invalid(form)
+
+        # Обычные пользователи должны подтвердить email
+        if not user.email_verified:
+            # Генерируем и отправляем код подтверждения
+            code = ''.join(random.choices(string.digits, k=6))
+
+            # Сохраняем код в сессию
+            self.request.session['verification_user_id'] = user.id
+            self.request.session['verification_code'] = code
+            self.request.session['verification_code_time'] = timezone.now().isoformat()
+
+            # Отправляем код на почту
+            try:
+                send_verification_code(user, code, self.request)
+                messages.warning(
+                    self.request,
+                    'Для входа необходимо подтвердить email. Код отправлен на вашу почту.'
+                )
+            except Exception as e:
+                logger.error(f"Error sending verification code: {e}")
+                messages.warning(
+                    self.request,
+                    f'Для входа необходимо подтвердить email. Код: {code}'
+                )
+
+            return redirect('verify_email_code')
+
         try:
             messages.success(
                 self.request,
-                f'Добро пожаловать, {form.get_user().username}!'
+                f'Добро пожаловать, {user.username}!'
             )
             return super().form_valid(form)
         except Exception as e:
@@ -48,7 +94,7 @@ class CustomLoginView(LoginView):
             return super().form_invalid(form)
 
     def form_invalid(self, form) -> HttpResponse:
-        """Show error message on failed login."""
+        """Показать ошибку при неудачном входе"""
         messages.error(
             self.request,
             'Неверное имя пользователя или пароль'
@@ -56,93 +102,145 @@ class CustomLoginView(LoginView):
         return super().form_invalid(form)
 
     def get_success_url(self) -> str:
-        """Get redirect URL after login."""
+        """URL перенаправления после входа"""
         next_url = self.request.GET.get('next')
         if next_url:
             return next_url
         return str(reverse_lazy('dashboard'))
 
 
+def verify_email_code(request: HttpRequest) -> HttpResponse:
+    """Страница ввода кода подтверждения email"""
+    user_id = request.session.get('verification_user_id')
+
+    if not user_id:
+        messages.error(request, 'Сессия истекла. Попробуйте войти снова.')
+        return redirect('login')
+
+    try:
+        user = CustomUser.objects.get(id=user_id)
+    except CustomUser.DoesNotExist:
+        messages.error(request, 'Пользователь не найден')
+        return redirect('login')
+
+    form = EmailVerificationCodeForm()
+
+    if request.method == 'POST':
+        form = EmailVerificationCodeForm(request.POST)
+
+        if form.is_valid():
+            entered_code = form.cleaned_data['code']
+            stored_code = request.session.get('verification_code')
+
+            if entered_code == stored_code:
+                # Подтверждаем email
+                user.email_verified = True
+                user.save()
+
+                # Очищаем сессию
+                del request.session['verification_user_id']
+                del request.session['verification_code']
+                del request.session['verification_code_time']
+
+                # Авторизуем пользователя
+                login(request, user)
+
+                messages.success(request, f'Email подтверждён! Добро пожаловать, {user.username}!')
+                return redirect('dashboard')
+            else:
+                messages.error(request, 'Неверный код подтверждения')
+
+    return render(request, 'auth/verify_code.html', {
+        'form': form,
+        'email': user.email
+    })
+
+
+def resend_verification_code(request: HttpRequest) -> HttpResponse:
+    """Повторная отправка кода подтверждения"""
+    user_id = request.session.get('verification_user_id')
+
+    if not user_id:
+        messages.error(request, 'Сессия истекла')
+        return redirect('login')
+
+    try:
+        user = CustomUser.objects.get(id=user_id)
+    except CustomUser.DoesNotExist:
+        messages.error(request, 'Пользователь не найден')
+        return redirect('login')
+
+    # Генерируем новый код
+    code = ''.join(random.choices(string.digits, k=6))
+    request.session['verification_code'] = code
+    request.session['verification_code_time'] = timezone.now().isoformat()
+
+    try:
+        send_verification_code(user, code, request)
+        messages.success(request, 'Новый код отправлен на вашу почту')
+    except Exception as e:
+        logger.error(f"Error resending code: {e}")
+        messages.info(request, f'Код подтверждения: {code}')
+
+    return redirect('verify_email_code')
+
+
 def register_view(request: HttpRequest) -> HttpResponse:
-    """
-    Handle user registration.
-
-    Args:
-        request: HTTP request
-
-    Returns:
-        Rendered registration form or redirect on success
-    """
+    """Регистрация нового пользователя"""
     if request.user.is_authenticated:
         return redirect('home')
 
     form = CustomUserCreationForm()
 
-    try:
-        if request.method == 'POST':
-            logger.info(f"Registration attempt with data: {request.POST.keys()}")
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
 
+        if form.is_valid():
             try:
-                form = CustomUserCreationForm(request.POST)
-            except Exception as form_init_error:
-                logger.error(f"Form initialization error: {form_init_error}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                messages.error(request, f'Ошибка инициализации формы: {str(form_init_error)}')
-                return render(request, 'auth/register.html', {'form': CustomUserCreationForm()})
+                user = form.save()
 
-            try:
-                if form.is_valid():
-                    try:
-                        user = form.save()
+                # Создаём профиль если не создан
+                if not hasattr(user, 'profile'):
+                    UserProfile.objects.create(user=user)
 
-                        # Create profile if not created in form
-                        if not hasattr(user, 'profile'):
-                            UserProfile.objects.create(user=user)
+                # Генерируем код подтверждения
+                code = ''.join(random.choices(string.digits, k=6))
 
-                        # Auto-login after registration
-                        login(request, user)
-                        messages.success(
-                            request,
-                            f'Добро пожаловать, {user.username}! Регистрация прошла успешно.'
-                        )
-                        return redirect('dashboard')
-                    except DatabaseError as e:
-                        logger.error(f"Database error during registration: {e}", exc_info=True)
-                        messages.error(request, 'Ошибка базы данных при регистрации. Попробуйте снова.')
-                else:
-                    logger.warning(f"Form validation errors: {form.errors}")
-                    for field, errors in form.errors.items():
-                        for error in errors:
-                            messages.error(request, f'{field}: {error}')
-            except re.error as regex_error:
-                logger.error(f"Regex error during validation: {regex_error}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                messages.error(request, f'Ошибка регулярного выражения: {str(regex_error)}')
-            except Exception as validation_error:
-                logger.error(f"Validation error: {validation_error}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
-                messages.error(request, f'Ошибка валидации: {str(validation_error)}')
+                # Сохраняем в сессию
+                request.session['verification_user_id'] = user.id
+                request.session['verification_code'] = code
+                request.session['verification_code_time'] = timezone.now().isoformat()
 
-        return render(request, 'auth/register.html', {'form': form})
+                # Отправляем код
+                try:
+                    send_verification_code(user, code, request)
+                    messages.info(
+                        request,
+                        'Регистрация почти завершена! Введите код, отправленный на вашу почту.'
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not send verification code: {e}")
+                    messages.info(request, f'Код подтверждения: {code}')
 
-    except Exception as e:
-        logger.error(f"Unexpected error in register_view: {e}")
-        logger.error(f"Full traceback: {traceback.format_exc()}")
-        messages.error(request, f'Произошла ошибка: {str(e)}')
-        return render(request, 'auth/register.html', {'form': CustomUserCreationForm()})
+                return redirect('verify_email_code')
+
+            except DatabaseError as e:
+                logger.error(f"Database error during registration: {e}", exc_info=True)
+                messages.error(request, 'Ошибка базы данных при регистрации')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, error)
+                    else:
+                        messages.error(request, f'{error}')
+
+    return render(request, 'auth/register.html', {'form': form})
 
 
 @login_required
 def logout_view(request: HttpRequest) -> HttpResponse:
-    """
-    Handle user logout (POST only for security).
-
-    Args:
-        request: HTTP request
-
-    Returns:
-        Redirect to home or confirmation page
-    """
+    """Выход из системы (только POST)"""
     try:
         if request.method == 'POST':
             username = request.user.username
@@ -156,3 +254,130 @@ def logout_view(request: HttpRequest) -> HttpResponse:
         logger.error(f"Error in logout_view: {e}", exc_info=True)
         logout(request)
         return redirect('home')
+
+
+def verify_email(request: HttpRequest, token: str) -> HttpResponse:
+    """Подтверждение email по ссылке из письма (альтернативный метод)"""
+    try:
+        try:
+            token_obj = EmailVerificationToken.objects.get(token=token)
+        except EmailVerificationToken.DoesNotExist:
+            messages.error(request, 'Недействительная ссылка для подтверждения')
+            return redirect('login')
+
+        if not token_obj.is_valid():
+            token_obj.delete()
+            messages.error(request, 'Ссылка для подтверждения истекла. Запросите новую.')
+            return redirect('login')
+
+        user = token_obj.user
+        user.email_verified = True
+        user.save()
+
+        # Удаляем использованный токен
+        token_obj.delete()
+
+        messages.success(request, 'Email успешно подтверждён!')
+
+        if request.user.is_authenticated:
+            return redirect('dashboard')
+        return redirect('login')
+
+    except Exception as e:
+        logger.error(f"Error verifying email: {e}", exc_info=True)
+        messages.error(request, 'Ошибка при подтверждении email')
+        return redirect('home')
+
+
+def resend_verification(request: HttpRequest) -> HttpResponse:
+    """Повторная отправка письма подтверждения"""
+    if not request.user.is_authenticated:
+        messages.error(request, 'Войдите в систему')
+        return redirect('login')
+
+    if request.user.email_verified:
+        messages.info(request, 'Email уже подтверждён')
+        return redirect('dashboard')
+
+    try:
+        send_verification_email(request.user, request)
+        messages.success(request, 'Письмо отправлено повторно. Проверьте почту.')
+    except Exception as e:
+        logger.error(f"Error resending verification: {e}", exc_info=True)
+        messages.error(request, 'Ошибка при отправке письма')
+
+    return redirect('dashboard')
+
+
+def password_reset_request(request: HttpRequest) -> HttpResponse:
+    """Запрос на сброс пароля"""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    form = PasswordResetRequestForm()
+
+    if request.method == 'POST':
+        form = PasswordResetRequestForm(request.POST)
+
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            try:
+                user = CustomUser.objects.get(email=email)
+                send_password_reset_email(user, request)
+                messages.success(
+                    request,
+                    'Инструкции по сбросу пароля отправлены на вашу почту.'
+                )
+                return redirect('login')
+            except CustomUser.DoesNotExist:
+                messages.success(
+                    request,
+                    'Если email зарегистрирован, вы получите инструкции по сбросу пароля'
+                )
+                return redirect('login')
+            except Exception as e:
+                logger.error(f"Error sending password reset: {e}", exc_info=True)
+                messages.error(request, 'Ошибка при отправке письма')
+
+    return render(request, 'auth/password_reset.html', {'form': form})
+
+
+def password_reset_confirm(request: HttpRequest, token: str) -> HttpResponse:
+    """Установка нового пароля по ссылке из письма"""
+    try:
+        try:
+            token_obj = PasswordResetToken.objects.get(token=token)
+        except PasswordResetToken.DoesNotExist:
+            messages.error(request, 'Недействительная или истёкшая ссылка для сброса пароля')
+            return redirect('password_reset')
+
+        if not token_obj.is_valid():
+            token_obj.delete()
+            messages.error(request, 'Ссылка для сброса пароля истекла. Запросите новую.')
+            return redirect('password_reset')
+
+        form = PasswordResetConfirmForm()
+
+        if request.method == 'POST':
+            form = PasswordResetConfirmForm(request.POST)
+
+            if form.is_valid():
+                user = token_obj.user
+                user.set_password(form.cleaned_data['new_password1'])
+                user.save()
+
+                # Удаляем использованный токен
+                token_obj.delete()
+
+                messages.success(request, 'Пароль успешно изменён! Теперь вы можете войти.')
+                return redirect('login')
+
+        return render(request, 'auth/password_reset_confirm.html', {
+            'form': form,
+            'token': token
+        })
+
+    except Exception as e:
+        logger.error(f"Error in password reset confirm: {e}", exc_info=True)
+        messages.error(request, 'Ошибка при сбросе пароля. Попробуйте запросить ссылку заново.')
+        return redirect('password_reset')

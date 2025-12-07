@@ -1,0 +1,135 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Резервное копирование{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .backup-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: var(--darkened-bg, #1a1a1a);
+        border-radius: 8px;
+    }
+    .backup-section h3 {
+        margin: 0 0 15px 0;
+        color: #d4af37;
+    }
+    .backup-section p {
+        margin: 0 0 15px 0;
+        color: var(--body-quiet-color, #aaa);
+    }
+    .backup-btn {
+        background: #d4af37 !important;
+        color: #1a1a1a !important;
+        border: none !important;
+        padding: 12px 24px !important;
+        font-weight: bold !important;
+        cursor: pointer !important;
+        border-radius: 4px !important;
+    }
+    .backup-btn:hover {
+        background: #c9a227 !important;
+    }
+    .backup-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .backup-table th,
+    .backup-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--hairline-color, #333);
+    }
+    .backup-table th {
+        background: var(--darkened-bg, #1a1a1a);
+        color: var(--body-fg, #fff);
+    }
+    .backup-empty {
+        padding: 40px;
+        text-align: center;
+        color: var(--body-quiet-color, #666);
+    }
+    .download-btn {
+        background: #417690;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 12px;
+    }
+    .download-btn:hover {
+        background: #205067;
+        color: white;
+    }
+    .warning-box {
+        padding: 15px;
+        background: #fff3cd;
+        border-radius: 4px;
+        color: #856404;
+        margin-bottom: 15px;
+    }
+    .code-box {
+        background: #1a1a1a;
+        color: #d4af37;
+        padding: 15px;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-family: monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Резервное копирование базы данных</h1>
+
+<div class="backup-section">
+    <h3>Создать новый бэкап</h3>
+    <p>Бэкап создаётся в формате JSON и содержит все данные базы (пользователи, помещения, бронирования, отзывы и т.д.)</p>
+    <form method="post" action="{% url 'interior_admin:create_backup' %}">
+        {% csrf_token %}
+        <button type="submit" class="backup-btn">Создать бэкап</button>
+    </form>
+</div>
+
+<div class="module">
+    <h2>Существующие бэкапы</h2>
+
+    {% if backups %}
+    <table class="backup-table">
+        <thead>
+            <tr>
+                <th>Файл</th>
+                <th>Размер</th>
+                <th>Дата создания</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for backup in backups %}
+            <tr>
+                <td>{{ backup.filename }}</td>
+                <td>{{ backup.size_mb }} МБ</td>
+                <td>{{ backup.created|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <a href="{% url 'interior_admin:download_backup' backup.filename %}" class="download-btn">Скачать</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="backup-empty">
+        <p>Бэкапы ещё не созданы</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="module" style="margin-top: 30px;">
+    <h2>Восстановление из бэкапа</h2>
+    <div class="warning-box">
+        <strong>Внимание!</strong> Для восстановления из бэкапа используйте команду в терминале:
+    </div>
+    <div class="code-box">python manage.py loaddata backups/backup_YYYYMMDD_HHMMSS.json</div>
+</div>
+{% endblock %}

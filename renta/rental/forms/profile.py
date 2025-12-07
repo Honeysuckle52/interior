@@ -1,25 +1,22 @@
 """
 ФОРМЫ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ
 """
-from __future__ import annotations  # для поддержки forward references
+from __future__ import annotations
 
-from typing import Any  # добавлены type hints
+from typing import Any
 
 from django import forms
-from django.core.validators import RegexValidator
 
 from ..models import CustomUser, UserProfile
 from ..services.validators import validate_russian_phone, normalize_phone
 
 
 class UserProfileForm(forms.ModelForm):
-    """
-    Форма редактирования основных данных профиля
-    """
+    """Форма редактирования основных данных профиля"""
+
     phone = forms.CharField(
         required=False,
         max_length=20,
-        validators=[validate_russian_phone],
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': '+7 (999) 123-45-67'
@@ -63,7 +60,7 @@ class UserProfileForm(forms.ModelForm):
             'avatar': 'Фото профиля',
         }
 
-    def clean_email(self) -> str:  # type hints
+    def clean_email(self) -> str:
         """Проверка уникальности email при изменении"""
         email: str = self.cleaned_data.get('email', '')
         if CustomUser.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
@@ -71,17 +68,21 @@ class UserProfileForm(forms.ModelForm):
         return email
 
     def clean_phone(self) -> str:
-        """Нормализация номера телефона"""
+        """Валидация и нормализация номера телефона"""
         phone: str = self.cleaned_data.get('phone', '')
         if phone:
+            try:
+                validate_russian_phone(phone)
+            except forms.ValidationError:
+                raise forms.ValidationError(
+                    'Введите корректный номер. Пример: +7 (999) 123-45-67'
+                )
             phone = normalize_phone(phone)
         return phone
 
 
 class UserProfileExtendedForm(forms.ModelForm):
-    """
-    Форма дополнительных данных профиля (UserProfile)
-    """
+    """Форма дополнительных данных профиля (UserProfile)"""
     class Meta:
         model = UserProfile
         fields = ['bio', 'website', 'social_vk', 'social_telegram']
@@ -113,9 +114,7 @@ class UserProfileExtendedForm(forms.ModelForm):
 
 
 class ChangePasswordForm(forms.Form):
-    """
-    Форма смены пароля
-    """
+    """Форма смены пароля"""
     current_password = forms.CharField(
         label='Текущий пароль',
         widget=forms.PasswordInput(attrs={
@@ -139,17 +138,17 @@ class ChangePasswordForm(forms.Form):
         })
     )
 
-    def __init__(self, user: CustomUser, *args: Any, **kwargs: Any) -> None:  # type hints
+    def __init__(self, user: CustomUser, *args: Any, **kwargs: Any) -> None:
         self.user = user
         super().__init__(*args, **kwargs)
 
-    def clean_current_password(self) -> str:  # type hints
+    def clean_current_password(self) -> str:
         current: str = self.cleaned_data.get('current_password', '')
         if not self.user.check_password(current):
             raise forms.ValidationError('Неверный текущий пароль')
         return current
 
-    def clean(self) -> dict[str, Any]:  # type hints
+    def clean(self) -> dict[str, Any]:
         cleaned_data = super().clean()
         new1 = cleaned_data.get('new_password1')
         new2 = cleaned_data.get('new_password2')
@@ -158,7 +157,7 @@ class ChangePasswordForm(forms.Form):
             raise forms.ValidationError('Пароли не совпадают')
         return cleaned_data
 
-    def save(self) -> CustomUser:  # type hints
+    def save(self) -> CustomUser:
         self.user.set_password(self.cleaned_data['new_password1'])
         self.user.save()
         return self.user

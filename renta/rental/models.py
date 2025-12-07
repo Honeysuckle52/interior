@@ -64,7 +64,7 @@ class CustomUser(AbstractUser):
     user_type = models.CharField(
         max_length=10,
         choices=UserType.choices,
-        default=UserType.USER,  # По умолчанию - обычный пользователь
+        default=UserType.USER,
         verbose_name='Тип пользователя',
         db_index=True
     )
@@ -117,6 +117,56 @@ class CustomUser(AbstractUser):
     def can_moderate(self) -> bool:
         """Проверить, может ли пользователь модерировать контент."""
         return self.is_moderator or self.is_admin_user or self.is_staff
+
+
+class EmailVerificationToken(models.Model):
+    """Токен для подтверждения email"""
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='email_token',
+        verbose_name='Пользователь'
+    )
+    token = models.CharField(max_length=64, unique=True, verbose_name='Токен')
+    expires_at = models.DateTimeField(verbose_name='Истекает')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
+
+    class Meta:
+        verbose_name = 'Токен подтверждения email'
+        verbose_name_plural = 'Токены подтверждения email'
+        db_table = 'email_verification_tokens'
+
+    def is_valid(self) -> bool:
+        """Проверить, не истёк ли токен"""
+        return timezone.now() < self.expires_at
+
+    def __str__(self) -> str:
+        return f"Email token for {self.user.username}"
+
+
+class PasswordResetToken(models.Model):
+    """Токен для сброса пароля"""
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='password_token',
+        verbose_name='Пользователь'
+    )
+    token = models.CharField(max_length=64, unique=True, verbose_name='Токен')
+    expires_at = models.DateTimeField(verbose_name='Истекает')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
+
+    class Meta:
+        verbose_name = 'Токен сброса пароля'
+        verbose_name_plural = 'Токены сброса пароля'
+        db_table = 'password_reset_tokens'
+
+    def is_valid(self) -> bool:
+        """Проверить, не истёк ли токен"""
+        return timezone.now() < self.expires_at
+
+    def __str__(self) -> str:
+        return f"Password reset token for {self.user.username}"
 
 
 class UserProfile(models.Model):

@@ -22,6 +22,14 @@ from .views import (
 from .views.favorites import check_favorite
 from .views.bookings import get_price_for_period, confirm_booking, reject_booking, manage_bookings
 from .views.reviews import my_reviews, delete_review
+from .views.auth import (
+    verify_email,
+    resend_verification,
+    password_reset_request,
+    password_reset_confirm,
+    verify_email_code,  # Добавлен импорт
+    resend_verification_code,  # Добавлен импорт
+)
 
 
 urlpatterns = [
@@ -36,6 +44,14 @@ urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
     path('register/', register_view, name='register'),
     path('logout/', logout_view, name='logout'),
+
+    path('verify-code/', verify_email_code, name='verify_email_code'),
+    path('resend-code/', resend_verification_code, name='resend_verification_code'),
+
+    path('verify-email/<str:token>/', verify_email, name='verify_email'),
+    path('resend-verification/', resend_verification, name='resend_verification'),
+    path('password-reset/', password_reset_request, name='password_reset'),
+    path('reset-password/<str:token>/', password_reset_confirm, name='password_reset_confirm'),
 
     # ============== ЛИЧНЫЙ КАБИНЕТ ==============
     path('dashboard/', dashboard, name='dashboard'),

@@ -7,15 +7,15 @@
 <div class="container" style="padding-top: 100px;">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="display-5 fw-bold mb-3">Личный кабинет</h1>
+            <h1 class="display-6 fw-bold mb-2">Личный кабинет</h1>
             <p class="text-muted">Добро пожаловать, {{ user.username }}!</p>
         </div>
     </div>
-    
-    <!-- Расширенная статистика с количеством бронирований -->
+
+    <!-- Статистика -->
     <div class="row g-4 mb-5">
         <div class="col-md-4">
-            <div class="dashboard-card dashboard-stat">
+            <div class="dashboard-card dashboard-stat text-center">
                 <div class="number">{{ stats.bookings_total }}</div>
                 <div class="label">Бронирований</div>
                 {% if stats.bookings_active > 0 %}
@@ -24,13 +24,13 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="dashboard-card dashboard-stat">
+            <div class="dashboard-card dashboard-stat text-center">
                 <div class="number">{{ stats.favorites_count }}</div>
                 <div class="label">В избранном</div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="dashboard-card dashboard-stat">
+            <div class="dashboard-card dashboard-stat text-center">
                 <div class="number">{{ stats.reviews_count }}</div>
                 <div class="label">Отзывов</div>
             </div>
@@ -42,7 +42,7 @@
         <div class="col-lg-8">
             <div class="dashboard-card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0"><i class="fas fa-calendar me-2 gold-text"></i>Последние бронирования</h5>
+                    <h5 class="fw-bold mb-0">Последние бронирования</h5>
                     <a href="{% url 'my_bookings' %}" class="btn btn-gold btn-sm">Все брони</a>
                 </div>
 
@@ -78,30 +78,16 @@
         <!-- Быстрые действия -->
         <div class="col-lg-4">
             <div class="dashboard-card">
-                <h5 class="fw-bold mb-4"><i class="fas fa-bolt me-2 gold-text"></i>Быстрые действия</h5>
+                <h5 class="fw-bold mb-4">Быстрые действия</h5>
                 <div class="d-grid gap-2">
-                    <a href="{% url 'spaces_list' %}" class="btn btn-outline-light">
-                        <i class="fas fa-search me-2"></i>Найти помещение
-                    </a>
-                    <a href="{% url 'my_favorites' %}" class="btn btn-outline-light">
-                        <i class="fas fa-heart me-2"></i>Избранное
-                    </a>
-                    <a href="{% url 'profile' %}" class="btn btn-outline-light">
-                        <i class="fas fa-user-edit me-2"></i>Редактировать профиль
-                    </a>
-                    <!-- User can view their own reviews -->
-                    <a href="{% url 'my_reviews' %}" class="btn btn-outline-light">
-                        <i class="fas fa-star me-2"></i>Мои отзывы
-                    </a>
-                    <!-- Added links for admin/moderator management panels -->
+                    <a href="{% url 'spaces_list' %}" class="btn btn-outline-light">Найти помещение</a>
+                    <a href="{% url 'my_favorites' %}" class="btn btn-outline-light">Избранное</a>
+                    <a href="{% url 'profile' %}" class="btn btn-outline-light">Редактировать профиль</a>
+                    <a href="{% url 'my_reviews' %}" class="btn btn-outline-light">Мои отзывы</a>
                     {% if user.can_moderate %}
                     <hr class="my-2">
-                    <a href="{% url 'manage_bookings' %}" class="btn btn-outline-warning">
-                        <i class="fas fa-tasks me-2"></i>Управление бронями
-                    </a>
-                    <a href="{% url 'manage_reviews' %}" class="btn btn-outline-warning">
-                        <i class="fas fa-comments me-2"></i>Управление отзывами
-                    </a>
+                    <a href="{% url 'manage_bookings' %}" class="btn btn-outline-gold">Управление бронями</a>
+                    <a href="{% url 'manage_reviews' %}" class="btn btn-outline-gold">Управление отзывами</a>
                     {% endif %}
                 </div>
             </div>

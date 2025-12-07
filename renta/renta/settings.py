@@ -112,6 +112,20 @@ MESSAGE_TAGS = {
     messages.ERROR: 'danger',
 }
 
+# Письма будут выводиться в консоль сервера
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Настройки для реальной отправки через Mail.ru (раскомментировать когда будет пароль)
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.mail.ru'
+# EMAIL_PORT = 465
+# EMAIL_USE_SSL = True
+# EMAIL_HOST_USER = 'danil_naumov_90@bk.ru'
+# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')  # Пароль приложения
+# DEFAULT_FROM_EMAIL = 'INTERIOR <danil_naumov_90@bk.ru>'
+
+DEFAULT_FROM_EMAIL = 'INTERIOR <anil_naumov_90@bk.ru>'
+
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True

@@ -9,8 +9,8 @@
     <div class="hero-bg"></div>
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-7 animate-fade-in hero-content">
-                <h1 class="display-3 fw-bold mb-4">
+            <div class="col-lg-7 animate-fade-in">
+                <h1 class="display-4 fw-bold mb-4">
                     Качественные <span class="gold-text">пространства</span> для вашего бизнеса
                 </h1>
                 <p class="lead mb-5 text-muted">
@@ -63,17 +63,17 @@
 </section>
 
 <!-- Преимущества -->
-<section class="py-5" style="background: var(--bg-color);">
+<section class="py-5">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="display-5 fw-bold mb-3">Почему выбирают нас</h2>
+            <h2 class="display-6 fw-bold mb-3">Почему выбирают нас</h2>
             <p class="text-muted">Качественный сервис для всех клиентов</p>
         </div>
 
         <div class="row g-4">
             <div class="col-md-4 animate-fade-in delay-1">
                 <div class="text-center">
-                    <div class="mb-4" style="font-size: 3rem; color: var(--gold);">
+                    <div class="mb-4" style="font-size: 2.5rem; color: var(--color-gold);">
                         <i class="fas fa-building"></i>
                     </div>
                     <h5 class="fw-bold">Качественные помещения</h5>
@@ -82,7 +82,7 @@
             </div>
             <div class="col-md-4 animate-fade-in delay-2">
                 <div class="text-center">
-                    <div class="mb-4" style="font-size: 3rem; color: var(--gold);">
+                    <div class="mb-4" style="font-size: 2.5rem; color: var(--color-gold);">
                         <i class="fas fa-clock"></i>
                     </div>
                     <h5 class="fw-bold">Экономия времени</h5>
@@ -91,7 +91,7 @@
             </div>
             <div class="col-md-4 animate-fade-in delay-3">
                 <div class="text-center">
-                    <div class="mb-4" style="font-size: 3rem; color: var(--gold);">
+                    <div class="mb-4" style="font-size: 2.5rem; color: var(--color-gold);">
                         <i class="fas fa-wallet"></i>
                     </div>
                     <h5 class="fw-bold">Доступные цены</h5>
@@ -103,10 +103,10 @@
 </section>
 
 <!-- Популярные помещения -->
-<section class="py-5" style="background: var(--card-bg);">
+<section class="py-5" style="background: var(--bg-card);">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="display-5 fw-bold mb-3">Популярные помещения</h2>
+            <h2 class="display-6 fw-bold mb-3">Популярные помещения</h2>
             <p class="text-muted">Самые востребованные пространства этого месяца</p>
         </div>
 
@@ -114,43 +114,35 @@
             {% for space in featured_spaces %}
             <div class="col-lg-4 col-md-6">
                 <div class="space-card h-100">
-                    <div class="position-relative overflow-hidden">
+                    <div class="space-card-image-wrapper">
                         {% with space.get_main_image as image %}
                         {% if image and image.image %}
-                        <img src="{{ image.image.url }}" class="space-image w-100" alt="{{ space.title }}" loading="lazy">
+                        <img src="{{ image.image.url }}" class="space-image" alt="{{ space.title }}" loading="lazy">
                         {% else %}
-                        <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image w-100" alt="{{ space.title }}" loading="lazy">
+                        <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image" alt="{{ space.title }}" loading="lazy">
                         {% endif %}
                         {% endwith %}
-                        <!-- Категория слева сверху -->
-                        <div class="position-absolute top-0 start-0 m-3">
-                            <span class="badge bg-dark bg-opacity-75 px-3 py-2">
-                                <i class="fas {{ space.category.icon }} me-1 gold-text"></i>{{ space.category.name }}
-                            </span>
-                        </div>
-                        <!-- Город снизу слева -->
-                        <div class="position-absolute bottom-0 start-0 m-3">
-                            <span class="badge bg-dark bg-opacity-75 px-3 py-2">
-                                <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
-                            </span>
-                        </div>
+                        <span class="space-badge-overlay">{{ space.category.name }}</span>
+                        <span class="space-city-overlay">
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ space.city.name }}
+                        </span>
                     </div>
 
                     <div class="space-card-body">
-                        <h5 class="space-card-title-fixed">{{ space.title }}</h5>
+                        <h5 class="space-card-title">{{ space.title }}</h5>
                         <div class="space-card-meta">
-                            <small class="text-muted"><i class="fas fa-expand-arrows-alt me-1"></i>{{ space.area_sqm }} м²</small>
-                            <small class="text-muted"><i class="fas fa-users me-1"></i>до {{ space.max_capacity }} чел.</small>
+                            <span>{{ space.area_sqm }} м²</span>
+                            <span>до {{ space.max_capacity }} чел.</span>
                         </div>
                         <p class="space-card-desc">{{ space.description|truncatewords:15 }}</p>
-                        <div class="space-card-bottom">
-                            <div class="space-card-price-box">
+                        <div class="space-card-footer">
+                            <div class="space-card-price">
                                 {% with space.get_min_price as price %}
                                 {% if price %}
-                                <span class="price-value">от {{ price.price|floatformat:0 }} ₽</span>
-                                <span class="price-period">{{ price.period.description }}</span>
+                                <span class="price-amount">от {{ price.price|floatformat:0 }} ₽</span>
+                                <span class="price-type">{{ price.period.description }}</span>
                                 {% else %}
-                                <span class="price-value">Цена по запросу</span>
+                                <span class="price-amount">Цена по запросу</span>
                                 {% endif %}
                                 {% endwith %}
                             </div>

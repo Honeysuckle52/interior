@@ -7,35 +7,34 @@
 <div class="container" style="padding-top: 100px;">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="display-5 fw-bold mb-3">Мои бронирования</h1>
+            <h1 class="display-6 fw-bold mb-2">Мои бронирования</h1>
             <p class="text-muted">История всех ваших бронирований</p>
         </div>
     </div>
-    
+
     {% if bookings %}
     <div class="row g-4">
         {% for booking in bookings %}
         <div class="col-12">
-            <!-- Добавлена ссылка на детальную страницу бронирования -->
             <a href="{% url 'booking_detail' booking.id %}" class="text-decoration-none">
                 <div class="dashboard-card booking-card-link">
                     <div class="row align-items-center">
                         <div class="col-md-6">
-                            <h5 class="fw-bold mb-2 text-white">{{ booking.space.title }}</h5>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">{{ booking.space.title }}</h5>
                             <p class="text-muted mb-0">
-                                <i class="fas fa-calendar me-2"></i>{{ booking.start_datetime|date:"d.m.Y H:i" }} - {{ booking.end_datetime|date:"d.m.Y H:i" }}
+                                {{ booking.start_datetime|date:"d.m.Y H:i" }} — {{ booking.end_datetime|date:"d.m.Y H:i" }}
                             </p>
                         </div>
-                        <div class="col-md-3 text-center">
+                        <div class="col-md-3 text-center mt-3 mt-md-0">
                             <span class="badge bg-{{ booking.status.color }} px-3 py-2">{{ booking.status.name }}</span>
                         </div>
-                        <div class="col-md-3 text-end">
+                        <div class="col-md-3 text-end mt-3 mt-md-0">
                             <div class="price-tag mb-2">{{ booking.total_amount|floatformat:0 }} ₽</div>
                             {% if booking.status.code == 'pending' or booking.status.code == 'confirmed' %}
                             <form method="post" action="{% url 'cancel_booking' booking.id %}" class="d-inline" onclick="event.stopPropagation();">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-outline-danger btn-sm" onclick="event.preventDefault(); event.stopPropagation(); if(confirm('Отменить бронирование?')) this.closest('form').submit();">
-                                    <i class="fas fa-times me-1"></i>Отменить
+                                    Отменить
                                 </button>
                             </form>
                             {% endif %}

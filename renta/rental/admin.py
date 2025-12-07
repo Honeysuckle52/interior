@@ -1,12 +1,14 @@
 """
 НАСТРОЙКА АДМИН-ПАНЕЛИ ДЛЯ САЙТА АРЕНДЫ ООО "ИНТЕРЬЕР"
-С системой отчетности и логирования действий
+С системой отчетности, логирования и бэкапа БД
 """
 
 from __future__ import annotations
 
 import csv
 import json
+import os
+import subprocess
 from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any, Optional
@@ -14,6 +16,7 @@ from typing import Any, Optional
 from django.contrib import admin, messages
 from django.contrib.admin import AdminSite
 from django.contrib.auth.admin import UserAdmin
+from django.conf import settings
 from django.db.models import Count, Avg, Sum, QuerySet
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
@@ -32,14 +35,14 @@ from .models import (
 from .forms import AdminUserCreationForm, AdminUserChangeForm
 
 
-# ============== КАСТОМНЫЙ ADMIN SITE С ОТЧЕТАМИ ==============
+# ============== КАСТОМНЫЙ ADMIN SITE С ОТЧЕТАМИ И БЭКАПОМ ==============
 
 class InteriorAdminSite(AdminSite):
-    """Кастомный AdminSite с дополнительными страницами отчетов."""
+    """Кастомный AdminSite с дополнительными страницами отчетов и бэкапом."""
 
     site_header = 'ООО "ИНТЕРЬЕР" - Администрирование'
     site_title = 'ИНТЕРЬЕР Admin'
-    index_title = 'Панель управления сайтом аренды помещений'
+    index_title = 'Панель управления'
 
     def get_urls(self):
         urls = super().get_urls()
@@ -49,12 +52,106 @@ class InteriorAdminSite(AdminSite):
             path('reports/export/json/', self.admin_view(self.export_json_view), name='export_json'),
             path('reports/export/csv/', self.admin_view(self.export_csv_view), name='export_csv'),
             path('reports/dashboard/', self.admin_view(self.dashboard_view), name='reports_dashboard'),
+            path('backup/', self.admin_view(self.backup_view), name='backup'),
+            path('backup/create/', self.admin_view(self.create_backup), name='create_backup'),
+            path('backup/download/<str:filename>/', self.admin_view(self.download_backup), name='download_backup'),
         ]
         return custom_urls + urls
 
+    def backup_view(self, request: HttpRequest) -> TemplateResponse:
+        """Страница управления бэкапами базы данных."""
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        os.makedirs(backup_dir, exist_ok=True)
+
+        # Получаем список бэкапов
+        backups = []
+        if os.path.exists(backup_dir):
+            for filename in sorted(os.listdir(backup_dir), reverse=True):
+                if filename.endswith('.json') or filename.endswith('.sql'):
+                    filepath = os.path.join(backup_dir, filename)
+                    stat = os.stat(filepath)
+                    backups.append({
+                        'filename': filename,
+                        'size': stat.st_size,
+                        'size_mb': round(stat.st_size / (1024 * 1024), 2),
+                        'created': datetime.fromtimestamp(stat.st_mtime),
+                    })
+
+        context = {
+            **self.each_context(request),
+            'title': 'Резервное копирование',
+            'backups': backups[:20],  # Последние 20 бэкапов
+        }
+        return TemplateResponse(request, 'admin/backup/index.html', context)
+
+    def create_backup(self, request: HttpRequest) -> HttpResponse:
+        """Создание бэкапа базы данных."""
+        if request.method != 'POST':
+            return redirect('interior_admin:backup')
+
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        os.makedirs(backup_dir, exist_ok=True)
+
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+
+        try:
+            # Используем Django dumpdata для JSON бэкапа
+            from django.core.management import call_command
+            from io import StringIO
+
+            output = StringIO()
+            call_command(
+                'dumpdata',
+                '--natural-foreign',
+                '--natural-primary',
+                '--indent=2',
+                stdout=output,
+                exclude=['contenttypes', 'auth.permission', 'sessions']
+            )
+
+            filename = f'backup_{timestamp}.json'
+            filepath = os.path.join(backup_dir, filename)
+
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(output.getvalue())
+
+            messages.success(request, f'Бэкап успешно создан: {filename}')
+
+            # Логируем действие
+            ActionLog.objects.create(
+                user=request.user,
+                action_type=ActionLog.ActionType.OTHER,
+                model_name='backup',
+                object_repr=f'Создан бэкап: {filename}',
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
+        except Exception as e:
+            messages.error(request, f'Ошибка создания бэкапа: {e}')
+
+        return redirect('interior_admin:backup')
+
+    def download_backup(self, request: HttpRequest, filename: str) -> HttpResponse:
+        """Скачивание файла бэкапа."""
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        filepath = os.path.join(backup_dir, filename)
+
+        # Защита от path traversal
+        if not os.path.abspath(filepath).startswith(os.path.abspath(backup_dir)):
+            messages.error(request, 'Недопустимый путь к файлу')
+            return redirect('interior_admin:backup')
+
+        if not os.path.exists(filepath):
+            messages.error(request, 'Файл не найден')
+            return redirect('interior_admin:backup')
+
+        with open(filepath, 'rb') as f:
+            response = HttpResponse(f.read(), content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+
     def reports_view(self, request: HttpRequest) -> TemplateResponse:
         """Главная страница отчетов."""
-        # Статистика за последние 30 дней
         thirty_days_ago = timezone.now() - timedelta(days=30)
 
         context = {
@@ -84,7 +181,6 @@ class InteriorAdminSite(AdminSite):
 
     def action_logs_view(self, request: HttpRequest) -> TemplateResponse:
         """Страница журнала действий с фильтрацией."""
-        # Получаем параметры фильтрации
         user_id = request.GET.get('user')
         action_type = request.GET.get('action_type')
         model_name = request.GET.get('model')
@@ -93,7 +189,6 @@ class InteriorAdminSite(AdminSite):
 
         logs = ActionLog.objects.select_related('user').order_by('-created_at')
 
-        # Применяем фильтры
         if user_id:
             logs = logs.filter(user_id=user_id)
         if action_type:
@@ -113,7 +208,6 @@ class InteriorAdminSite(AdminSite):
             except ValueError:
                 pass
 
-        # Пагинация
         from django.core.paginator import Paginator
         paginator = Paginator(logs, 50)
         page = request.GET.get('page', 1)
@@ -165,7 +259,7 @@ class InteriorAdminSite(AdminSite):
         date_to = request.GET.get('date_to')
 
         response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response.write('\ufeff')  # BOM для Excel
+        response.write('\ufeff')
         filename = f'report_{report_type}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
@@ -200,11 +294,9 @@ class InteriorAdminSite(AdminSite):
 
     def dashboard_view(self, request: HttpRequest) -> TemplateResponse:
         """Дашборд с графиками и аналитикой."""
-        # Данные за последние 30 дней
         today = timezone.now().date()
         thirty_days_ago = today - timedelta(days=30)
 
-        # Бронирования по дням
         bookings_by_day = []
         for i in range(30):
             date = thirty_days_ago + timedelta(days=i)
@@ -214,7 +306,6 @@ class InteriorAdminSite(AdminSite):
                 'count': count
             })
 
-        # Доход по дням
         revenue_by_day = []
         for i in range(30):
             date = thirty_days_ago + timedelta(days=i)
@@ -227,13 +318,11 @@ class InteriorAdminSite(AdminSite):
                 'amount': float(total)
             })
 
-        # Топ помещений
         top_spaces = Space.objects.annotate(
             bookings_count=Count('bookings'),
             revenue=Sum('bookings__total_amount')
         ).order_by('-bookings_count')[:5]
 
-        # Статусы бронирований
         status_distribution = Booking.objects.values(
             'status__name', 'status__color'
         ).annotate(count=Count('id'))
@@ -249,7 +338,6 @@ class InteriorAdminSite(AdminSite):
         return TemplateResponse(request, 'admin/reports/dashboard.html', context)
 
     def _get_actions_queryset(self, date_from: Optional[str], date_to: Optional[str]) -> QuerySet:
-        """Получить QuerySet действий с фильтрацией по датам."""
         logs = ActionLog.objects.select_related('user').order_by('-created_at')
         if date_from:
             try:
@@ -266,7 +354,6 @@ class InteriorAdminSite(AdminSite):
         return logs
 
     def _get_bookings_queryset(self, date_from: Optional[str], date_to: Optional[str]) -> QuerySet:
-        """Получить QuerySet бронирований с фильтрацией по датам."""
         bookings = Booking.objects.select_related(
             'space', 'tenant', 'status'
         ).order_by('-created_at')
@@ -285,7 +372,6 @@ class InteriorAdminSite(AdminSite):
         return bookings
 
     def _get_actions_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
-        """Подготовить данные действий для экспорта."""
         logs = self._get_actions_queryset(date_from, date_to)[:1000]
         return {
             'report_type': 'actions',
@@ -308,7 +394,6 @@ class InteriorAdminSite(AdminSite):
         }
 
     def _get_bookings_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
-        """Подготовить данные бронирований для экспорта."""
         bookings = self._get_bookings_queryset(date_from, date_to)
         return {
             'report_type': 'bookings',
@@ -330,7 +415,6 @@ class InteriorAdminSite(AdminSite):
         }
 
     def _get_revenue_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
-        """Подготовить данные по доходам для экспорта."""
         bookings = self._get_bookings_queryset(date_from, date_to).filter(
             status__code__in=['confirmed', 'completed']
         )
@@ -372,7 +456,6 @@ class LoggingAdminMixin:
     """Миксин для автоматического логирования действий в админке."""
 
     def save_model(self, request: HttpRequest, obj: Any, form: Any, change: bool) -> None:
-        """Сохранение с логированием."""
         super().save_model(request, obj, form, change)
 
         from .middleware import log_action
@@ -400,7 +483,6 @@ class LoggingAdminMixin:
         )
 
     def delete_model(self, request: HttpRequest, obj: Any) -> None:
-        """Удаление с логированием."""
         from .middleware import log_action
 
         log_action(
@@ -415,7 +497,6 @@ class LoggingAdminMixin:
         super().delete_model(request, obj)
 
     def delete_queryset(self, request: HttpRequest, queryset: QuerySet) -> None:
-        """Массовое удаление с логированием."""
         from .middleware import log_action
 
         for obj in queryset:
@@ -463,9 +544,9 @@ class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
 
     list_display = [
         'username', 'email', 'get_full_name_display', 'user_type',
-        'phone', 'is_active', 'get_bookings_count', 'created_at'
+        'email_verified_badge', 'phone', 'is_active', 'get_bookings_count', 'created_at'
     ]
-    list_filter = ['user_type', 'is_active', 'is_staff', 'created_at']
+    list_filter = ['user_type', 'is_active', 'email_verified', 'is_staff', 'created_at']
     search_fields = ['username', 'email', 'phone', 'first_name', 'last_name', 'company']
     ordering = ['-created_at']
     date_hierarchy = 'created_at'
@@ -497,7 +578,7 @@ class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
         }),
     )
 
-    actions = ['make_owner', 'make_client', 'deactivate_users']
+    actions = ['make_owner', 'make_client', 'deactivate_users', 'verify_emails']
 
     @admin.display(description='ФИО')
     def get_full_name_display(self, obj: CustomUser) -> str:
@@ -507,6 +588,16 @@ class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
     def get_bookings_count(self, obj: CustomUser) -> str:
         count = obj.bookings.count()
         return format_html('<b>{}</b>', count) if count > 0 else '0'
+
+    @admin.display(description='Email')
+    def email_verified_badge(self, obj: CustomUser) -> str:
+        if obj.email_verified:
+            return format_html(
+                '<span style="color: #28a745;"><i class="fas fa-check-circle"></i> Подтверждён</span>'
+            )
+        return format_html(
+            '<span style="color: #dc3545;"><i class="fas fa-times-circle"></i> Не подтверждён</span>'
+        )
 
     @admin.action(description='Сделать владельцами')
     def make_owner(self, request: HttpRequest, queryset: QuerySet) -> None:
@@ -522,6 +613,11 @@ class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
     def deactivate_users(self, request: HttpRequest, queryset: QuerySet) -> None:
         updated = queryset.update(is_active=False)
         self.message_user(request, f'{updated} пользователей деактивировано')
+
+    @admin.action(description='Подтвердить email')
+    def verify_emails(self, request: HttpRequest, queryset: QuerySet) -> None:
+        updated = queryset.update(email_verified=True)
+        self.message_user(request, f'{updated} пользователей подтверждено')
 
 
 # ============== СПРАВОЧНИКИ ==============
@@ -858,15 +954,77 @@ class FavoriteAdmin(LoggingAdminMixin, admin.ModelAdmin):
 
 @admin.register(ActionLog, site=admin_site)
 class ActionLogAdmin(admin.ModelAdmin):
-    list_display = ['created_at', 'user', 'action_type_badge', 'model_name', 'object_repr_short', 'ip_address']
-    list_filter = ['action_type', 'model_name', 'created_at']
-    search_fields = ['user__username', 'model_name', 'object_repr', 'ip_address']
+    """Администрирование журнала действий - по образцу пользователя."""
+    list_display = ['created_at_formatted', 'user_link', 'action_type', 'object_repr', 'ip_address', 'browser_short']
+    list_filter = [
+        ('created_at', admin.DateFieldListFilter),
+        'action_type',
+    ]
+    search_fields = ['user__username', 'object_repr', 'ip_address']
     date_hierarchy = 'created_at'
     ordering = ['-created_at']
+    list_per_page = 50
     readonly_fields = [
         'user', 'action_type', 'model_name', 'object_id', 'object_repr',
         'changes_display', 'ip_address', 'user_agent', 'created_at'
     ]
+
+    # Запрещаем добавление/удаление - только просмотр
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    @admin.display(description='Время действия', ordering='created_at')
+    def created_at_formatted(self, obj):
+        """Форматированная дата и время."""
+        return obj.created_at.strftime('%d %B %Y г. %H:%M') if obj.created_at else '-'
+
+    @admin.display(description='Пользователь')
+    def user_link(self, obj):
+        """Ссылка на пользователя."""
+        if obj.user:
+            url = reverse('interior_admin:rental_customuser_change', args=[obj.user.pk])
+            return format_html('<a href="{}">{}</a>', url, obj.user.username)
+        return 'Аноним'
+
+    @admin.display(description='Браузер')
+    def browser_short(self, obj):
+        """Короткое название браузера."""
+        ua = obj.user_agent or ''
+        if 'Chrome' in ua:
+            # Извлекаем версию Chrome
+            import re
+            match = re.search(r'Chrome/(\d+)', ua)
+            version = match.group(1) if match else ''
+            return f'Chrome {version}'
+        elif 'Firefox' in ua:
+            import re
+            match = re.search(r'Firefox/(\d+)', ua)
+            version = match.group(1) if match else ''
+            return f'Firefox {version}'
+        elif 'Safari' in ua and 'Chrome' not in ua:
+            return 'Safari'
+        elif 'Edge' in ua:
+            return 'Edge'
+        elif 'Opera' in ua or 'OPR' in ua:
+            import re
+            match = re.search(r'(?:Opera|OPR)/(\d+)', ua)
+            version = match.group(1) if match else ''
+            return f'Opera {version}'
+        elif 'MSIE' in ua or 'Trident' in ua:
+            return 'IE'
+        return ua[:30] + '...' if len(ua) > 30 else ua or '-'
+
+    @admin.display(description='Изменения')
+    def changes_display(self, obj):
+        """Отображение изменений в формате JSON."""
+        if obj.changes:
+            import json
+            formatted = json.dumps(obj.changes, ensure_ascii=False, indent=2)
+            return format_html('<pre style="margin:0; white-space:pre-wrap;">{}</pre>', formatted)
+        return '-'
 
     fieldsets = (
         ('Информация о действии', {
@@ -879,46 +1037,8 @@ class ActionLogAdmin(admin.ModelAdmin):
             'fields': ('changes_display',),
             'classes': ('collapse',)
         }),
-        ('Технические данные', {
+        ('Техническая информация', {
             'fields': ('ip_address', 'user_agent'),
             'classes': ('collapse',)
         }),
     )
-
-    def has_add_permission(self, request: HttpRequest) -> bool:
-        return False
-
-    def has_change_permission(self, request: HttpRequest, obj: Any = None) -> bool:
-        return False
-
-    def has_delete_permission(self, request: HttpRequest, obj: Any = None) -> bool:
-        return request.user.is_superuser
-
-    @admin.display(description='Тип действия')
-    def action_type_badge(self, obj: ActionLog) -> str:
-        colors = {
-            'create': 'success',
-            'update': 'primary',
-            'delete': 'danger',
-            'view': 'info',
-            'login': 'success',
-            'logout': 'secondary',
-            'other': 'warning',
-        }
-        color = colors.get(obj.action_type, 'secondary')
-        return format_html(
-            '<span class="badge bg-{}">{}</span>',
-            color, obj.get_action_type_display()
-        )
-
-    @admin.display(description='Объект')
-    def object_repr_short(self, obj: ActionLog) -> str:
-        text = obj.object_repr
-        return text[:50] + '...' if len(text) > 50 else text
-
-    @admin.display(description='Изменения')
-    def changes_display(self, obj: ActionLog) -> str:
-        if not obj.changes:
-            return '-'
-        formatted = json.dumps(obj.changes, ensure_ascii=False, indent=2)
-        return format_html('<pre style="max-height: 300px; overflow: auto;">{}</pre>', formatted)

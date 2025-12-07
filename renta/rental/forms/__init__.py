@@ -5,8 +5,11 @@
 from .auth import (
     CustomUserCreationForm,
     CustomAuthenticationForm,
-    AdminUserCreationForm,  # добавлен экспорт
-    AdminUserChangeForm,    # добавлен экспорт
+    AdminUserCreationForm,
+    AdminUserChangeForm,
+    PasswordResetRequestForm,
+    PasswordResetConfirmForm,
+    EmailVerificationCodeForm,  # Добавлен экспорт
 )
 from .profile import UserProfileForm, UserProfileExtendedForm, ChangePasswordForm
 from .spaces import SpaceFilterForm, SpaceForm, SpaceImageForm
@@ -17,8 +20,11 @@ __all__ = [
     # Аутентификация
     'CustomUserCreationForm',
     'CustomAuthenticationForm',
-    'AdminUserCreationForm',   # добавлен в экспорт
-    'AdminUserChangeForm',     # добавлен в экспорт
+    'AdminUserCreationForm',
+    'AdminUserChangeForm',
+    'PasswordResetRequestForm',
+    'PasswordResetConfirmForm',
+    'EmailVerificationCodeForm',  # Добавлен экспорт
     # Профиль
     'UserProfileForm',
     'UserProfileExtendedForm',

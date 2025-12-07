@@ -13,31 +13,30 @@
     </div>
     
     <div class="row">
-        <!-- Fixed column order and layout -->
-        <div class="col-lg-8 order-lg-1 order-2">
+        <!-- Основная форма -->
+        <div class="col-lg-8">
             <div class="dashboard-card">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
 
-                    <!-- Improved avatar section styling -->
-                    <div class="profile-avatar-section mb-4">
-                        <div class="profile-avatar-preview">
+                    <!-- Полностью переработанная секция аватара с инлайн-стилями для гарантии работы -->
+                    <div style="display: flex; align-items: center; gap: 1.5rem; padding: 1.5rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 2rem;">
+                        <div style="width: 100px; height: 100px; min-width: 100px; min-height: 100px; max-width: 100px; max-height: 100px; border-radius: 50%; overflow: hidden; border: 3px solid var(--color-gold); background: var(--bg-card); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                             {% if user.avatar %}
-                            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" id="avatarPreview">
+                            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" id="avatarPreview" style="width: 100%; height: 100%; object-fit: cover; display: block;">
                             {% else %}
-                            <div class="profile-avatar-placeholder" id="avatarPlaceholder">
+                            <div id="avatarPlaceholder" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--text-muted); font-size: 2rem; background: var(--bg-secondary);">
                                 <i class="fas fa-user"></i>
                             </div>
-                            <img src="/placeholder.svg" alt="" id="avatarPreview" style="display: none;">
+                            <img src="/placeholder.svg" alt="" id="avatarPreview" style="width: 100%; height: 100%; object-fit: cover; display: none;">
                             {% endif %}
                         </div>
-                        <div class="profile-avatar-info">
-                            <h5 class="mb-1">{{ user.get_full_name_or_username }}</h5>
-                            <p class="text-muted mb-2">{{ user.email }}</p>
-                            <!-- Styled file input properly -->
-                            <label class="btn btn-outline-light btn-sm avatar-upload-btn">
+                        <div style="flex: 1;">
+                            <h5 style="color: var(--text-primary); margin-bottom: 0.25rem;">{{ user.get_full_name_or_username }}</h5>
+                            <p style="color: var(--text-muted); margin-bottom: 0.75rem;">{{ user.email }}</p>
+                            <label class="btn btn-outline-light btn-sm" style="cursor: pointer;">
                                 <i class="fas fa-camera me-2"></i>Изменить фото
-                                <input type="file" name="avatar" accept="image/*" class="avatar-file-input">
+                                <input type="file" name="avatar" accept="image/*" id="avatarInput" style="display: none;">
                             </label>
                         </div>
                     </div>
@@ -91,43 +90,47 @@
             </div>
         </div>
 
-        <!-- Sidebar now first on mobile, right on desktop -->
-        <div class="col-lg-4 order-lg-2 order-1 mb-4 mb-lg-0">
+        <!-- Боковая панель -->
+        <div class="col-lg-4 mb-4 mb-lg-0">
+            <!-- Карточка профиля с исправленным аватаром -->
             <div class="dashboard-card mb-4">
-                <div class="profile-card-preview text-center">
-                    <div class="profile-card-avatar mx-auto mb-3">
+                <div class="text-center">
+                    <!-- Аватар с фиксированными размерами через инлайн-стили -->
+                    <div style="width: 80px; height: 80px; min-width: 80px; min-height: 80px; max-width: 80px; max-height: 80px; border-radius: 50%; overflow: hidden; border: 3px solid var(--color-gold); background: var(--bg-card); margin: 0 auto 1rem auto; display: flex; align-items: center; justify-content: center;">
                         {% if user.avatar %}
-                        <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+                        <img src="{{ user.avatar.url }}" alt="{{ user.username }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
                         {% else %}
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user" style="font-size: 2rem; color: var(--text-muted);"></i>
                         {% endif %}
                     </div>
                     <h5 class="mb-1">{{ user.get_full_name_or_username }}</h5>
                     <p class="text-muted small mb-3">{{ user.email }}</p>
-                    <span class="badge bg-dark bg-opacity-75 px-3 py-2">
-                        <i class="fas fa-user-tag me-1 gold-text"></i>
-                        {{ user.get_user_type_display }}
+
+                    <!-- Статус подтверждения email -->
+                    {% if user.email_verified %}
+                    <span class="badge bg-success px-3 py-2 mb-2">
+                        <i class="fas fa-check-circle me-1"></i>Email подтверждён
                     </span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark px-3 py-2 mb-2">
+                        <i class="fas fa-exclamation-circle me-1"></i>Email не подтверждён
+                    </span>
+                    <br>
+                    <a href="{% url 'resend_verification' %}" class="btn btn-sm btn-outline-warning mt-2">
+                        Отправить повторно
+                    </a>
+                    {% endif %}
+
+                    <div class="mt-3">
+                        <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                            <i class="fas fa-user-tag me-1 gold-text"></i>
+                            {{ user.get_user_type_display }}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div class="dashboard-card">
-                <h6 class="fw-bold mb-3"><i class="fas fa-link me-2 gold-text"></i>Быстрые ссылки</h6>
-                <div class="d-grid gap-2">
-                    <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm text-start">
-                        <i class="fas fa-tachometer-alt me-2"></i>Личный кабинет
-                    </a>
-                    <a href="{% url 'my_bookings' %}" class="btn btn-outline-light btn-sm text-start">
-                        <i class="fas fa-calendar me-2"></i>Мои брони
-                    </a>
-                    <a href="{% url 'my_favorites' %}" class="btn btn-outline-light btn-sm text-start">
-                        <i class="fas fa-heart me-2"></i>Избранное
-                    </a>
-                    <a href="{% url 'my_reviews' %}" class="btn btn-outline-light btn-sm text-start">
-                        <i class="fas fa-star me-2"></i>Мои отзывы
-                    </a>
-                </div>
-            </div>
+            <!-- Убрана секция "Быстрые ссылки" - удалена полностью -->
         </div>
     </div>
 </div>
@@ -136,7 +139,7 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const avatarInput = document.querySelector('.avatar-file-input');
+    const avatarInput = document.getElementById('avatarInput');
     const avatarPreview = document.getElementById('avatarPreview');
     const avatarPlaceholder = document.getElementById('avatarPlaceholder');
 
@@ -144,6 +147,12 @@ document.addEventListener('DOMContentLoaded', function() {
         avatarInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                // Проверка размера файла (макс 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Файл слишком большой. Максимальный размер: 5MB');
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     if (avatarPreview) {

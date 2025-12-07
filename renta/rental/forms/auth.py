@@ -30,8 +30,6 @@ def validate_username(value: str) -> None:
 class CustomUserCreationForm(forms.ModelForm):
     """
     Форма регистрации пользователя.
-    Все пользователи регистрируются как обычные пользователи (user).
-    Роли moderator и admin назначаются только через админ-панель.
     """
     username = forms.CharField(
         max_length=150,
@@ -58,7 +56,6 @@ class CustomUserCreationForm(forms.ModelForm):
         required=False,
         max_length=20,
         label='Телефон',
-        validators=[validate_russian_phone],
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': '+7 (999) 123-45-67',
@@ -134,9 +131,17 @@ class CustomUserCreationForm(forms.ModelForm):
         return username
 
     def clean_phone(self) -> str:
-        """Нормализация номера телефона"""
+        """Валидация и нормализация номера телефона"""
         phone: str = self.cleaned_data.get('phone', '')
         if phone:
+            # Валидируем
+            try:
+                validate_russian_phone(phone)
+            except forms.ValidationError:
+                raise forms.ValidationError(
+                    'Введите корректный номер телефона. Пример: +7 (999) 123-45-67'
+                )
+            # Нормализуем
             phone = normalize_phone(phone)
         return phone
 
@@ -171,9 +176,7 @@ class CustomUserCreationForm(forms.ModelForm):
 
 
 class CustomAuthenticationForm(AuthenticationForm):
-    """
-    Форма входа с возможностью входа по email
-    """
+    """Форма входа с возможностью входа по email"""
     username = forms.CharField(
         label='Логин или Email',
         widget=forms.TextInput(attrs={
@@ -234,8 +237,86 @@ class CustomAuthenticationForm(AuthenticationForm):
         return self.cleaned_data
 
 
+class PasswordResetRequestForm(forms.Form):
+    """Форма запроса сброса пароля"""
+    email = forms.EmailField(
+        label='Email',
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Введите email вашего аккаунта',
+            'autocomplete': 'email'
+        })
+    )
+
+    def clean_email(self) -> str:
+        email = self.cleaned_data.get('email', '')
+        if not CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError('Пользователь с таким email не найден')
+        return email
+
+
+class PasswordResetConfirmForm(forms.Form):
+    """Форма установки нового пароля"""
+    new_password1 = forms.CharField(
+        label='Новый пароль',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Введите новый пароль',
+            'autocomplete': 'new-password'
+        })
+    )
+    new_password2 = forms.CharField(
+        label='Подтверждение пароля',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Повторите новый пароль',
+            'autocomplete': 'new-password'
+        })
+    )
+
+    def clean_new_password1(self) -> str:
+        password = self.cleaned_data.get('new_password1', '')
+        if password:
+            validate_password(password)
+        return password
+
+    def clean(self) -> dict[str, Any]:
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('new_password1')
+        password2 = cleaned_data.get('new_password2')
+
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError('Пароли не совпадают')
+        return cleaned_data
+
+
+class EmailVerificationCodeForm(forms.Form):
+    """Форма ввода кода подтверждения email"""
+    code = forms.CharField(
+        max_length=6,
+        min_length=6,
+        label='Код подтверждения',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-lg text-center',
+            'placeholder': '000000',
+            'autocomplete': 'one-time-code',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]{6}',
+            'maxlength': '6',
+            'style': 'font-size: 24px; letter-spacing: 8px; font-weight: bold;'
+        })
+    )
+
+    def clean_code(self) -> str:
+        code = self.cleaned_data.get('code', '')
+        # Проверяем что код состоит только из цифр
+        if not code.isdigit():
+            raise forms.ValidationError('Код должен содержать только цифры')
+        return code
+
+
 class AdminUserCreationForm(forms.ModelForm):
-    """Форма создания пользователя в админке (без проблемных regex)"""
+    """Форма создания пользователя в админке"""
     username = forms.CharField(
         max_length=150,
         label='Имя пользователя',

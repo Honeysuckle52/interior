@@ -7,33 +7,41 @@
 <div class="auth-container">
     <div class="auth-card">
         <div class="text-center mb-4">
-            <h2 class="fw-bold"><i class="fas fa-home me-2 gold-text"></i>INTERIOR</h2>
+            <h2 class="fw-bold gold-text">INTERIOR</h2>
             <p class="text-muted">Войдите в свой аккаунт</p>
         </div>
-        
+
         <form method="post">
             {% csrf_token %}
-            
+
             {% if form.errors %}
             <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle me-2"></i>
                 Неверное имя пользователя или пароль
             </div>
             {% endif %}
-            
+
             <div class="form-group mb-3">
-                <label class="form-label">Имя пользователя</label>
+                <label class="form-label">Имя пользователя или Email</label>
                 {{ form.username }}
             </div>
-            
-            <div class="form-group mb-4">
+
+            <div class="form-group mb-3">
                 <label class="form-label">Пароль</label>
                 {{ form.password }}
             </div>
-            
-            <button type="submit" class="btn btn-gold w-100 mb-3">
-                <i class="fas fa-sign-in-alt me-2"></i>Войти
-            </button>
+
+            <!-- Добавлена ссылка на восстановление пароля -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check">
+                    {{ form.remember_me }}
+                    <label class="form-check-label" for="{{ form.remember_me.id_for_label }}">
+                        Запомнить меня
+                    </label>
+                </div>
+                <a href="{% url 'password_reset' %}" class="gold-text small">Забыли пароль?</a>
+            </div>
+
+            <button type="submit" class="btn btn-gold w-100 mb-3">Войти</button>
         </form>
         
         <div class="text-center">

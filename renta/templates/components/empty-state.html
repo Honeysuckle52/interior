@@ -1,0 +1,22 @@
+{% comment %}
+================================================================================
+КОМПОНЕНТ: Пустое состояние
+================================================================================
+Отображается когда нет данных для показа
+
+Параметры:
+- icon: класс FontAwesome иконки (например: fa-search)
+- title: заголовок
+- description: описание
+- button_url: URL кнопки (опционально)
+- button_text: текст кнопки (опционально)
+{% endcomment %}
+
+<div class="text-center py-5">
+    <i class="fas {{ icon }} fa-3x mb-3 text-muted"></i>
+    <h4>{{ title }}</h4>
+    <p class="text-muted">{{ description }}</p>
+    {% if button_url and button_text %}
+    <a href="{{ button_url }}" class="btn btn-gold mt-3">{{ button_text }}</a>
+    {% endif %}
+</div>
