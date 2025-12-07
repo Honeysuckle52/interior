@@ -43,7 +43,7 @@ def global_context(request: HttpRequest) -> dict[str, Any]:  # type hints
         'current_year': datetime.now().year,
     }
 
-    # Количество избранного для авторизова��ных пользователей
+    # Количество избранного для авторизованных пользователей
     if request.user.is_authenticated:
         from .models import Favorite
         cache_key = f'favorites_count_{request.user.id}'

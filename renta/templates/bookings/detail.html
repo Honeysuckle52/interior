@@ -6,16 +6,16 @@
 
 {% block content %}
 <div class="container mt-5 pt-4">
-    <!-- Исправлены хлебные крошки - добавлены разделители и стили для темной темы -->
+    <!-- Исправлены хлебные крошки - улучшена видимость с помощью background и усиленного контраста -->
     <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link">Главная</a></li>
+        <ol class="breadcrumb breadcrumb-visible py-2 px-3 rounded" style="background: rgba(212, 175, 55, 0.1);">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a></li>
             {% if is_owner %}
-            <li class="breadcrumb-item"><a href="{% url 'my_bookings' %}" class="breadcrumb-link">Мои бронирования</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'my_bookings' %}" class="breadcrumb-link fw-medium">Мои бронирования</a></li>
             {% elif can_manage %}
-            <li class="breadcrumb-item"><a href="{% url 'manage_bookings' %}" class="breadcrumb-link">Управление бронированиями</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manage_bookings' %}" class="breadcrumb-link fw-medium">Управление бронированиями</a></li>
             {% endif %}
-            <li class="breadcrumb-item active breadcrumb-current" aria-current="page">Бронирование #{{ booking.id }}</li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page" style="color: var(--gold) !important;">Бронирование #{{ booking.id }}</li>
         </ol>
     </nav>
 
@@ -57,18 +57,29 @@
                                 {{ booking.space.city.name }}, {{ booking.space.address }}
                             </p>
 
+                            <!-- Улучшен блок информации об арендаторе с возможностью просмотра профиля -->
                             {% if can_manage and not is_owner %}
                             <div class="alert alert-info py-2 mb-3">
-                                <small>
-                                    <i class="fas fa-user me-1"></i>
-                                    <strong>Арендатор:</strong> {{ booking.tenant.get_full_name_or_username }}
-                                    {% if booking.tenant.email %}
-                                    <br><i class="fas fa-envelope me-1"></i> {{ booking.tenant.email }}
-                                    {% endif %}
-                                    {% if booking.tenant.phone %}
-                                    <br><i class="fas fa-phone me-1"></i> {{ booking.tenant.phone }}
-                                    {% endif %}
-                                </small>
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <small>
+                                            <i class="fas fa-user me-1"></i>
+                                            <strong>Арендатор:</strong> {{ booking.tenant.get_full_name_or_username }}
+                                            {% if booking.tenant.email %}
+                                            <br><i class="fas fa-envelope me-1"></i> {{ booking.tenant.email }}
+                                            {% endif %}
+                                            {% if booking.tenant.phone %}
+                                            <br><i class="fas fa-phone me-1"></i> {{ booking.tenant.phone }}
+                                            {% endif %}
+                                            {% if booking.tenant.company %}
+                                            <br><i class="fas fa-building me-1"></i> {{ booking.tenant.company }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <a href="{% url 'view_user_profile' booking.tenant.id %}" class="btn btn-sm btn-outline-info" title="Посмотреть профиль">
+                                        <i class="fas fa-user-circle me-1"></i>Профиль
+                                    </a>
+                                </div>
                             </div>
                             {% endif %}
 

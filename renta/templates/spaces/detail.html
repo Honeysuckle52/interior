@@ -5,18 +5,18 @@
 
 {% block content %}
 <div class="container" style="padding-top: 100px;">
-    <!-- Хлебные крошки -->
+    <!-- Improved breadcrumbs styling -->
     <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link">Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'spaces_list' %}" class="breadcrumb-link">Помещения</a></li>
-            <li class="breadcrumb-item active breadcrumb-current">{{ space.title }}</li>
+        <ol class="breadcrumb breadcrumb-styled">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}"><i class="fas fa-home me-1"></i>Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'spaces_list' %}">Помещения</a></li>
+            <li class="breadcrumb-item active">{{ space.title|truncatechars:30 }}</li>
         </ol>
     </nav>
 
     <div class="row">
         <div class="col-lg-8">
-            <!-- Галерея -->
+            <!-- Gallery -->
             <div class="mb-4">
                 {% with space.get_main_image as main_image %}
                 {% if main_image and main_image.image %}
@@ -39,30 +39,30 @@
 
             <h1 class="display-5 fw-bold mb-3">{{ space.title }}</h1>
 
-            <!-- Центрированные бейджи города и категории -->
+            <!-- Badges -->
             <div class="d-flex flex-wrap gap-3 mb-4 align-items-center justify-content-start">
-                <span class="badge bg-dark bg-opacity-75 px-3 py-2 d-flex align-items-center">
+                <span class="detail-badge">
                     <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
                 </span>
-                <span class="badge bg-dark bg-opacity-75 px-3 py-2 d-flex align-items-center">
+                <span class="detail-badge">
                     <i class="fas {{ space.category.icon }} me-1 gold-text"></i>{{ space.category.name }}
                 </span>
                 {% if avg_rating %}
-                <span class="badge bg-dark bg-opacity-75 px-3 py-2 d-flex align-items-center">
+                <span class="detail-badge">
                     <i class="fas fa-star me-1 gold-text"></i>{{ avg_rating }}
                 </span>
                 {% endif %}
                 {% if user.is_authenticated %}
-                <div class="favorite-inline {% if is_favorite %}active{% endif %} d-flex align-items-center" data-space-id="{{ space.id }}">
+                <button class="favorite-inline-btn {% if is_favorite %}active{% endif %}" data-space-id="{{ space.id }}" type="button">
                     <i class="{% if is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
-                    <span class="favorite-text ms-1">{% if is_favorite %}В избранном{% else %}В избранное{% endif %}</span>
-                </div>
+                    <span>{% if is_favorite %}В избранном{% else %}В избранное{% endif %}</span>
+                </button>
                 {% endif %}
             </div>
 
             <p class="lead text-muted mb-4">{{ space.description }}</p>
 
-            <!-- Характеристики -->
+            <!-- Characteristics -->
             <div class="detail-card mb-4">
                 <h5 class="fw-bold mb-4"><i class="fas fa-info-circle me-2 gold-text"></i>Характеристики</h5>
                 <div class="row g-4">
@@ -105,36 +105,150 @@
                 </div>
             </div>
 
-            <!-- Отзывы -->
-            {% if reviews %}
+            <!-- Completely rewritten reviews section with proper rating display -->
             <div class="detail-card mb-4">
-                <h5 class="fw-bold mb-4"><i class="fas fa-comments me-2 gold-text"></i>Отзывы</h5>
-                {% for review in reviews %}
-                <div class="review-card">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong>{{ review.author.username }}</strong>
-                        <span class="review-rating">
-                            {% for i in "12345" %}
-                            {% if forloop.counter <= review.rating %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}
-                            {% endfor %}
-                        </span>
-                    </div>
-                    <p class="text-muted mb-0">{{ review.comment }}</p>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-comments me-2 gold-text"></i>Отзывы</h5>
+                    {% if reviews_count > 0 %}
+                    <span class="reviews-count-badge">
+                        {{ reviews_count }} {% if reviews_count == 1 %}отзыв{% elif reviews_count < 5 %}отзыва{% else %}отзывов{% endif %}
+                    </span>
+                    {% endif %}
                 </div>
-                {% endfor %}
+
+                <!-- Rating statistics - using rating_list from context -->
+                {% if reviews_count > 0 %}
+                <div class="rating-overview mb-4">
+                    <div class="rating-overview-left">
+                        <div class="rating-big-number">{{ avg_rating }}</div>
+                        <div class="rating-stars-row">
+                            {% with avg_rating|floatformat:0 as avg_int %}
+                            {% for i in "12345" %}
+                            <i class="{% if forloop.counter <= avg_int|add:0 %}fas{% else %}far{% endif %} fa-star"></i>
+                            {% endfor %}
+                            {% endwith %}
+                        </div>
+                        <div class="rating-total">{{ reviews_count }} отзывов</div>
+                    </div>
+                    <div class="rating-overview-right">
+                        <!-- Fixed rating bars using rating_list -->
+                        {% for item in rating_list %}
+                        <div class="rating-bar-item">
+                            <span class="rating-bar-label">{{ item.star }} <i class="fas fa-star"></i></span>
+                            <div class="rating-bar-track">
+                                <div class="rating-bar-fill" style="width: {{ item.percent }}%;"></div>
+                            </div>
+                            <span class="rating-bar-value">{{ item.count }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Review form -->
+                {% if user.is_authenticated and can_review %}
+                <div class="review-form-box mb-4">
+                    <h6 class="fw-bold mb-3">Оставить отзыв</h6>
+                    <form method="post" action="{% url 'create_review' space.id %}" id="reviewForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Ваша оценка</label>
+                            <input type="hidden" name="rating" id="ratingValue" value="" required>
+                            <div class="star-rating-input" id="starRating">
+                                <input type="radio" id="star5" name="star" value="5">
+                                <label for="star5" title="5 звёзд"></label>
+                                <input type="radio" id="star4" name="star" value="4">
+                                <label for="star4" title="4 звезды"></label>
+                                <input type="radio" id="star3" name="star" value="3">
+                                <label for="star3" title="3 звезды"></label>
+                                <input type="radio" id="star2" name="star" value="2">
+                                <label for="star2" title="2 звезды"></label>
+                                <input type="radio" id="star1" name="star" value="1">
+                                <label for="star1" title="1 звезда"></label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small">Ваш комментарий</label>
+                            <textarea name="comment" class="form-control" rows="3" placeholder="Расскажите о вашем опыте аренды (минимум 10 символов)..." required minlength="10"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-gold">
+                            <i class="fas fa-paper-plane me-2"></i>Отправить отзыв
+                        </button>
+                    </form>
+                </div>
+                {% elif user.is_authenticated and not can_review %}
+                <div class="alert alert-info py-2 mb-4">
+                    <i class="fas fa-info-circle me-2"></i>Вы уже оставили отзыв на это помещение
+                </div>
+                {% elif not user.is_authenticated %}
+                <div class="alert alert-info py-2 mb-4">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="alert-link">Войдите</a>, чтобы оставить отзыв
+                </div>
+                {% endif %}
+
+                <!-- Reviews list -->
+                {% if reviews %}
+                <div class="reviews-list">
+                    {% for review in reviews %}
+                    <div class="review-item">
+                        <div class="review-header">
+                            <div class="review-author-info">
+                                <div class="review-avatar">
+                                    {% if review.author.avatar %}
+                                    <img src="{{ review.author.avatar.url }}" alt="{{ review.author.username }}">
+                                    {% else %}
+                                    <i class="fas fa-user"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>{{ review.author.get_full_name_or_username }}</strong>
+                                    <div class="review-date">{{ review.created_at|date:"d.m.Y" }}</div>
+                                </div>
+                            </div>
+                            <div class="review-right">
+                                <span class="review-stars">
+                                    {% for i in "12345" %}
+                                    <i class="{% if forloop.counter <= review.rating %}fas{% else %}far{% endif %} fa-star"></i>
+                                    {% endfor %}
+                                </span>
+                                {% if user.can_moderate %}
+                                <div class="review-actions">
+                                    <a href="{% url 'edit_review' review.id %}" class="btn btn-sm btn-outline-warning" title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'admin_delete_review' review.id %}" class="d-inline" onsubmit="return confirm('Удалить этот отзыв?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="review-text">{{ review.comment }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-comment-slash fa-2x mb-3"></i>
+                    <p class="mb-0">Пока нет отзывов. Будьте первым!</p>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
 
         <div class="col-lg-4">
-            <!-- Боковая панель с ценами -->
-            <div class="price-card sticky-top" style="top: 100px;">
+            <!-- Price sidebar -->
+            <div class="price-sidebar sticky-top" style="top: 100px;">
                 <h5 class="fw-bold mb-4"><i class="fas fa-ruble-sign me-2 gold-text"></i>Стоимость аренды</h5>
 
                 {% for price in space_prices %}
-                <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom" style="border-color: var(--border-color) !important;">
+                <div class="price-row">
                     <span class="text-muted">{{ price.period.description }}:</span>
-                    <strong class="price-tag">{{ price.price|floatformat:0 }} ₽</strong>
+                    <strong class="price-value">{{ price.price|floatformat:0 }} ₽</strong>
                 </div>
                 {% empty %}
                 <p class="text-muted">Цена по запросу</p>
@@ -149,7 +263,7 @@
                         <i class="fas fa-sign-in-alt me-2"></i>Войти для бронирования
                     </a>
                 {% endif %}
-                
+
                 <div class="mt-4 pt-4 border-top" style="border-color: var(--border-color) !important;">
                     <p class="text-muted small mb-2">Остались вопросы?</p>
                     <a href="tel:89836903854" class="btn btn-outline-light w-100 mb-2">
@@ -162,8 +276,8 @@
             </div>
         </div>
     </div>
-    
-    <!-- Похожие помещения -->
+
+    <!-- Related spaces -->
     {% if related_spaces %}
     <section class="mt-5 pt-5 border-top" style="border-color: var(--border-color) !important;">
         <h3 class="fw-bold mb-4">Похожие помещения</h3>
@@ -171,18 +285,26 @@
             {% for related in related_spaces %}
             <div class="col-md-4">
                 <div class="space-card h-100">
-                    <div class="position-relative overflow-hidden">
+                    <div class="space-card-image-wrapper" style="height: 180px;">
                         {% with related.get_main_image as image %}
                         {% if image and image.image %}
-                        <img src="{{ image.image.url }}" class="space-image w-100" alt="{{ related.title }}" loading="lazy" style="height: 180px;">
+                        <img src="{{ image.image.url }}" class="space-image" alt="{{ related.title }}" loading="lazy">
                         {% else %}
-                        <img src="https://via.placeholder.com/400x200/1a1a1a/d4af37?text=INTERIOR" class="space-image w-100" alt="{{ related.title }}" loading="lazy" style="height: 180px;">
+                        <img src="https://via.placeholder.com/400x200/1a1a1a/d4af37?text=INTERIOR" class="space-image" alt="{{ related.title }}" loading="lazy">
                         {% endif %}
                         {% endwith %}
+
+                        <!-- Badges on related cards too -->
+                        <span class="space-badge-overlay">
+                            <i class="fas {{ related.category.icon }} me-1"></i>{{ related.category.name }}
+                        </span>
+                        <span class="space-city-overlay">
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ related.city.name }}
+                        </span>
                     </div>
-                    <div class="p-3">
-                        <h6 class="fw-bold mb-2">{{ related.title }}</h6>
-                        <div class="d-flex justify-content-between align-items-center">
+                    <div class="space-card-body" style="min-height: auto;">
+                        <h6 class="space-card-title">{{ related.title }}</h6>
+                        <div class="space-card-footer">
                             <small class="text-muted">{{ related.area_sqm }} м²</small>
                             <a href="{% url 'space_detail' related.id %}" class="btn btn-gold btn-sm">Подробнее</a>
                         </div>
@@ -194,4 +316,58 @@
     </section>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Star rating input
+    const starInputs = document.querySelectorAll('#starRating input[type="radio"]');
+    const ratingValue = document.getElementById('ratingValue');
+    const reviewForm = document.getElementById('reviewForm');
+
+    starInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            ratingValue.value = this.value;
+        });
+    });
+
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(e) {
+            if (!ratingValue.value) {
+                e.preventDefault();
+                alert('Пожалуйста, выберите оценку');
+                return false;
+            }
+        });
+    }
+
+    // Favorite button
+    const favBtn = document.querySelector('.favorite-inline-btn');
+    if (favBtn) {
+        favBtn.addEventListener('click', async function() {
+            const spaceId = this.dataset.spaceId;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+            try {
+                const response = await fetch(`/spaces/${spaceId}/favorite/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    this.classList.toggle('active', data.is_favorite);
+                    this.querySelector('i').className = data.is_favorite ? 'fas fa-heart' : 'far fa-heart';
+                    this.querySelector('span').textContent = data.is_favorite ? 'В избранном' : 'В избранное';
+                }
+            } catch (err) {
+                console.error('Error toggling favorite:', err);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Профиль {{ profile_user.get_full_name_or_username }} | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <!-- Хлебные крошки -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-visible py-2 px-3 rounded">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manage_bookings' %}" class="breadcrumb-link fw-medium">Управление бронированиями</a></li>
+            <li class="breadcrumb-item active fw-bold">Профиль пользователя</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <!-- Карточка профиля -->
+            <div class="card glass-card">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        {% if profile_user.avatar %}
+                        <img src="{{ profile_user.avatar.url }}" alt="{{ profile_user.username }}" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 120px; height: 120px; background: var(--card-bg); border: 2px solid var(--border-color);">
+                            <i class="fas fa-user fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <h4 class="fw-bold mb-1">{{ profile_user.get_full_name_or_username }}</h4>
+                    <p class="text-muted mb-3">@{{ profile_user.username }}</p>
+
+                    <span class="badge bg-{{ profile_user.user_type|default:'secondary' }} px-3 py-2 mb-3">
+                        {{ profile_user.get_user_type_display }}
+                    </span>
+
+                    {% if profile_user.email_verified %}
+                    <span class="badge bg-success px-3 py-2 mb-3">
+                        <i class="fas fa-check me-1"></i>Email подтверждён
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <!-- Информация о пользователе -->
+            <div class="card glass-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2 gold-text"></i>Контактная информация</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="feature-icon me-3"><i class="fas fa-envelope"></i></div>
+                                <div>
+                                    <small class="text-muted d-block">Email</small>
+                                    <span>{{ profile_user.email|default:"Не указан" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="feature-icon me-3"><i class="fas fa-phone"></i></div>
+                                <div>
+                                    <small class="text-muted d-block">Телефон</small>
+                                    <span>{{ profile_user.phone|default:"Не указан" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="feature-icon me-3"><i class="fas fa-building"></i></div>
+                                <div>
+                                    <small class="text-muted d-block">Компания</small>
+                                    <span>{{ profile_user.company|default:"Не указана" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="feature-icon me-3"><i class="fas fa-calendar"></i></div>
+                                <div>
+                                    <small class="text-muted d-block">Дата регистрации</small>
+                                    <span>{{ profile_user.created_at|date:"d.m.Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Статистика бронирований -->
+            <div class="card glass-card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2 gold-text"></i>Статистика бронирований</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="dashboard-stat">
+                                <div class="number">{{ user_stats.total_bookings|default:0 }}</div>
+                                <div class="label">Всего</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="dashboard-stat">
+                                <div class="number" style="color: #28a745;">{{ user_stats.confirmed_bookings|default:0 }}</div>
+                                <div class="label">Подтверждено</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="dashboard-stat">
+                                <div class="number" style="color: #dc3545;">{{ user_stats.cancelled_bookings|default:0 }}</div>
+                                <div class="label">Отменено</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- История бронирований -->
+            <div class="card glass-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history me-2 gold-text"></i>Последние бронирования</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Using themed table for light theme support -->
+                    {% if recent_bookings %}
+                    <div class="table-responsive">
+                        <table class="table table-themed">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Помещение</th>
+                                    <th>Даты</th>
+                                    <th>Сумма</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in recent_bookings %}
+                                <tr>
+                                    <td>{{ booking.id }}</td>
+                                    <td>
+                                        <a href="{% url 'space_detail' booking.space.id %}" class="text-decoration-none">
+                                            {{ booking.space.title|truncatechars:30 }}
+                                        </a>
+                                    </td>
+                                    <td>{{ booking.start_datetime|date:"d.m.Y" }}</td>
+                                    <td class="gold-text fw-bold">{{ booking.total_amount|floatformat:0 }} ₽</td>
+                                    <td>
+                                        <span class="badge bg-{{ booking.status.color }}">{{ booking.status.name }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-calendar-times fa-2x mb-3"></i>
+                        <p class="mb-0">У пользователя пока нет бронирований</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

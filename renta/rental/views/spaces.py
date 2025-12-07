@@ -8,6 +8,7 @@ sorting, and pagination support.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from django.db.models import Q, Avg, Count, Min, QuerySet
@@ -48,6 +49,49 @@ def _parse_float(value: str, default: float | None = None) -> float | None:
         return default
 
 
+def _parse_smart_search(query: str) -> dict[str, Any]:
+    """
+    Parse natural language search query to extract structured filters.
+    Examples:
+    - "100 м²" -> {'area': 100}
+    - "50 человек" -> {'capacity': 50}
+    - "офис 200 м² на 30 человек" -> {'text': 'офис', 'area': 200, 'capacity': 30}
+    """
+    result = {'text': query, 'area': None, 'capacity': None}
+
+    # Extract area (м², кв.м, квадратов, метров)
+    area_patterns = [
+        r'(\d+)\s*(?:м²|м2|кв\.?\s*м|квадрат\w*|метр\w*)',
+        r'площад\w*\s*(\d+)',
+        r'(\d+)\s*(?:квадрат|метр)',
+    ]
+    for pattern in area_patterns:
+        match = re.search(pattern, query, re.IGNORECASE)
+        if match:
+            result['area'] = int(match.group(1))
+            # Remove matched part from text search
+            result['text'] = re.sub(pattern, '', result['text'], flags=re.IGNORECASE)
+            break
+
+    # Extract capacity (человек, чел, людей, мест, гостей)
+    capacity_patterns = [
+        r'(?:на|до|для)?\s*(\d+)\s*(?:человек|чел\.?|люд\w*|мест\w*|гост\w*|персон)',
+        r'вместимост\w*\s*(\d+)',
+        r'(\d+)\s*(?:человек|чел|люд)',
+    ]
+    for pattern in capacity_patterns:
+        match = re.search(pattern, query, re.IGNORECASE)
+        if match:
+            result['capacity'] = int(match.group(1))
+            result['text'] = re.sub(pattern, '', result['text'], flags=re.IGNORECASE)
+            break
+
+    # Clean up remaining text
+    result['text'] = ' '.join(result['text'].split()).strip()
+
+    return result
+
+
 def _apply_filters(
     spaces: QuerySet[Space],
     filters: dict[str, Any]
@@ -64,18 +108,34 @@ def _apply_filters(
     """
     try:
         if filters.get('search_query'):
-            spaces = spaces.filter(
-                Q(title__icontains=filters['search_query']) |
-                Q(description__icontains=filters['search_query']) |
-                Q(address__icontains=filters['search_query']) |
-                Q(city__name__icontains=filters['search_query'])
-            )
+            parsed = _parse_smart_search(filters['search_query'])
+
+            # Apply text search
+            if parsed['text']:
+                spaces = spaces.filter(
+                    Q(title__icontains=parsed['text']) |
+                    Q(description__icontains=parsed['text']) |
+                    Q(address__icontains=parsed['text']) |
+                    Q(city__name__icontains=parsed['text']) |
+                    Q(category__name__icontains=parsed['text'])
+                )
+
+            # Apply parsed area filter
+            if parsed['area']:
+                # Search for spaces with area close to requested (±20%)
+                min_area = parsed['area'] * 0.8
+                max_area = parsed['area'] * 1.2
+                spaces = spaces.filter(area_sqm__gte=min_area, area_sqm__lte=max_area)
+
+            # Apply parsed capacity filter
+            if parsed['capacity']:
+                spaces = spaces.filter(max_capacity__gte=parsed['capacity'])
 
         if filters.get('city_id'):
             spaces = spaces.filter(city_id=filters['city_id'])
 
-        if filters.get('category_id'):
-            spaces = spaces.filter(category_id=filters['category_id'])
+        if filters.get('category_ids'):
+            spaces = spaces.filter(category_id__in=filters['category_ids'])
 
         if filters.get('min_area'):
             spaces = spaces.filter(area_sqm__gte=filters['min_area'])
@@ -154,11 +214,14 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
         cities: QuerySet[City] = City.objects.filter(is_active=True).order_by('name')
         categories: QuerySet[SpaceCategory] = SpaceCategory.objects.filter(is_active=True).order_by('name')
 
+        category_ids = request.GET.getlist('category')
+        category_ids = [_parse_int(c) for c in category_ids if _parse_int(c)]
+
         # Parse filter parameters
         filters: dict[str, Any] = {
             'search_query': request.GET.get('search', '').strip(),
             'city_id': _parse_int(request.GET.get('city', '')),
-            'category_id': _parse_int(request.GET.get('category', '')),
+            'category_ids': category_ids if category_ids else None,
             'min_area': _parse_float(request.GET.get('min_area', '')),
             'max_area': _parse_float(request.GET.get('max_area', '')),
             'min_capacity': _parse_int(request.GET.get('min_capacity', '')),
@@ -207,7 +270,7 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
             'categories': categories,
             'search_query': filters['search_query'],
             'selected_city': request.GET.get('city', ''),
-            'selected_category': request.GET.get('category', ''),
+            'selected_categories': [str(c) for c in category_ids],  # List of selected categories
             'min_area': request.GET.get('min_area', ''),
             'max_area': request.GET.get('max_area', ''),
             'min_price': request.GET.get('min_price', ''),
@@ -300,6 +363,17 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
             for i in range(MIN_RATING, MAX_RATING + 1)
         }
 
+        # Convert to list for template iteration
+        rating_list = []
+        for star in range(5, 0, -1):
+            count = rating_distribution.get(star, 0)
+            percent = (count / reviews_count * 100) if reviews_count > 0 else 0
+            rating_list.append({
+                'star': star,
+                'count': count,
+                'percent': round(percent, 1)
+            })
+
         # Check favorite and review permissions for authenticated users
         is_favorite: bool = False
         can_review: bool = False
@@ -319,6 +393,7 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
             'avg_rating': round(avg_rating, 1),
             'reviews_count': reviews_count,
             'rating_distribution': rating_distribution,
+            'rating_list': rating_list,  # Added for template iteration
             'is_favorite': is_favorite,
             'can_review': can_review,
         }

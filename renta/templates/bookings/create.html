@@ -5,40 +5,58 @@
 
 {% block content %}
 <div class="container" style="padding-top: 100px;">
-    <!-- Исправлены хлебные крошки -->
+    <!-- Improved breadcrumbs with icon -->
     <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link">Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'space_detail' space.id %}" class="breadcrumb-link">{{ space.title }}</a></li>
-            <li class="breadcrumb-item active breadcrumb-current">Бронирование</li>
+        <ol class="breadcrumb breadcrumb-styled">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}"><i class="fas fa-home me-1"></i>Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'space_detail' space.id %}">{{ space.title|truncatechars:25 }}</a></li>
+            <li class="breadcrumb-item active">Бронирование</li>
         </ol>
     </nav>
 
     <div class="row">
         <div class="col-lg-8">
-            <div class="dashboard-card">
+            <div class="booking-form-card">
                 <h2 class="fw-bold mb-4"><i class="fas fa-calendar-check me-2 gold-text"></i>Бронирование</h2>
 
-                <form method="post">
+                <form method="post" id="bookingForm">
                     {% csrf_token %}
 
-                    <div class="row g-3 mb-4">
+                    <div class="row g-4 mb-4">
+                        <!-- Date input with visible icon -->
                         <div class="col-md-6">
                             <label class="form-label">Дата начала</label>
-                            {{ form.start_date }}
+                            <div class="input-with-icon">
+                                <i class="fas fa-calendar-alt input-icon"></i>
+                                {{ form.start_date }}
+                            </div>
                         </div>
-                        <div class="col-md-6">
+
+                        <!-- Time input - conditionally shown based on period -->
+                        <div class="col-md-6" id="timeInputWrapper">
                             <label class="form-label">Время начала</label>
-                            {{ form.start_time }}
+                            <div class="input-with-icon">
+                                <i class="fas fa-clock input-icon"></i>
+                                {{ form.start_time }}
+                            </div>
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label">Период аренды</label>
-                            {{ form.period }}
+                            <div class="input-with-icon">
+                                <i class="fas fa-hourglass-half input-icon"></i>
+                                {{ form.period }}
+                            </div>
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label">Количество периодов</label>
-                            {{ form.periods_count }}
+                            <div class="input-with-icon">
+                                <i class="fas fa-sort-numeric-up input-icon"></i>
+                                {{ form.periods_count }}
+                            </div>
                         </div>
+
                         <div class="col-12">
                             <label class="form-label">Комментарий</label>
                             {{ form.comment }}
@@ -53,17 +71,17 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="price-card">
+            <div class="booking-sidebar sticky-top" style="top: 100px;">
                 <h5 class="fw-bold mb-3">{{ space.title }}</h5>
                 <p class="text-muted small mb-3">
-                    <i class="fas fa-map-marker-alt me-1"></i>{{ space.city.name }}, {{ space.address }}
+                    <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}, {{ space.address }}
                 </p>
                 <hr style="border-color: var(--border-color);">
                 <h6 class="fw-bold mb-3">Цены:</h6>
                 {% for price in prices %}
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">{{ price.period.description }}</span>
-                    <span class="gold-text">{{ price.price|floatformat:0 }} ₽</span>
+                    <span class="gold-text fw-bold">{{ price.price|floatformat:0 }} ₽</span>
                 </div>
                 {% endfor %}
             </div>
@@ -76,15 +94,42 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.querySelector('input[type="date"]');
+    const periodSelect = document.querySelector('select[name="period"]');
+    const timeWrapper = document.getElementById('timeInputWrapper');
+
     if (dateInput) {
-        // Устанавливаем минимальную дату на сегодня
+        // Set min date to today
         const today = new Date().toISOString().split('T')[0];
         dateInput.setAttribute('min', today);
 
-        // Если дата не установлена, устанавливаем сегодня
+        // Set max date to 2 years from now
+        const maxDate = new Date();
+        maxDate.setFullYear(maxDate.getFullYear() + 2);
+        dateInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
+
+        // Set default date to today if not set
         if (!dateInput.value) {
             dateInput.value = today;
         }
+    }
+
+    function updateTimeVisibility() {
+        if (!periodSelect || !timeWrapper) return;
+
+        const selectedOption = periodSelect.options[periodSelect.selectedIndex];
+        const periodText = selectedOption ? selectedOption.textContent.toLowerCase() : '';
+
+        // Hide time picker for weekly and monthly rentals
+        if (periodText.includes('недел') || periodText.includes('месяц')) {
+            timeWrapper.style.display = 'none';
+        } else {
+            timeWrapper.style.display = 'block';
+        }
+    }
+
+    if (periodSelect) {
+        periodSelect.addEventListener('change', updateTimeVisibility);
+        updateTimeVisibility(); // Initial check
     }
 });
 </script>

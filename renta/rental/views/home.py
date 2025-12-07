@@ -13,7 +13,7 @@ from django.db.models import Count, Q, QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from ..models import Space, City, SpaceCategory
+from ..models import Space, City, SpaceCategory, CustomUser
 
 # Константы
 FEATURED_SPACES_LIMIT: int = 6
@@ -57,7 +57,6 @@ def home(request: HttpRequest) -> HttpResponse:
             'images', 'prices'
         ).order_by('-views_count')[:POPULAR_SPACES_LIMIT]
 
-        # Homepage statistics
         stats: dict[str, int] = {
             'spaces_count': Space.objects.active().count(),
             'cities_count': City.objects.filter(
@@ -68,6 +67,8 @@ def home(request: HttpRequest) -> HttpResponse:
                 is_active=True,
                 spaces__is_active=True
             ).distinct().count(),
+            # Добавлен счетчик пользователей
+            'users_count': CustomUser.objects.filter(is_active=True).count(),
         }
 
         context: dict[str, Any] = {
@@ -87,6 +88,6 @@ def home(request: HttpRequest) -> HttpResponse:
             'categories': [],
             'featured_spaces': [],
             'popular_spaces': [],
-            'stats': {'spaces_count': 0, 'cities_count': 0, 'categories_count': 0},
+            'stats': {'spaces_count': 0, 'cities_count': 0, 'categories_count': 0, 'users_count': 0},
             'error': 'Произошла ошибка при загрузке данных'
         })

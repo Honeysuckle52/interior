@@ -13,13 +13,37 @@
     </div>
     
     <div class="row">
-        <div class="col-lg-8">
+        <!-- Fixed column order and layout -->
+        <div class="col-lg-8 order-lg-1 order-2">
             <div class="dashboard-card">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    
+
+                    <!-- Improved avatar section styling -->
+                    <div class="profile-avatar-section mb-4">
+                        <div class="profile-avatar-preview">
+                            {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" id="avatarPreview">
+                            {% else %}
+                            <div class="profile-avatar-placeholder" id="avatarPlaceholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <img src="/placeholder.svg" alt="" id="avatarPreview" style="display: none;">
+                            {% endif %}
+                        </div>
+                        <div class="profile-avatar-info">
+                            <h5 class="mb-1">{{ user.get_full_name_or_username }}</h5>
+                            <p class="text-muted mb-2">{{ user.email }}</p>
+                            <!-- Styled file input properly -->
+                            <label class="btn btn-outline-light btn-sm avatar-upload-btn">
+                                <i class="fas fa-camera me-2"></i>Изменить фото
+                                <input type="file" name="avatar" accept="image/*" class="avatar-file-input">
+                            </label>
+                        </div>
+                    </div>
+
                     <h5 class="fw-bold mb-4"><i class="fas fa-user me-2 gold-text"></i>Основная информация</h5>
-                    
+
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Имя</label>
@@ -41,14 +65,10 @@
                             <label class="form-label">Компания</label>
                             {{ user_form.company }}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Аватар</label>
-                            {{ user_form.avatar }}
-                        </div>
                     </div>
-                    
+
                     <h5 class="fw-bold mb-4"><i class="fas fa-info-circle me-2 gold-text"></i>Дополнительно</h5>
-                    
+
                     <div class="row g-3 mb-4">
                         <div class="col-12">
                             <label class="form-label">О себе</label>
@@ -63,13 +83,81 @@
                             {{ profile_form.social_telegram }}
                         </div>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-gold">
                         <i class="fas fa-save me-2"></i>Сохранить изменения
                     </button>
                 </form>
             </div>
         </div>
+
+        <!-- Sidebar now first on mobile, right on desktop -->
+        <div class="col-lg-4 order-lg-2 order-1 mb-4 mb-lg-0">
+            <div class="dashboard-card mb-4">
+                <div class="profile-card-preview text-center">
+                    <div class="profile-card-avatar mx-auto mb-3">
+                        {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+                        {% else %}
+                        <i class="fas fa-user"></i>
+                        {% endif %}
+                    </div>
+                    <h5 class="mb-1">{{ user.get_full_name_or_username }}</h5>
+                    <p class="text-muted small mb-3">{{ user.email }}</p>
+                    <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                        <i class="fas fa-user-tag me-1 gold-text"></i>
+                        {{ user.get_user_type_display }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h6 class="fw-bold mb-3"><i class="fas fa-link me-2 gold-text"></i>Быстрые ссылки</h6>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm text-start">
+                        <i class="fas fa-tachometer-alt me-2"></i>Личный кабинет
+                    </a>
+                    <a href="{% url 'my_bookings' %}" class="btn btn-outline-light btn-sm text-start">
+                        <i class="fas fa-calendar me-2"></i>Мои брони
+                    </a>
+                    <a href="{% url 'my_favorites' %}" class="btn btn-outline-light btn-sm text-start">
+                        <i class="fas fa-heart me-2"></i>Избранное
+                    </a>
+                    <a href="{% url 'my_reviews' %}" class="btn btn-outline-light btn-sm text-start">
+                        <i class="fas fa-star me-2"></i>Мои отзывы
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarInput = document.querySelector('.avatar-file-input');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (avatarPreview) {
+                        avatarPreview.src = e.target.result;
+                        avatarPreview.style.display = 'block';
+                    }
+                    if (avatarPlaceholder) {
+                        avatarPlaceholder.style.display = 'none';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

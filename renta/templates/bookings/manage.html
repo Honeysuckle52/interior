@@ -50,7 +50,7 @@
             </div>
             <div class="col-md-4">
                 <div class="form-check">
-                    <input type="checkbox" name="pending" value="1" class="form-check-input" 
+                    <input type="checkbox" name="pending" value="1" class="form-check-input"
                            id="pendingOnly" {% if pending_only %}checked{% endif %}>
                     <label class="form-check-label" for="pendingOnly">
                         Только ожидающие подтверждения
@@ -79,12 +79,23 @@
                         <span class="fs-5 fw-bold text-muted">#{{ booking.id }}</span>
                     </div>
                     <div class="col-md-4">
+                        <!-- Added null check for booking.space -->
+                        {% if booking.space %}
                         <h5 class="fw-bold mb-1">{{ booking.space.title }}</h5>
                         <p class="text-muted small mb-1">
                             <i class="fas fa-map-marker-alt me-1"></i>{{ booking.space.city.name }}
                         </p>
+                        {% else %}
+                        <h5 class="fw-bold mb-1 text-muted">Помещение удалено</h5>
+                        <p class="text-muted small mb-1">
+                            <i class="fas fa-map-marker-alt me-1"></i>Н/Д
+                        </p>
+                        {% endif %}
                         <p class="text-muted small mb-0">
-                            <i class="fas fa-user me-1"></i>{{ booking.tenant.get_full_name_or_username }}
+                            <i class="fas fa-user me-1"></i>
+                            <a href="{% url 'view_user_profile' booking.tenant.id %}" class="text-decoration-none" title="Посмотреть профиль">
+                                {{ booking.tenant.get_full_name_or_username }}
+                            </a>
                         </p>
                     </div>
                     <div class="col-md-3">
@@ -116,7 +127,7 @@
                             </form>
                             <form method="post" action="{% url 'reject_booking' booking.id %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" 
+                                <button type="submit" class="btn btn-danger btn-sm"
                                         onclick="return confirm('Отклонить бронирование?');">
                                     <i class="fas fa-times"></i>
                                 </button>

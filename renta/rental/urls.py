@@ -11,13 +11,13 @@ from .views import (
     # Аутентификация
     CustomLoginView, register_view, logout_view,
     # Личный кабинет
-    dashboard, profile, my_bookings, my_favorites,
+    dashboard, profile, my_bookings, my_favorites, view_user_profile,
     # Избранное
     toggle_favorite,
     # Бронирования
     create_booking, booking_detail, cancel_booking,
     # Отзывы
-    create_review,
+    create_review, edit_review, admin_delete_review, approve_review, manage_reviews,
 )
 from .views.favorites import check_favorite
 from .views.bookings import get_price_for_period, confirm_booking, reject_booking, manage_bookings
@@ -44,6 +44,8 @@ urlpatterns = [
     path('my-favorites/', my_favorites, name='my_favorites'),
     path('my-reviews/', my_reviews, name='my_reviews'),
 
+    path('users/<int:pk>/profile/', view_user_profile, name='view_user_profile'),
+
     # ============== ИЗБРАННОЕ (AJAX) ==============
     path('spaces/<int:pk>/favorite/', toggle_favorite, name='toggle_favorite'),
     path('spaces/<int:pk>/check-favorite/', check_favorite, name='check_favorite'),
@@ -59,6 +61,10 @@ urlpatterns = [
     # ============== ОТЗЫВЫ ==============
     path('spaces/<int:pk>/review/', create_review, name='create_review'),
     path('reviews/<int:pk>/delete/', delete_review, name='delete_review'),
+    path('reviews/<int:pk>/edit/', edit_review, name='edit_review'),
+    path('reviews/<int:pk>/admin-delete/', admin_delete_review, name='admin_delete_review'),
+    path('reviews/<int:pk>/approve/', approve_review, name='approve_review'),
+    path('manage/reviews/', manage_reviews, name='manage_reviews'),
 
     # ============== API (AJAX) ==============
     path('api/price/<int:space_id>/<int:period_id>/', get_price_for_period, name='get_price'),

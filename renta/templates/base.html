@@ -5,28 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}INTERIOR | Аренда помещений{% endblock %}</title>
 
-    <!-- Мета-теги для SEO -->
+    <!-- Meta tags for SEO -->
     <meta name="description" content="{% block meta_description %}Аренда помещений для бизнеса. Качественные пространства в лучших локациях города.{% endblock %}">
     <meta property="og:title" content="{% block og_title %}INTERIOR | Аренда помещений{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Качественные помещения для вашего бизнеса{% endblock %}">
 
-    <!-- Шрифты -->
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Иконки -->
+    <!-- Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 
-    <!-- Кастомные стили -->
+    <!-- Custom styles -->
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <!-- Навигация -->
+    <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
             <a class="navbar-brand gold-text" href="{% url 'home' %}">
@@ -48,7 +48,7 @@
                 </ul>
 
                 <ul class="navbar-nav">
-                    <!-- Переключение темы -->
+                    <!-- Theme toggle -->
                     <li class="nav-item me-3">
                         <button class="theme-toggle" id="themeToggle" title="Сменить тему" aria-label="Переключить тему">
                             <i class="fas fa-moon" id="themeIcon"></i>
@@ -57,8 +57,16 @@
 
                     {% if user.is_authenticated %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i>{{ user.username }}
+                            <!-- Added avatar to navbar dropdown -->
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <span class="navbar-avatar me-2">
+                                    {% if user.avatar %}
+                                    <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+                                    {% else %}
+                                    <i class="fas fa-user"></i>
+                                    {% endif %}
+                                </span>
+                                {{ user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{% url 'dashboard' %}">
@@ -73,11 +81,16 @@
                                 <li><a class="dropdown-item" href="{% url 'my_bookings' %}">
                                     <i class="fas fa-calendar me-2"></i>Мои брони
                                 </a></li>
-                                <!-- Добавлена ссылка на управление бронированиями для модераторов/админов -->
-                                {% if user.is_staff or user.role == 'moderator' %}
+                                <li><a class="dropdown-item" href="{% url 'my_reviews' %}">
+                                    <i class="fas fa-star me-2"></i>Мои отзывы
+                                </a></li>
+                                {% if user.is_staff or user.is_moderator or user.is_admin_user %}
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{% url 'manage_bookings' %}">
                                         <i class="fas fa-tasks me-2"></i>Управление бронями
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'manage_reviews' %}">
+                                        <i class="fas fa-comments me-2"></i>Управление отзывами
                                     </a></li>
                                 {% endif %}
                                 {% if user.is_staff %}
@@ -112,7 +125,7 @@
         </div>
     </nav>
 
-    <!-- Основной контент -->
+    <!-- Main content -->
     <main>
         {% if messages %}
         <div class="container mt-5 pt-4">
@@ -128,7 +141,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Подвал -->
+    <!-- Footer -->
     <footer class="py-5 mt-auto">
         <div class="container">
             <div class="row">
@@ -150,7 +163,7 @@
         </div>
     </footer>
 
-    <!-- Скрипты -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/main.js' %}"></script>
 

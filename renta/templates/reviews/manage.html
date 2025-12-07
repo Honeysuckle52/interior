@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Управление отзывами | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-visible">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Панель управления</a></li>
+            <li class="breadcrumb-item active">Управление отзывами</li>
+        </ol>
+    </nav>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold mb-3">
+                <i class="fas fa-comments gold-text me-3"></i>Управление отзывами
+            </h1>
+            <p class="text-muted">Модерация и редактирование отзывов пользователей</p>
+        </div>
+    </div>
+    
+    <!-- Stats cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="glass-card text-center p-4">
+                <div class="stat-number">{{ pending_count }}</div>
+                <div class="stat-label">На модерации</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="glass-card text-center p-4">
+                <div class="stat-number">{{ approved_count }}</div>
+                <div class="stat-label">Одобрено</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="glass-card text-center p-4">
+                <div class="stat-number">{{ total_count }}</div>
+                <div class="stat-label">Всего</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="glass-card text-center p-4">
+                <div class="stat-number">{{ avg_rating|floatformat:1 }}</div>
+                <div class="stat-label">Средний рейтинг</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filter-panel mb-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="filter-label">Статус</label>
+                <select name="status" class="form-select">
+                    <option value="">Все</option>
+                    <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>На модерации</option>
+                    <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>Одобренные</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="filter-label">Рейтинг</label>
+                <select name="rating" class="form-select">
+                    <option value="">Все</option>
+                    {% for i in "54321" %}
+                    <option value="{{ i }}" {% if selected_rating == i %}selected{% endif %}>{{ i }} звёзд</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="filter-label">Поиск</label>
+                <input type="text" name="search" class="form-control" placeholder="По автору или помещению..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-gold w-100">
+                    <i class="fas fa-filter me-1"></i> Фильтр
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Reviews list -->
+    {% if reviews %}
+    <div class="reviews-manage-list">
+        {% for review in reviews %}
+        <div class="review-manage-item glass-card mb-3">
+            <div class="review-manage-header">
+                <div class="review-manage-info">
+                    <div class="review-manage-author">
+                        <i class="fas fa-user-circle me-2"></i>
+                        <strong>{{ review.author.get_full_name|default:review.author.username }}</strong>
+                    </div>
+                    <div class="review-manage-meta text-muted">
+                        <span><i class="fas fa-building me-1"></i>{{ review.space.title }}</span>
+                        <span><i class="fas fa-calendar me-1"></i>{{ review.created_at|date:"d.m.Y H:i" }}</span>
+                    </div>
+                </div>
+                <div class="review-manage-status">
+                    {% if review.is_approved %}
+                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Одобрен</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>На модерации</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="review-manage-body">
+                <div class="review-manage-rating mb-2">
+                    {% for i in "12345" %}
+                    <i class="{% if forloop.counter <= review.rating %}fas{% else %}far{% endif %} fa-star gold-text"></i>
+                    {% endfor %}
+                    <span class="ms-2 text-muted">({{ review.rating }}/5)</span>
+                </div>
+                <p class="review-manage-comment">{{ review.comment }}</p>
+            </div>
+            
+            <div class="review-manage-actions">
+                {% if not review.is_approved %}
+                <form action="{% url 'approve_review' review.pk %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="fas fa-check me-1"></i>Одобрить
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'edit_review' review.pk %}" class="btn btn-outline-gold btn-sm">
+                    <i class="fas fa-edit me-1"></i>Редактировать
+                </a>
+                <form action="{% url 'admin_delete_review' review.pk %}" method="post" class="d-inline" 
+                      onsubmit="return confirm('Удалить этот отзыв?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-trash me-1"></i>Удалить
+                    </button>
+                </form>
+                <a href="{% url 'space_detail' review.space.pk %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-external-link-alt me-1"></i>Перейти
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if reviews.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if reviews.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ reviews.previous_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_rating %}&rating={{ selected_rating }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in reviews.paginator.page_range %}
+            {% if reviews.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > reviews.number|add:'-3' and num < reviews.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_rating %}&rating={{ selected_rating }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if reviews.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ reviews.next_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_rating %}&rating={{ selected_rating }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="text-center py-5 glass-card">
+        <i class="fas fa-comments fa-3x mb-3 text-muted"></i>
+        <h4>Отзывов не найдено</h4>
+        <p class="text-muted">Нет отзывов, соответствующих выбранным фильтрам</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

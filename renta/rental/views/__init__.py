@@ -6,10 +6,10 @@
 from .home import home
 from .spaces import spaces_list, space_detail
 from .auth import CustomLoginView, register_view, logout_view
-from .account import dashboard, profile, my_bookings, my_favorites
+from .account import dashboard, profile, my_bookings, my_favorites, view_user_profile
 from .favorites import toggle_favorite
 from .bookings import create_booking, booking_detail, cancel_booking
-from .reviews import create_review
+from .reviews import create_review, edit_review, admin_delete_review, approve_review, manage_reviews
 
 __all__ = [
     # Главная
@@ -26,6 +26,7 @@ __all__ = [
     'profile',
     'my_bookings',
     'my_favorites',
+    'view_user_profile',
     # Избранное
     'toggle_favorite',
     # Бронирования
@@ -34,4 +35,8 @@ __all__ = [
     'cancel_booking',
     # Отзывы
     'create_review',
+    'edit_review',
+    'admin_delete_review',
+    'approve_review',
+    'manage_reviews',  # Added to exports
 ]

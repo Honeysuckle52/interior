@@ -16,25 +16,56 @@
     <div class="row g-4">
         {% for fav in favorites %}
         <div class="col-lg-4 col-md-6">
+            <!-- Using same card structure as spaces/list.html -->
             <div class="space-card h-100">
-                <div class="position-relative overflow-hidden">
+                <div class="space-card-image-wrapper">
                     {% with fav.space.get_main_image as image %}
                     {% if image and image.image %}
-                    <img src="{{ image.image.url }}" class="space-image w-100" alt="{{ fav.space.title }}" loading="lazy">
+                    <img src="{{ image.image.url }}" class="space-image" alt="{{ fav.space.title }}" loading="lazy">
                     {% else %}
-                    <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image w-100" alt="{{ fav.space.title }}" loading="lazy">
+                    <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image" alt="{{ fav.space.title }}" loading="lazy">
                     {% endif %}
                     {% endwith %}
-                    <button class="favorite-btn active" data-space-id="{{ fav.space.id }}">
+
+                    <!-- Category badge overlaid on image -->
+                    <span class="space-badge-overlay">
+                        <i class="fas {{ fav.space.category.icon }} me-1"></i>{{ fav.space.category.name }}
+                    </span>
+
+                    <!-- Favorite button overlaid on image -->
+                    <button class="space-favorite-btn active" data-space-id="{{ fav.space.id }}" type="button">
                         <i class="fas fa-heart"></i>
                     </button>
-                </div>
-                <div class="p-4">
-                    <h5 class="fw-bold mb-3">{{ fav.space.title }}</h5>
-                    <p class="text-muted small mb-3">
+
+                    <!-- City badge overlaid on image bottom -->
+                    <span class="space-city-overlay">
                         <i class="fas fa-map-marker-alt me-1"></i>{{ fav.space.city.name }}
-                    </p>
-                    <a href="{% url 'space_detail' fav.space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
+                    </span>
+                </div>
+
+                <div class="space-card-body">
+                    <h5 class="space-card-title">{{ fav.space.title }}</h5>
+
+                    <div class="space-card-meta">
+                        <span><i class="fas fa-expand-arrows-alt me-1"></i> {{ fav.space.area_sqm }} м²</span>
+                        <span><i class="fas fa-users me-1"></i> до {{ fav.space.max_capacity }} чел.</span>
+                    </div>
+
+                    <p class="space-card-desc">{{ fav.space.description|truncatewords:20 }}</p>
+
+                    <div class="space-card-footer">
+                        <div class="space-card-price">
+                            {% with fav.space.prices.first as price %}
+                            {% if price %}
+                            <span class="price-amount">от {{ price.price|floatformat:0 }} ₽</span>
+                            <span class="price-type">{{ price.period.description }}</span>
+                            {% else %}
+                            <span class="price-amount">Цена по запросу</span>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        <a href="{% url 'space_detail' fav.space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -44,9 +75,54 @@
     <div class="text-center py-5">
         <i class="fas fa-heart fa-3x mb-3 text-muted"></i>
         <h4>Список избранного пуст</h4>
-        <p class="text-muted">Добавляйте по��равившиеся помещения в избранное</p>
+        <p class="text-muted">Добавляйте понравившиеся помещения в избранное</p>
         <a href="{% url 'spaces_list' %}" class="btn btn-gold mt-3">Найти помещение</a>
     </div>
     {% endif %}
 </div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Favorite toggle (AJAX)
+document.querySelectorAll('.space-favorite-btn').forEach(btn => {
+    btn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const spaceId = this.dataset.spaceId;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+        try {
+            const response = await fetch(`/spaces/${spaceId}/favorite/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (!data.is_favorite) {
+                    // Remove card from favorites page with animation
+                    const card = this.closest('.col-lg-4');
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+                        card.remove();
+                        // Reload if no more favorites
+                        if (document.querySelectorAll('.space-card').length === 0) {
+                            location.reload();
+                        }
+                    }, 300);
+                }
+            }
+        } catch (err) {
+            console.error('Error toggling favorite:', err);
+        }
+    });
+});
+</script>
 {% endblock %}

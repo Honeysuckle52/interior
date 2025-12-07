@@ -46,21 +46,17 @@
 <section class="stats-section">
     <div class="container">
         <div class="row text-center">
-            <div class="col-md-3 col-6 mb-4 mb-md-0">
-                <div class="stat-number">{{ stats.spaces_count|default:"50" }}+</div>
+            <div class="col-md-4 col-6 mb-4 mb-md-0">
+                <div class="stat-number">{{ stats.spaces_count|default:"0" }}</div>
                 <div class="stat-label">Помещений</div>
             </div>
-            <div class="col-md-3 col-6 mb-4 mb-md-0">
-                <div class="stat-number">{{ stats.cities_count|default:"20" }}</div>
+            <div class="col-md-4 col-6 mb-4 mb-md-0">
+                <div class="stat-number">{{ stats.cities_count|default:"0" }}</div>
                 <div class="stat-label">Городов</div>
             </div>
-            <div class="col-md-3 col-6">
-                <div class="stat-number">500+</div>
-                <div class="stat-label">Клиентов</div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="stat-number">98%</div>
-                <div class="stat-label">Рекомендаций</div>
+            <div class="col-md-4 col-12">
+                <div class="stat-number">{{ stats.users_count|default:"0" }}</div>
+                <div class="stat-label">Пользователей</div>
             </div>
         </div>
     </div>
@@ -132,7 +128,7 @@
                                 <i class="fas {{ space.category.icon }} me-1 gold-text"></i>{{ space.category.name }}
                             </span>
                         </div>
-                        <!-- Город снизу слева, чтобы не перекрывать кнопку избранного -->
+                        <!-- Город снизу слева -->
                         <div class="position-absolute bottom-0 start-0 m-3">
                             <span class="badge bg-dark bg-opacity-75 px-3 py-2">
                                 <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
@@ -140,17 +136,22 @@
                         </div>
                     </div>
 
-                    <div class="p-4">
-                        <h5 class="fw-bold mb-3">{{ space.title }}</h5>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="space-card-body">
+                        <h5 class="space-card-title-fixed">{{ space.title }}</h5>
+                        <div class="space-card-meta">
                             <small class="text-muted"><i class="fas fa-expand-arrows-alt me-1"></i>{{ space.area_sqm }} м²</small>
                             <small class="text-muted"><i class="fas fa-users me-1"></i>до {{ space.max_capacity }} чел.</small>
                         </div>
-                        <p class="text-muted small mb-4">{{ space.description|truncatewords:15 }}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="price-tag">
+                        <p class="space-card-desc">{{ space.description|truncatewords:15 }}</p>
+                        <div class="space-card-bottom">
+                            <div class="space-card-price-box">
                                 {% with space.get_min_price as price %}
-                                {% if price %}от {{ price.price|floatformat:0 }} ₽{% else %}Цена по запросу{% endif %}
+                                {% if price %}
+                                <span class="price-value">от {{ price.price|floatformat:0 }} ₽</span>
+                                <span class="price-period">{{ price.period.description }}</span>
+                                {% else %}
+                                <span class="price-value">Цена по запросу</span>
+                                {% endif %}
                                 {% endwith %}
                             </div>
                             <a href="{% url 'space_detail' space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
@@ -172,20 +173,6 @@
             <a href="{% url 'spaces_list' %}" class="btn btn-gold btn-lg px-5">Смотреть все помещения</a>
         </div>
         {% endif %}
-    </div>
-</section>
-
-<!-- CTA секция -->
-<section class="py-5" style="background: var(--bg-color);">
-    <div class="container">
-        <div class="text-center">
-            <div class="col-lg-8 mx-auto">
-                <h2 class="display-5 fw-bold mb-4">Готовы найти идеальное пространство?</h2>
-                <p class="lead text-muted mb-4">Наши специалисты помогут подобрать помещение, которое полностью соответствует вашим требованиям</p>
-                <a href="{% url 'spaces_list' %}" class="btn btn-gold btn-lg px-5 me-3">Начать поиск</a>
-                <a href="tel:89836903854" class="btn btn-outline-light btn-lg px-5">Позвонить нам</a>
-            </div>
-        </div>
     </div>
 </section>
 {% endblock %}

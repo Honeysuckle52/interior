@@ -12,84 +12,141 @@
         </div>
     </div>
 
-    <!-- Фильтры -->
-    <div class="filter-card mb-4">
-        <form method="get" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label text-muted small">Поиск</label>
-                <input type="text" name="search" class="form-control" placeholder="Название, описание, адрес..." value="{{ search_query }}">
+    <!-- Redesigned beautiful filter panel with unified dark theme styling -->
+    <div class="filter-panel-modern mb-4">
+        <form method="get" id="filterForm">
+            <!-- Search input -->
+            <div class="filter-search-box mb-4">
+                <i class="fas fa-search filter-search-icon"></i>
+                <input type="text" name="search" class="filter-search-input"
+                       placeholder="Поиск по названию, городу или описанию..."
+                       value="{{ search_query }}">
             </div>
-            <div class="col-md-3">
-                <label class="form-label text-muted small">Город</label>
-                <select name="city" class="form-select">
-                    <option value="">Все города</option>
-                    {% for city in cities %}
-                    <option value="{{ city.id }}" {% if city.id|stringformat:"i" == selected_city %}selected{% endif %}>{{ city.name }}</option>
-                    {% endfor %}
-                </select>
+
+            <!-- Filter grid -->
+            <div class="filter-fields-grid">
+                <!-- City -->
+                <div class="filter-field-group">
+                    <label class="filter-label"><i class="fas fa-city me-2 gold-text"></i>Город</label>
+                    <select name="city" class="filter-select-styled">
+                        <option value="">Все города</option>
+                        {% for city in cities %}
+                        <option value="{{ city.id }}" {% if city.id|stringformat:"i" == selected_city %}selected{% endif %}>{{ city.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Area -->
+                <div class="filter-field-group">
+                    <label class="filter-label"><i class="fas fa-expand-arrows-alt me-2 gold-text"></i>Площадь, м²</label>
+                    <div class="filter-range-inputs">
+                        <input type="number" name="min_area" class="filter-input-styled" placeholder="от" value="{{ min_area }}" min="0">
+                        <span class="filter-range-sep">—</span>
+                        <input type="number" name="max_area" class="filter-input-styled" placeholder="до" value="{{ max_area }}" min="0">
+                    </div>
+                </div>
+
+                <!-- Capacity -->
+                <div class="filter-field-group">
+                    <label class="filter-label"><i class="fas fa-users me-2 gold-text"></i>Вместимость</label>
+                    <input type="number" name="min_capacity" class="filter-input-styled" placeholder="от человек" value="{{ min_capacity }}" min="1">
+                </div>
+
+                <!-- Price -->
+                <div class="filter-field-group">
+                    <label class="filter-label"><i class="fas fa-ruble-sign me-2 gold-text"></i>Цена, ₽</label>
+                    <div class="filter-range-inputs">
+                        <input type="number" name="min_price" class="filter-input-styled" placeholder="от" value="{{ min_price }}" min="0">
+                        <span class="filter-range-sep">—</span>
+                        <input type="number" name="max_price" class="filter-input-styled" placeholder="до" value="{{ max_price }}" min="0">
+                    </div>
+                </div>
             </div>
-            <div class="col-md-3">
-                <label class="form-label text-muted small">Категория</label>
-                <select name="category" class="form-select">
-                    <option value="">Все категории</option>
+
+            <!-- Categories - beautiful chips -->
+            <div class="filter-categories-wrapper mt-4">
+                <label class="filter-label mb-3"><i class="fas fa-tags me-2 gold-text"></i>Категории</label>
+                <div class="filter-category-chips">
                     {% for category in categories %}
-                    <option value="{{ category.id }}" {% if category.id|stringformat:"i" == selected_category %}selected{% endif %}>{{ category.name }}</option>
+                    <label class="filter-chip {% if category.id|stringformat:'i' in selected_categories %}active{% endif %}">
+                        <input type="checkbox" name="category" value="{{ category.id }}"
+                               {% if category.id|stringformat:'i' in selected_categories %}checked{% endif %}>
+                        <i class="fas {{ category.icon }}"></i>
+                        <span>{{ category.name }}</span>
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-gold w-100">
-                    <i class="fas fa-search me-1"></i> Найти
+
+            <!-- Submit buttons -->
+            <div class="filter-buttons mt-4">
+                <button type="submit" class="btn btn-gold btn-lg">
+                    <i class="fas fa-search me-2"></i>Найти помещения
                 </button>
+                <a href="{% url 'spaces_list' %}" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-times me-2"></i>Сбросить
+                </a>
             </div>
         </form>
     </div>
 
-    <!-- Список помещений -->
+    <!-- Results count -->
+    {% if total_count %}
+    <p class="text-muted mb-3">Найдено помещений: <strong class="gold-text">{{ total_count }}</strong></p>
+    {% endif %}
+
+    <!-- Restored original space cards with badges ON TOP of image -->
     <div class="row g-4">
         {% for space in spaces %}
         <div class="col-lg-4 col-md-6">
             <div class="space-card h-100">
-                <div class="position-relative overflow-hidden">
+                <div class="space-card-image-wrapper">
                     {% with space.get_main_image as image %}
                     {% if image and image.image %}
-                    <img src="{{ image.image.url }}" class="space-image w-100" alt="{{ space.title }}" loading="lazy">
+                    <img src="{{ image.image.url }}" class="space-image" alt="{{ space.title }}" loading="lazy">
                     {% else %}
-                    <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image w-100" alt="{{ space.title }}" loading="lazy">
+                    <img src="https://via.placeholder.com/400x250/1a1a1a/d4af37?text=INTERIOR" class="space-image" alt="{{ space.title }}" loading="lazy">
                     {% endif %}
                     {% endwith %}
-                    <!-- Категория слева сверху -->
-                    <div class="position-absolute top-0 start-0 m-3">
-                        <span class="badge bg-dark bg-opacity-75 px-3 py-2">
-                            <i class="fas {{ space.category.icon }} me-1 gold-text"></i>{{ space.category.name }}
-                        </span>
-                    </div>
-                    <!-- Кнопка избранного в правом верхнем углу -->
+
+                    <!-- Category badge - overlaid on image -->
+                    <span class="space-badge-overlay">
+                        <i class="fas {{ space.category.icon }} me-1"></i>{{ space.category.name }}
+                    </span>
+
+                    <!-- Favorite button - overlaid on image -->
                     {% if user.is_authenticated %}
-                    <button class="favorite-btn" data-space-id="{{ space.id }}">
-                        <i class="far fa-heart"></i>
+                    <button class="space-favorite-btn {% if space.id in favorite_ids %}active{% endif %}"
+                            data-space-id="{{ space.id }}" type="button">
+                        <i class="{% if space.id in favorite_ids %}fas{% else %}far{% endif %} fa-heart"></i>
                     </button>
                     {% endif %}
-                    <!-- Город снизу слева -->
-                    <div class="position-absolute bottom-0 start-0 m-3">
-                        <span class="badge bg-dark bg-opacity-75 px-3 py-2">
-                            <i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city.name }}
-                        </span>
-                    </div>
+
+                    <!-- City badge - overlaid on image bottom -->
+                    <span class="space-city-overlay">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ space.city.name }}
+                    </span>
                 </div>
 
-                <div class="p-4">
-                    <h5 class="fw-bold mb-3">{{ space.title }}</h5>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <small class="text-muted"><i class="fas fa-expand-arrows-alt me-1"></i>{{ space.area_sqm }} м²</small>
-                        <small class="text-muted"><i class="fas fa-users me-1"></i>до {{ space.max_capacity }} чел.</small>
+                <div class="space-card-body">
+                    <h5 class="space-card-title">{{ space.title }}</h5>
+
+                    <div class="space-card-meta">
+                        <span><i class="fas fa-expand-arrows-alt me-1"></i> {{ space.area_sqm }} м²</span>
+                        <span><i class="fas fa-users me-1"></i> до {{ space.max_capacity }} чел.</span>
                     </div>
-                    <p class="text-muted small mb-4">{{ space.description|truncatewords:20 }}</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="price-tag">
-                            <!-- Заменено hour на русское значение -->
+
+                    <p class="space-card-desc">{{ space.description|truncatewords:20 }}</p>
+
+                    <div class="space-card-footer">
+                        <div class="space-card-price">
                             {% with space.prices.first as price %}
-                            {% if price %}от {{ price.price|floatformat:0 }} ₽/{{ price.period.description }}{% else %}Цена по запросу{% endif %}
+                            {% if price %}
+                            <span class="price-amount">от {{ price.price|floatformat:0 }} ₽</span>
+                            <span class="price-type">{{ price.period.description }}</span>
+                            {% else %}
+                            <span class="price-amount">Цена по запросу</span>
+                            {% endif %}
                             {% endwith %}
                         </div>
                         <a href="{% url 'space_detail' space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
@@ -107,13 +164,13 @@
         {% endfor %}
     </div>
 
-    <!-- Пагинация -->
+    <!-- Pagination -->
     {% if spaces.has_other_pages %}
     <nav class="mt-5">
         <ul class="pagination justify-content-center">
             {% if spaces.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ spaces.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                <a class="page-link" href="?page={{ spaces.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% for cat in selected_categories %}&category={{ cat }}{% endfor %}{% if min_area %}&min_area={{ min_area }}{% endif %}{% if max_area %}&max_area={{ max_area }}{% endif %}{% if min_capacity %}&min_capacity={{ min_capacity }}{% endif %}">
                     <i class="fas fa-chevron-left"></i>
                 </a>
             </li>
@@ -124,14 +181,14 @@
             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
             {% elif num > spaces.number|add:'-3' and num < spaces.number|add:'3' %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">{{ num }}</a>
+                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% for cat in selected_categories %}&category={{ cat }}{% endfor %}{% if min_area %}&min_area={{ min_area }}{% endif %}{% if max_area %}&max_area={{ max_area }}{% endif %}{% if min_capacity %}&min_capacity={{ min_capacity }}{% endif %}">{{ num }}</a>
             </li>
             {% endif %}
             {% endfor %}
 
             {% if spaces.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ spaces.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}">
+                <a class="page-link" href="?page={{ spaces.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% for cat in selected_categories %}&category={{ cat }}{% endfor %}{% if min_area %}&min_area={{ min_area }}{% endif %}{% if max_area %}&max_area={{ max_area }}{% endif %}{% if min_capacity %}&min_capacity={{ min_capacity }}{% endif %}">
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
@@ -140,4 +197,44 @@
     </nav>
     {% endif %}
 </div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Category chip toggle
+document.querySelectorAll('.filter-chip input').forEach(cb => {
+    cb.addEventListener('change', function() {
+        this.closest('.filter-chip').classList.toggle('active', this.checked);
+    });
+});
+
+// Favorite toggle (AJAX)
+document.querySelectorAll('.space-favorite-btn').forEach(btn => {
+    btn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const spaceId = this.dataset.spaceId;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+        try {
+            const response = await fetch(`/spaces/${spaceId}/favorite/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                this.classList.toggle('active', data.is_favorite);
+                this.querySelector('i').className = data.is_favorite ? 'fas fa-heart' : 'far fa-heart';
+            }
+        } catch (err) {
+            console.error('Error toggling favorite:', err);
+        }
+    });
+});
+</script>
 {% endblock %}

@@ -15,16 +15,17 @@ from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
 from django.db import DatabaseError
 from django.db.models import Sum, Count
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 
 from ..forms import UserProfileForm, UserProfileExtendedForm
-from ..models import Booking, Favorite, Review, UserProfile
+from ..models import Booking, Favorite, Review, UserProfile, CustomUser
 
 # Константы пагинации
 RECENT_BOOKINGS_LIMIT: int = 5
 RECENT_FAVORITES_LIMIT: int = 4
 BOOKINGS_PER_PAGE: int = 10
 FAVORITES_PER_PAGE: int = 12
+USER_RECENT_BOOKINGS_LIMIT: int = 10
 
 logger = logging.getLogger(__name__)
 
@@ -244,3 +245,71 @@ def my_favorites(request: HttpRequest) -> HttpResponse:
             'favorites': [],
             'error': 'Ошибка при загрузке избранного'
         })
+
+
+@login_required
+def view_user_profile(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    View user profile (admin/moderator only).
+    Allows admins to see user details when reviewing bookings.
+
+    Args:
+        request: HTTP request
+        pk: User primary key
+
+    Returns:
+        Rendered user profile template
+    """
+    try:
+        current_user = request.user
+
+        # Check if user has permission to view profiles
+        if not current_user.can_moderate:
+            messages.error(request, 'У вас нет прав для просмотра профилей пользователей')
+            return redirect('dashboard')
+
+        # Get the user to view
+        profile_user: CustomUser = get_object_or_404(
+            CustomUser.objects.select_related('profile'),
+            pk=pk
+        )
+
+        # Get user statistics
+        user_stats: dict[str, int] = {
+            'total_bookings': Booking.objects.filter(tenant=profile_user).count(),
+            'confirmed_bookings': Booking.objects.filter(
+                tenant=profile_user,
+                status__code__in=['confirmed', 'completed']
+            ).count(),
+            'cancelled_bookings': Booking.objects.filter(
+                tenant=profile_user,
+                status__code='cancelled'
+            ).count(),
+            'pending_bookings': Booking.objects.filter(
+                tenant=profile_user,
+                status__code='pending'
+            ).count(),
+            'total_spent': Booking.objects.filter(
+                tenant=profile_user,
+                status__code__in=['confirmed', 'completed']
+            ).aggregate(total=Sum('total_amount'))['total'] or 0,
+        }
+
+        # Get recent bookings for this user
+        recent_bookings = Booking.objects.filter(
+            tenant=profile_user
+        ).select_related(
+            'space', 'space__city', 'status', 'period'
+        ).order_by('-created_at')[:USER_RECENT_BOOKINGS_LIMIT]
+
+        context: dict[str, Any] = {
+            'profile_user': profile_user,
+            'user_stats': user_stats,
+            'recent_bookings': recent_bookings,
+        }
+        return render(request, 'account/user_profile.html', context)
+
+    except Exception as e:
+        logger.error(f"Error in view_user_profile view for pk={pk}: {e}", exc_info=True)
+        messages.error(request, 'Ошибка при загрузке профиля пользователя')
+        return redirect('manage_bookings')

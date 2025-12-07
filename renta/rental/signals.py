@@ -8,7 +8,7 @@ from typing import Any, Type
 import logging
 
 from django.db.models.signals import post_save, post_delete
-from django.db.models import Avg, Count  # добавлен Count
+from django.db.models import Avg, Count
 from django.dispatch import receiver
 
 from .models import CustomUser, UserProfile, Review, Space
@@ -37,7 +37,7 @@ def update_space_rating(space: Space) -> None:
     """
     result = Review.objects.filter(
         space=space,
-        is_moderated=True
+        is_approved=True
     ).aggregate(
         avg_rating=Avg('rating'),
         total_reviews=Count('id')
@@ -61,7 +61,7 @@ def update_space_rating_on_review(
     """
     Обновление среднего рейтинга помещения при добавлении/изменении отзыва
     """
-    if instance.space and instance.is_moderated:
+    if instance.space and instance.is_approved:
         update_space_rating(instance.space)
 
 

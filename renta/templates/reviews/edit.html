@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Редактирование отзыва | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Хлебные крошки -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb breadcrumb-visible py-2 px-3 rounded" style="background: rgba(212, 175, 55, 0.1);">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'space_detail' review.space.id %}" class="breadcrumb-link fw-medium">{{ review.space.title }}</a></li>
+                    <li class="breadcrumb-item active fw-bold" style="color: var(--gold) !important;">Редактирование отзыва</li>
+                </ol>
+            </nav>
+
+            <div class="card glass-card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Редактирование отзыва
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 mb-4">
+                        <small>
+                            <strong>Автор:</strong> {{ review.author.get_full_name_or_username }}<br>
+                            <strong>Помещение:</strong> {{ review.space.title }}<br>
+                            <strong>Дата:</strong> {{ review.created_at|date:"d.m.Y H:i" }}
+                        </small>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Рейтинг</label>
+                            <div class="star-rating">
+                                {% for i in "54321" %}
+                                <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" {% if review.rating == i|add:0 %}checked{% endif %} required>
+                                <label for="star{{ i }}" title="{{ i }} {% if i == '1' %}звезда{% elif i < '5' %}звезды{% else %}звёзд{% endif %}"><i class="fas fa-star"></i></label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Комментарий</label>
+                            <textarea name="comment" class="form-control" rows="5" required>{{ review.comment }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_approved" class="form-check-input" id="isApproved" {% if review.is_approved %}checked{% endif %}>
+                                <label class="form-check-label" for="isApproved">
+                                    Отзыв одобрен (отображается публично)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-gold">
+                                <i class="fas fa-save me-2"></i>Сохранить
+                            </button>
+                            <a href="{% url 'space_detail' review.space.id %}" class="btn btn-outline-secondary">
+                                Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
