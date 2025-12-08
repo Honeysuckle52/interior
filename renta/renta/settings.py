@@ -112,19 +112,31 @@ MESSAGE_TAGS = {
     messages.ERROR: 'danger',
 }
 
-# Письма будут выводиться в консоль сервера
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Для разработки: установите переменную окружения EMAIL_HOST_PASSWORD
+# Для получения пароля приложения: https://account.mail.ru/user/2-step-auth/passwords/
 
-# Настройки для реальной отправки через Mail.ru (раскомментировать когда будет пароль)
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.mail.ru'
-# EMAIL_PORT = 465
-# EMAIL_USE_SSL = True
-# EMAIL_HOST_USER = 'danil_naumov_90@bk.ru'
-# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')  # Пароль приложения
-# DEFAULT_FROM_EMAIL = 'INTERIOR <danil_naumov_90@bk.ru>'
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.smtp.EmailBackend'  # Изменено на SMTP
+)
 
-DEFAULT_FROM_EMAIL = 'INTERIOR <anil_naumov_90@bk.ru>'
+# Настройки SMTP для Mail.ru
+EMAIL_HOST = 'smtp.mail.ru'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False  # Важно: SSL и TLS взаимоисключающие
+
+# Ваш email на Mail.ru (danil_naumov_90@bk.ru, mail.ru, inbox.ru, list.ru, bk.ru)
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'danil_naumov_90@bk.ru')
+
+# ВАЖНО: В продакшене использовать переменную окружения!
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'fDwwurqGAMSfNry3JlZU')
+
+# От кого отправляются письма
+DEFAULT_FROM_EMAIL = f'INTERIOR <{EMAIL_HOST_USER}>'
+
+# Таймаут для SMTP соединения (секунды)
+EMAIL_TIMEOUT = 30
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
