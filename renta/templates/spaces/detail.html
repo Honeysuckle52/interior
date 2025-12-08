@@ -338,59 +338,95 @@
 {% block extra_js %}
 <!-- Исправлена загрузка Яндекс.Карты с обработкой ошибок и таймаутом -->
 <script>
+// Глобальная переменная для карты
+let yandexMap = null;
+
 // Функция инициализации карты
 function initYandexMap() {
     const mapContainer = document.getElementById('yandex-map');
     if (!mapContainer) return;
 
-    // Адрес для геокодирования
-    const city = "{{ space.city.name|escapejs }}";
-    const address = "{{ space.address|escapejs }}";
-    const fullAddress = city + ", " + address;
+    // Проверяем наличие точных координат
+    const latitude = {{ space.latitude|default:"null" }};
+    const longitude = {{ space.longitude|default:"null" }};
 
-    // Геокодируем адрес
-    ymaps.geocode(fullAddress, { results: 1 }).then(function(res) {
-        const firstGeoObject = res.geoObjects.get(0);
+    if (latitude && longitude) {
+        // Используем точные координаты из базы данных
+        createMap([latitude, longitude]);
+    } else {
+        // Fallback: геокодирование по адресу
+        const city = "{{ space.city.name|escapejs }}";
+        const address = "{{ space.address|escapejs }}";
+        const fullAddress = city + ", " + address;
 
-        if (firstGeoObject) {
-            const coords = firstGeoObject.geometry.getCoordinates();
+        ymaps.geocode(fullAddress, { results: 1 }).then(function(res) {
+            const firstGeoObject = res.geoObjects.get(0);
+            if (firstGeoObject) {
+                const coords = firstGeoObject.geometry.getCoordinates();
+                createMap(coords);
+            } else {
+                showMapError('Адрес не найден на карте');
+            }
+        }).catch(function(err) {
+            console.error('Geocode error:', err);
+            showMapError('Ошибка геокодирования');
+        });
+    }
+}
 
-            // Создаём карту
-            const map = new ymaps.Map('yandex-map', {
-                center: coords,
-                zoom: 16,
-                controls: ['zoomControl', 'fullscreenControl', 'geolocationControl', 'typeSelector']
-            });
-
-            // Создаём метку
-            const placemark = new ymaps.Placemark(coords, {
-                balloonContentHeader: '<strong>{{ space.title|escapejs }}</strong>',
-                balloonContentBody:
-                    '<p style="margin: 5px 0; color: #666;">' + fullAddress + '</p>' +
-                    '<p style="margin: 5px 0; color: #666;">Площадь: {{ space.area_sqm }} м²</p>' +
-                    '<p style="margin: 5px 0; color: #666;">Вместимость: до {{ space.max_capacity }} чел.</p>',
-                balloonContentFooter: '<a href="https://yandex.ru/maps/?rtext=~' + coords[0] + ',' + coords[1] + '&rtt=auto" target="_blank" style="color: #d4af37;">Построить маршрут</a>',
-                hintContent: '{{ space.title|escapejs }}'
-            }, {
-                preset: 'islands#darkOrangeCircleDotIcon'
-            });
-
-            map.geoObjects.add(placemark);
-            placemark.balloon.open();
-
-            // Отключаем скролл по умолчанию
-            map.behaviors.disable('scrollZoom');
-            map.events.add('click', function() {
-                map.behaviors.enable('scrollZoom');
-            });
-
-        } else {
-            showMapError('Адрес не найден на карте');
-        }
-    }).catch(function(err) {
-        console.error('Geocode error:', err);
-        showMapError('Ошибка геокодирования');
+function createMap(coords) {
+    // Создаём карту
+    yandexMap = new ymaps.Map('yandex-map', {
+        center: coords,
+        zoom: 16,
+        controls: ['zoomControl', 'fullscreenControl', 'geolocationControl', 'typeSelector']
     });
+
+    // Создаём метку
+    const placemark = new ymaps.Placemark(coords, {
+        balloonContentHeader: '<strong>{{ space.title|escapejs }}</strong>',
+        balloonContentBody:
+            '<p style="margin: 5px 0; color: #666;">{{ space.city.name|escapejs }}, {{ space.address|escapejs }}</p>' +
+            '<p style="margin: 5px 0; color: #666;">Площадь: {{ space.area_sqm }} м²</p>' +
+            '<p style="margin: 5px 0; color: #666;">Вместимость: до {{ space.max_capacity }} чел.</p>',
+        balloonContentFooter: '<a href="https://yandex.ru/maps/?rtext=~' + coords[0] + ',' + coords[1] + '&rtt=auto" target="_blank" style="color: #d4af37;">Построить маршрут</a>',
+        hintContent: '{{ space.title|escapejs }}'
+    }, {
+        preset: 'islands#darkOrangeCircleDotIcon'
+    });
+
+    yandexMap.geoObjects.add(placemark);
+    placemark.balloon.open();
+
+    // Отключаем скролл по умолчанию
+    yandexMap.behaviors.disable('scrollZoom');
+    yandexMap.events.add('click', function() {
+        yandexMap.behaviors.enable('scrollZoom');
+    });
+}
+
+// Функции управления картой
+function zoomIn() {
+    if (yandexMap) {
+        yandexMap.setZoom(yandexMap.getZoom() + 1, { duration: 200 });
+    }
+}
+
+function zoomOut() {
+    if (yandexMap) {
+        yandexMap.setZoom(yandexMap.getZoom() - 1, { duration: 200 });
+    }
+}
+
+function toggleFullscreen() {
+    const mapContainer = document.getElementById('yandex-map');
+    if (mapContainer) {
+        if (!document.fullscreenElement) {
+            mapContainer.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
 }
 
 function showMapError(message) {
@@ -441,5 +477,9 @@ function showMapError(message) {
 
     document.head.appendChild(script);
 })();
+</script>
+
+<!-- Скрипт для звёзд отзыва -->
+<script>
 </script>
 {% endblock %}

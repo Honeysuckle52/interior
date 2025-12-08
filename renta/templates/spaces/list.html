@@ -7,25 +7,36 @@
 <div class="container" style="padding-top: 100px;">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="display-6 fw-bold mb-2">Все помещения</h1>
+            <h1 class="display-6 fw-bold mb-2 text-themed">Все помещения</h1>
             <p class="text-muted">Найдите идеальное пространство для вашего бизнеса</p>
         </div>
     </div>
 
-    <!-- Фильтры -->
-    <div class="filter-panel-modern mb-4">
-        <form method="get" id="filterForm">
-            <div class="filter-search-box mb-4">
-                <i class="fas fa-search filter-search-icon"></i>
-                <input type="text" name="search" class="filter-search-input"
-                       placeholder="Поиск по названию или описанию..."
-                       value="{{ search_query }}">
+    <!-- Полностью переработанный дизайн фильтров -->
+    <div class="spaces-filter-panel mb-4">
+        <form id="spacesFilterForm">
+            <!-- Улучшенная строка поиска -->
+            <div class="filter-search-wrapper">
+                <div class="filter-search-box-modern">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="search" id="spaceSearch"
+                           class="filter-search-input-modern"
+                           placeholder="Умный поиск: офис 100 м² на 20 человек..."
+                           value="{{ search_query }}"
+                           autocomplete="off">
+                    <div class="search-loader d-none" id="searchLoader">
+                        <div class="spinner-border spinner-border-sm text-gold" role="status"></div>
+                    </div>
+                </div>
             </div>
 
-            <div class="filter-fields-grid">
-                <div class="filter-field-group">
-                    <label class="filter-label">Город</label>
-                    <select name="city" class="filter-select-styled">
+            <!-- Основные фильтры в сетке -->
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label class="filter-label-modern">
+                        <i class="fas fa-map-marker-alt me-2 gold-text"></i>Город
+                    </label>
+                    <select name="city" id="cityFilter" class="filter-select-modern">
                         <option value="">Все города</option>
                         {% for city in cities %}
                         <option value="{{ city.id }}" {% if city.id|stringformat:"i" == selected_city %}selected{% endif %}>{{ city.name }}</option>
@@ -33,147 +44,134 @@
                     </select>
                 </div>
 
-                <div class="filter-field-group">
-                    <label class="filter-label">Площадь, м²</label>
-                    <div class="filter-range-inputs">
-                        <input type="number" name="min_area" class="filter-input-styled" placeholder="от" value="{{ min_area }}" min="0">
-                        <span class="filter-range-sep">—</span>
-                        <input type="number" name="max_area" class="filter-input-styled" placeholder="до" value="{{ max_area }}" min="0">
+                <div class="filter-item">
+                    <label class="filter-label-modern">
+                        <i class="fas fa-ruler-combined me-2 gold-text"></i>Площадь, м²
+                    </label>
+                    <div class="filter-range">
+                        <input type="number" name="min_area" id="minArea" class="filter-input-modern" placeholder="от" value="{{ min_area }}" min="0">
+                        <span class="filter-range-divider">—</span>
+                        <input type="number" name="max_area" id="maxArea" class="filter-input-modern" placeholder="до" value="{{ max_area }}" min="0">
                     </div>
                 </div>
 
-                <div class="filter-field-group">
-                    <label class="filter-label">Вместимость</label>
-                    <input type="number" name="min_capacity" class="filter-input-styled" placeholder="от человек" value="{{ min_capacity }}" min="1">
+                <div class="filter-item">
+                    <label class="filter-label-modern">
+                        <i class="fas fa-users me-2 gold-text"></i>Вместимость
+                    </label>
+                    <input type="number" name="min_capacity" id="minCapacity" class="filter-input-modern" placeholder="от человек" value="{{ min_capacity }}" min="1">
                 </div>
 
-                <div class="filter-field-group">
-                    <label class="filter-label">Цена, ₽</label>
-                    <div class="filter-range-inputs">
-                        <input type="number" name="min_price" class="filter-input-styled" placeholder="от" value="{{ min_price }}" min="0">
-                        <span class="filter-range-sep">—</span>
-                        <input type="number" name="max_price" class="filter-input-styled" placeholder="до" value="{{ max_price }}" min="0">
+                <div class="filter-item">
+                    <label class="filter-label-modern">
+                        <i class="fas fa-ruble-sign me-2 gold-text"></i>Цена, ₽
+                    </label>
+                    <div class="filter-range">
+                        <input type="number" name="min_price" id="minPrice" class="filter-input-modern" placeholder="от" value="{{ min_price }}" min="0">
+                        <span class="filter-range-divider">—</span>
+                        <input type="number" name="max_price" id="maxPrice" class="filter-input-modern" placeholder="до" value="{{ max_price }}" min="0">
                     </div>
                 </div>
             </div>
 
-            <div class="filter-categories-wrapper mt-4">
-                <label class="filter-label mb-3">Категории</label>
-                <div class="filter-category-chips">
+            <!-- Категории в виде чипов -->
+            <div class="filter-categories-section">
+                <label class="filter-label-modern mb-3">
+                    <i class="fas fa-th-large me-2 gold-text"></i>Категории
+                </label>
+                <div class="category-chips">
                     {% for category in categories %}
-                    <label class="filter-chip {% if category.id|stringformat:'i' in selected_categories %}active{% endif %}">
+                    <label class="category-chip {% if category.id|stringformat:'i' in selected_categories %}active{% endif %}">
                         <input type="checkbox" name="category" value="{{ category.id }}"
+                               class="category-checkbox"
                                {% if category.id|stringformat:'i' in selected_categories %}checked{% endif %}>
-                        <span>{{ category.name }}</span>
+                        <span class="chip-content">
+                            <i class="fas fa-tag me-2"></i>{{ category.name }}
+                        </span>
                     </label>
                     {% endfor %}
                 </div>
             </div>
 
-            <div class="filter-buttons mt-4">
-                <button type="submit" class="btn btn-gold">Найти</button>
-                <a href="{% url 'spaces_list' %}" class="btn btn-outline-secondary">Сбросить</a>
+            <!-- Сортировка и кнопки -->
+            <div class="filter-actions">
+                <div class="filter-sort">
+                    <label class="filter-label-modern mb-0">
+                        <i class="fas fa-sort me-2 gold-text"></i>Сортировка:
+                    </label>
+                    <select name="sort" id="sortFilter" class="filter-select-modern filter-select-sm">
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Новые</option>
+                        <option value="popular" {% if sort_by == 'popular' %}selected{% endif %}>Популярные</option>
+                        <option value="price_asc" {% if sort_by == 'price_asc' %}selected{% endif %}>Цена ↑</option>
+                        <option value="price_desc" {% if sort_by == 'price_desc' %}selected{% endif %}>Цена ↓</option>
+                        <option value="area_asc" {% if sort_by == 'area_asc' %}selected{% endif %}>Площадь ↑</option>
+                        <option value="area_desc" {% if sort_by == 'area_desc' %}selected{% endif %}>Площадь ↓</option>
+                        <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>Рейтинг</option>
+                    </select>
+                </div>
+                <div class="filter-buttons">
+                    <button type="button" id="resetFilters" class="btn btn-outline-themed">
+                        <i class="fas fa-times me-2"></i>Сбросить фильтры
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 
-    {% if total_count %}
-    <p class="text-muted mb-3">Найдено: <strong class="gold-text">{{ total_count }}</strong></p>
-    {% endif %}
+    <!-- Результаты поиска -->
+    <div class="search-results-header mb-3">
+        <p class="results-count mb-0">
+            Найдено: <strong id="totalCount">{{ total_count }}</strong> помещений
+        </p>
+    </div>
+
+    <!-- Индикатор загрузки -->
+    <div id="spacesLoadingIndicator" class="text-center py-5 d-none">
+        <div class="spinner-border text-gold spinner-border-lg" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+        </div>
+        <p class="mt-3 text-muted">Ищем подходящие помещения...</p>
+    </div>
 
     <!-- Карточки помещений -->
-    <div class="row g-4">
-        {% for space in spaces %}
-        <div class="col-lg-4 col-md-6">
-            <div class="space-card h-100">
-                <div class="space-card-image-wrapper">
-                    {% with space.get_main_image as image %}
-                    {% if image and image.image %}
-                    <img src="{{ image.image.url }}" class="space-image" alt="{{ space.title }}" loading="lazy">
-                    {% else %}
-                    <img src="https://via.placeholder.com/400x250/171717/d4af37?text=INTERIOR" class="space-image" alt="{{ space.title }}" loading="lazy">
-                    {% endif %}
-                    {% endwith %}
-
-                    <span class="space-badge-overlay">{{ space.category.name }}</span>
-
-                    {% if user.is_authenticated %}
-                    <button class="space-favorite-btn {% if space.id in favorite_ids %}active{% endif %}"
-                            data-space-id="{{ space.id }}" type="button">
-                        <i class="{% if space.id in favorite_ids %}fas{% else %}far{% endif %} fa-heart"></i>
-                    </button>
-                    {% endif %}
-
-                    <span class="space-city-overlay">
-                        <i class="fas fa-map-marker-alt me-1"></i>{{ space.city.name }}
-                    </span>
-                </div>
-
-                <div class="space-card-body">
-                    <h5 class="space-card-title">{{ space.title }}</h5>
-                    <div class="space-card-meta">
-                        <span>{{ space.area_sqm }} м²</span>
-                        <span>до {{ space.max_capacity }} чел.</span>
-                    </div>
-                    <p class="space-card-desc">{{ space.description|truncatewords:18 }}</p>
-                    <div class="space-card-footer">
-                        <div class="space-card-price">
-                            {% with space.prices.first as price %}
-                            {% if price %}
-                            <span class="price-amount">от {{ price.price|floatformat:0 }} ₽</span>
-                            <span class="price-type">{{ price.period.description }}</span>
-                            {% else %}
-                            <span class="price-amount">Цена по запросу</span>
-                            {% endif %}
-                            {% endwith %}
-                        </div>
-                        <a href="{% url 'space_detail' space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div class="col-12 text-center py-5">
-            <i class="fas fa-search fa-3x mb-3 text-muted"></i>
-            <h4>Помещения не найдены</h4>
-            <p class="text-muted">Попробуйте изменить параметры поиска</p>
-            <a href="{% url 'spaces_list' %}" class="btn btn-gold mt-3">Сбросить фильтры</a>
-        </div>
-        {% endfor %}
+    <div class="row g-4" id="spacesGrid">
+        {% include 'spaces/_spaces_grid.html' %}
     </div>
 
     <!-- Пагинация -->
-    {% if spaces.has_other_pages %}
-    <nav class="mt-5">
-        <ul class="pagination justify-content-center">
-            {% if spaces.has_previous %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ spaces.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% for cat in selected_categories %}&category={{ cat }}{% endfor %}">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>
-            {% endif %}
+    <div id="paginationContainer">
+        {% if spaces.has_other_pages %}
+        <nav class="mt-5">
+            <ul class="pagination pagination-themed justify-content-center">
+                {% if spaces.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ spaces.previous_page_number }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
 
-            {% for num in spaces.paginator.page_range %}
-            {% if spaces.number == num %}
-            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-            {% elif num > spaces.number|add:'-3' and num < spaces.number|add:'3' %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% for cat in selected_categories %}&category={{ cat }}{% endfor %}">{{ num }}</a>
-            </li>
-            {% endif %}
-            {% endfor %}
+                {% for num in spaces.paginator.page_range %}
+                {% if spaces.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > spaces.number|add:'-3' and num < spaces.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
 
-            {% if spaces.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="?page={{ spaces.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% for cat in selected_categories %}&category={{ cat }}{% endfor %}">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
+                {% if spaces.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ spaces.next_page_number }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
 </div>
 
 {% csrf_token %}
@@ -181,11 +179,223 @@
 
 {% block extra_js %}
 <script>
-// Переключение активного состояния чипов категорий
-document.querySelectorAll('.filter-chip input').forEach(cb => {
-    cb.addEventListener('change', function() {
-        this.closest('.filter-chip').classList.toggle('active', this.checked);
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('spaceSearch');
+    const cityFilter = document.getElementById('cityFilter');
+    const minArea = document.getElementById('minArea');
+    const maxArea = document.getElementById('maxArea');
+    const minCapacity = document.getElementById('minCapacity');
+    const minPrice = document.getElementById('minPrice');
+    const maxPrice = document.getElementById('maxPrice');
+    const sortFilter = document.getElementById('sortFilter');
+    const resetBtn = document.getElementById('resetFilters');
+    const spacesGrid = document.getElementById('spacesGrid');
+    const loadingIndicator = document.getElementById('spacesLoadingIndicator');
+    const totalCountEl = document.getElementById('totalCount');
+    const searchLoader = document.getElementById('searchLoader');
+    const paginationContainer = document.getElementById('paginationContainer');
+
+    let debounceTimer;
+    let currentPage = 1;
+
+    function debounce(func, delay) {
+        return function(...args) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    function getFilterParams(page = 1) {
+        const params = new URLSearchParams();
+
+        if (searchInput.value) params.append('search', searchInput.value);
+        if (cityFilter.value) params.append('city', cityFilter.value);
+        if (minArea.value) params.append('min_area', minArea.value);
+        if (maxArea.value) params.append('max_area', maxArea.value);
+        if (minCapacity.value) params.append('min_capacity', minCapacity.value);
+        if (minPrice.value) params.append('min_price', minPrice.value);
+        if (maxPrice.value) params.append('max_price', maxPrice.value);
+        if (sortFilter.value) params.append('sort', sortFilter.value);
+        params.append('page', page);
+
+        document.querySelectorAll('.category-checkbox:checked').forEach(cb => {
+            params.append('category', cb.value);
+        });
+
+        return params;
+    }
+
+    async function loadSpaces(page = 1) {
+        currentPage = page;
+        const params = getFilterParams(page);
+
+        searchLoader.classList.remove('d-none');
+        loadingIndicator.classList.remove('d-none');
+        spacesGrid.style.opacity = '0.3';
+        spacesGrid.style.transition = 'opacity 0.2s ease';
+
+        try {
+            const response = await fetch(`/api/spaces/?${params.toString()}`);
+            const data = await response.json();
+
+            if (data.success) {
+                spacesGrid.innerHTML = data.html;
+                totalCountEl.textContent = data.total_count;
+
+                updatePagination(data);
+                bindFavoriteButtons();
+
+                const url = new URL(window.location);
+                params.forEach((value, key) => url.searchParams.set(key, value));
+                window.history.replaceState({}, '', url);
+
+                // Плавное появление
+                spacesGrid.style.opacity = '1';
+
+                if (page > 1) {
+                    spacesGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        } catch (error) {
+            console.error('Error loading spaces:', error);
+        } finally {
+            searchLoader.classList.add('d-none');
+            loadingIndicator.classList.add('d-none');
+            spacesGrid.style.opacity = '1';
+        }
+    }
+
+    function updatePagination(data) {
+        if (data.total_pages <= 1) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+
+        let paginationHtml = '<nav class="mt-5"><ul class="pagination pagination-themed justify-content-center">';
+
+        if (data.has_previous) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.current_page - 1}"><i class="fas fa-chevron-left"></i></a></li>`;
+        }
+
+        for (let i = Math.max(1, data.current_page - 2); i <= Math.min(data.total_pages, data.current_page + 2); i++) {
+            if (i === data.current_page) {
+                paginationHtml += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            } else {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+            }
+        }
+
+        if (data.has_next) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.current_page + 1}"><i class="fas fa-chevron-right"></i></a></li>`;
+        }
+
+        paginationHtml += '</ul></nav>';
+        paginationContainer.innerHTML = paginationHtml;
+
+        bindPaginationLinks();
+    }
+
+    function bindPaginationLinks() {
+        document.querySelectorAll('.pagination .page-link[data-page]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = parseInt(this.dataset.page);
+                if (page) loadSpaces(page);
+            });
+        });
+    }
+
+    function bindFavoriteButtons() {
+        document.querySelectorAll('.space-favorite-btn').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const spaceId = this.dataset.spaceId;
+                const icon = this.querySelector('i');
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                // Анимация нажатия
+                this.style.transform = 'scale(0.9)';
+
+                try {
+                    const response = await fetch(`/spaces/${spaceId}/favorite/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.is_favorite) {
+                        this.classList.add('active');
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        // Анимация пульса
+                        icon.style.animation = 'heartPulse 0.6s ease';
+                    } else {
+                        this.classList.remove('active');
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                        icon.style.animation = 'none';
+                    }
+
+                    // Возврат масштаба с небольшим отскоком
+                    setTimeout(() => {
+                        this.style.transform = data.is_favorite ? 'scale(1.1)' : 'scale(1)';
+                        setTimeout(() => {
+                            this.style.transform = 'scale(1)';
+                        }, 150);
+                    }, 100);
+
+                } catch (error) {
+                    console.error('Error toggling favorite:', error);
+                    this.style.transform = 'scale(1)';
+                }
+            });
+        });
+    }
+
+    const debouncedSearch = debounce(() => loadSpaces(1), 400);
+
+    searchInput.addEventListener('input', debouncedSearch);
+    cityFilter.addEventListener('change', () => loadSpaces(1));
+    minArea.addEventListener('input', debouncedSearch);
+    maxArea.addEventListener('input', debouncedSearch);
+    minCapacity.addEventListener('input', debouncedSearch);
+    minPrice.addEventListener('input', debouncedSearch);
+    maxPrice.addEventListener('input', debouncedSearch);
+    sortFilter.addEventListener('change', () => loadSpaces(1));
+
+    document.querySelectorAll('.category-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            this.closest('.category-chip').classList.toggle('active', this.checked);
+            loadSpaces(1);
+        });
     });
+
+    resetBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        cityFilter.value = '';
+        minArea.value = '';
+        maxArea.value = '';
+        minCapacity.value = '';
+        minPrice.value = '';
+        maxPrice.value = '';
+        sortFilter.value = 'newest';
+
+        document.querySelectorAll('.category-checkbox').forEach(cb => {
+            cb.checked = false;
+            cb.closest('.category-chip').classList.remove('active');
+        });
+
+        loadSpaces(1);
+    });
+
+    bindPaginationLinks();
+    bindFavoriteButtons();
 });
 </script>
 {% endblock %}

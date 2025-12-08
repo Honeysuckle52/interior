@@ -13,8 +13,9 @@ from typing import Any
 
 from django.db.models import Q, Avg, Count, Min, QuerySet
 from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
-from django.http import HttpRequest, HttpResponse, Http404
+from django.http import HttpRequest, HttpResponse, Http404, JsonResponse
 from django.shortcuts import render, get_object_or_404
+from django.template.loader import render_to_string
 
 from ..models import Space, City, SpaceCategory, Favorite
 
@@ -290,6 +291,90 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
             'categories': [],
             'error': 'Произошла ошибка при загрузке помещений'
         })
+
+
+def spaces_ajax(request: HttpRequest) -> JsonResponse:
+    """
+    AJAX endpoint для живой фильтрации помещений.
+    Возвращает HTML карточек и количество результатов.
+    """
+    try:
+        # Base queryset with optimizations
+        spaces: QuerySet[Space] = Space.objects.active().select_related(
+            'city', 'city__region', 'category', 'owner'
+        ).prefetch_related(
+            'images', 'prices', 'prices__period', 'reviews'
+        )
+
+        category_ids = request.GET.getlist('category')
+        category_ids = [_parse_int(c) for c in category_ids if _parse_int(c)]
+
+        # Parse filter parameters
+        filters: dict[str, Any] = {
+            'search_query': request.GET.get('search', '').strip(),
+            'city_id': _parse_int(request.GET.get('city', '')),
+            'category_ids': category_ids if category_ids else None,
+            'min_area': _parse_float(request.GET.get('min_area', '')),
+            'max_area': _parse_float(request.GET.get('max_area', '')),
+            'min_capacity': _parse_int(request.GET.get('min_capacity', '')),
+            'min_price': _parse_float(request.GET.get('min_price', '')),
+            'max_price': _parse_float(request.GET.get('max_price', '')),
+        }
+        sort_by: str = request.GET.get('sort', 'newest')
+
+        # Apply filters
+        spaces = _apply_filters(spaces, filters)
+
+        # Add annotations
+        spaces = spaces.annotate(
+            min_price_value=Min('prices__price'),
+            avg_rating=Avg('reviews__rating'),
+            reviews_count=Count('reviews', filter=Q(reviews__is_approved=True))
+        )
+
+        # Apply sorting
+        spaces = _apply_sorting(spaces, sort_by)
+
+        # Pagination
+        per_page: int = min(
+            _parse_int(request.GET.get('per_page', ''), DEFAULT_ITEMS_PER_PAGE) or DEFAULT_ITEMS_PER_PAGE,
+            MAX_ITEMS_PER_PAGE
+        )
+        paginator = Paginator(spaces, per_page)
+        page_number = request.GET.get('page', 1)
+
+        try:
+            spaces_page = paginator.get_page(page_number)
+        except (EmptyPage, PageNotAnInteger):
+            spaces_page = paginator.get_page(1)
+
+        # Get favorite IDs for authenticated users
+        favorite_ids: set[int] = set()
+        if request.user.is_authenticated:
+            favorite_ids = set(
+                Favorite.objects.filter(user=request.user)
+                .values_list('space_id', flat=True)
+            )
+
+        # Рендерим только карточки
+        html = render_to_string('spaces/_spaces_grid.html', {
+            'spaces': spaces_page,
+            'favorite_ids': favorite_ids,
+        }, request=request)
+
+        return JsonResponse({
+            'success': True,
+            'html': html,
+            'total_count': paginator.count,
+            'has_next': spaces_page.has_next(),
+            'has_previous': spaces_page.has_previous(),
+            'current_page': spaces_page.number,
+            'total_pages': paginator.num_pages,
+        })
+
+    except Exception as e:
+        logger.error(f"Error in spaces_ajax: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 def space_detail(request: HttpRequest, pk: int) -> HttpResponse:

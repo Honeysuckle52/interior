@@ -5,7 +5,6 @@
 
 {% block content %}
 <div class="container" style="padding-top: 100px;">
-    <!-- Improved breadcrumbs with icon -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb breadcrumb-styled">
             <li class="breadcrumb-item"><a href="{% url 'home' %}"><i class="fas fa-home me-1"></i>Главная</a></li>
@@ -23,16 +22,45 @@
                     {% csrf_token %}
 
                     <div class="row g-4 mb-4">
-                        <!-- Date input with visible icon -->
+                        <!-- Кастомный календарь вместо стандартного input[type=date] -->
                         <div class="col-md-6">
                             <label class="form-label">Дата начала</label>
-                            <div class="input-with-icon">
-                                <i class="fas fa-calendar-alt input-icon"></i>
-                                {{ form.start_date }}
+                            <div class="custom-datepicker-wrapper">
+                                <div class="input-with-icon">
+                                    <i class="fas fa-calendar-alt input-icon"></i>
+                                    <button type="button" class="custom-datepicker-trigger" id="datepickerTrigger">
+                                        <span id="selectedDateText">Выберите дату</span>
+                                    </button>
+                                    <input type="hidden" name="start_date" id="id_start_date" required>
+                                </div>
+
+                                <!-- Кастомный календарь -->
+                                <div class="custom-calendar" id="customCalendar">
+                                    <div class="calendar-header">
+                                        <button type="button" class="calendar-nav-btn" id="prevMonth">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <span class="calendar-title" id="calendarTitle">Декабрь 2025</span>
+                                        <button type="button" class="calendar-nav-btn" id="nextMonth">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div class="calendar-weekdays">
+                                        <div class="calendar-weekday">Пн</div>
+                                        <div class="calendar-weekday">Вт</div>
+                                        <div class="calendar-weekday">Ср</div>
+                                        <div class="calendar-weekday">Чт</div>
+                                        <div class="calendar-weekday">Пт</div>
+                                        <div class="calendar-weekday">Сб</div>
+                                        <div class="calendar-weekday">Вс</div>
+                                    </div>
+                                    <div class="calendar-days" id="calendarDays">
+                                        <!-- Дни генерируются JavaScript -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Time input - conditionally shown based on period -->
                         <div class="col-md-6" id="timeInputWrapper">
                             <label class="form-label">Время начала</label>
                             <div class="input-with-icon">
@@ -93,33 +121,155 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const dateInput = document.querySelector('input[type="date"]');
+    const trigger = document.getElementById('datepickerTrigger');
+    const calendar = document.getElementById('customCalendar');
+    const calendarDays = document.getElementById('calendarDays');
+    const calendarTitle = document.getElementById('calendarTitle');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    const hiddenInput = document.getElementById('id_start_date');
+    const selectedDateText = document.getElementById('selectedDateText');
     const periodSelect = document.querySelector('select[name="period"]');
     const timeWrapper = document.getElementById('timeInputWrapper');
 
-    if (dateInput) {
-        // Set min date to today
-        const today = new Date().toISOString().split('T')[0];
-        dateInput.setAttribute('min', today);
+    const monthNames = [
+        'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ];
 
-        // Set max date to 2 years from now
-        const maxDate = new Date();
-        maxDate.setFullYear(maxDate.getFullYear() + 2);
-        dateInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
+    let currentDate = new Date();
+    let selectedDate = null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        // Set default date to today if not set
-        if (!dateInput.value) {
-            dateInput.value = today;
+    const minDate = new Date(today);
+    const maxDate = new Date(today);
+    maxDate.setFullYear(maxDate.getFullYear() + 2);
+
+    // Открытие/закрытие календаря
+    trigger.addEventListener('click', function(e) {
+        e.preventDefault();
+        calendar.classList.toggle('active');
+    });
+
+    // Закрытие при клике вне календаря
+    document.addEventListener('click', function(e) {
+        if (!calendar.contains(e.target) && e.target !== trigger && !trigger.contains(e.target)) {
+            calendar.classList.remove('active');
+        }
+    });
+
+    // Навигация по месяцам
+    prevMonthBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+    });
+
+    nextMonthBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+    });
+
+    function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        calendarTitle.textContent = `${monthNames[month]} ${year}`;
+
+        // Первый день месяца
+        const firstDay = new Date(year, month, 1);
+        // Последний день месяца
+        const lastDay = new Date(year, month + 1, 0);
+
+        // День недели первого дня (0 = воскресенье, нужно преобразовать для понедельника)
+        let startDay = firstDay.getDay();
+        startDay = startDay === 0 ? 6 : startDay - 1;
+
+        calendarDays.innerHTML = '';
+
+        // Дни предыдущего месяца
+        const prevMonthLastDay = new Date(year, month, 0).getDate();
+        for (let i = startDay - 1; i >= 0; i--) {
+            const dayEl = createDayElement(prevMonthLastDay - i, true, true);
+            calendarDays.appendChild(dayEl);
+        }
+
+        // Дни текущего месяца
+        for (let day = 1; day <= lastDay.getDate(); day++) {
+            const date = new Date(year, month, day);
+            const isDisabled = date < minDate || date > maxDate;
+            const isToday = date.getTime() === today.getTime();
+            const isSelected = selectedDate && date.getTime() === selectedDate.getTime();
+
+            const dayEl = createDayElement(day, false, isDisabled, isToday, isSelected, date);
+            calendarDays.appendChild(dayEl);
+        }
+
+        // Дни следующего месяца
+        const totalCells = calendarDays.children.length;
+        const remainingCells = 42 - totalCells; // 6 рядов по 7 дней
+        for (let i = 1; i <= remainingCells; i++) {
+            const dayEl = createDayElement(i, true, true);
+            calendarDays.appendChild(dayEl);
         }
     }
 
+    function createDayElement(day, isOtherMonth, isDisabled, isToday = false, isSelected = false, date = null) {
+        const dayEl = document.createElement('button');
+        dayEl.type = 'button';
+        dayEl.className = 'calendar-day';
+        dayEl.textContent = day;
+
+        if (isOtherMonth) dayEl.classList.add('other-month');
+        if (isDisabled) dayEl.classList.add('disabled');
+        if (isToday) dayEl.classList.add('today');
+        if (isSelected) dayEl.classList.add('selected');
+
+        if (!isDisabled && !isOtherMonth && date) {
+            dayEl.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                selectDate(date);
+            });
+        }
+
+        return dayEl;
+    }
+
+    function selectDate(date) {
+        selectedDate = date;
+
+        // Форматируем для скрытого поля (YYYY-MM-DD)
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        hiddenInput.value = `${year}-${month}-${day}`;
+
+        // Форматируем для отображения
+        selectedDateText.textContent = `${day}.${month}.${year}`;
+
+        // Закрываем календарь
+        calendar.classList.remove('active');
+
+        // Обновляем отображение
+        renderCalendar();
+    }
+
+    // Инициализация с текущей датой
+    selectDate(today);
+    renderCalendar();
+
+    // Логика скрытия времени для недельной/месячной аренды
     function updateTimeVisibility() {
         if (!periodSelect || !timeWrapper) return;
 
         const selectedOption = periodSelect.options[periodSelect.selectedIndex];
         const periodText = selectedOption ? selectedOption.textContent.toLowerCase() : '';
 
-        // Hide time picker for weekly and monthly rentals
         if (periodText.includes('недел') || periodText.includes('месяц')) {
             timeWrapper.style.display = 'none';
         } else {
@@ -129,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (periodSelect) {
         periodSelect.addEventListener('change', updateTimeVisibility);
-        updateTimeVisibility(); // Initial check
+        updateTimeVisibility();
     }
 });
 </script>

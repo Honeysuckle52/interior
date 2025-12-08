@@ -1,0 +1,112 @@
+<!-- Частичный шаблон таблицы пользователей для AJAX -->
+<div class="table-responsive">
+    <table class="table table-themed table-hover mb-0">
+        <thead>
+            <tr>
+                <th>Пользователь</th>
+                <th>Email</th>
+                <th>Тип</th>
+                <th>Бронирований</th>
+                <th>Потрачено</th>
+                <th>Статус</th>
+                <th>Регистрация</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr class="{% if u.is_blocked %}row-blocked{% endif %}">
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="user-avatar-sm me-3">
+                            {% if u.avatar %}
+                            <img src="{{ u.avatar.url }}" alt="{{ u.username }}">
+                            {% else %}
+                            <div class="user-avatar-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <strong class="text-themed">{{ u.get_full_name_or_username }}</strong>
+                            <br><small class="text-muted">@{{ u.username }}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="text-themed">{{ u.email }}</span>
+                    {% if u.email_verified %}
+                    <i class="fas fa-check-circle text-success ms-1" title="Подтверждён"></i>
+                    {% else %}
+                    <i class="fas fa-times-circle text-warning ms-1" title="Не подтверждён"></i>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge bg-{% if u.user_type == 'moderator' %}info{% elif u.user_type == 'admin' %}danger{% else %}secondary{% endif %}">
+                        {{ u.get_user_type_display }}
+                    </span>
+                </td>
+                <td class="text-themed">{{ u.bookings_count|default:0 }}</td>
+                <td class="text-themed">{{ u.total_spent|floatformat:0|default:0 }} ₽</td>
+                <td>
+                    {% if u.is_blocked %}
+                    <span class="badge bg-danger">Заблокирован</span>
+                    {% elif not u.is_active %}
+                    <span class="badge bg-warning text-dark">Неактивен</span>
+                    {% else %}
+                    <span class="badge bg-success">Активен</span>
+                    {% endif %}
+                </td>
+                <td class="text-themed">{{ u.created_at|date:"d.m.Y" }}</td>
+                <td>
+                    <a href="{% url 'user_detail_mod' u.pk %}" class="btn btn-sm btn-outline-themed" title="Подробнее">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center py-4 text-muted">
+                    <i class="fas fa-users fa-3x mb-3 d-block"></i>
+                    Пользователи не найдены
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Пагинация -->
+{% if users.has_other_pages %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Навигация по страницам">
+        <ul class="pagination pagination-themed mb-0">
+            {% if users.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="{{ users.previous_page_number }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in users.paginator.page_range %}
+                {% if users.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > users.number|add:'-3' and num < users.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="{{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if users.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="#" data-page="{{ users.next_page_number }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}

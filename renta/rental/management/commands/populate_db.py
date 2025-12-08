@@ -5,18 +5,16 @@
 Запуск: python manage.py populate_db
 Опции:
     --clear     Очистить существующие данные перед заполнением
-    --spaces N  Количество помещений для генерации (по умолчанию 40)
 """
 
 from __future__ import annotations
 
-import io
+import os
 import random
 from decimal import Decimal
 from typing import Any, Optional
-from urllib.request import urlopen
-from urllib.error import URLError
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth import get_user_model
@@ -32,30 +30,8 @@ from ...models import (
 User = get_user_model()
 
 # Константы
-DEFAULT_SPACES_COUNT: int = 40
-PAGINATION_STEP: int = 10
-MIN_AREA_SMALL: int = 20
-MAX_AREA_SMALL: int = 300
-MIN_AREA_LARGE: int = 50
-MAX_AREA_LARGE: int = 1000
-MIN_AREA_MEDIUM: int = 30
-MAX_AREA_MEDIUM: int = 150
-MIN_CAPACITY_DIVISOR: int = 5
-MIN_CAPACITY: int = 2
-MIN_BASE_HOUR_PRICE: int = 300
-MAX_BASE_HOUR_PRICE: int = 3000
 MIN_PRICE: int = 100
 PRICE_ROUND_BASE: int = 100
-PRICE_VARIANCE_MIN: float = 0.9
-PRICE_VARIANCE_MAX: float = 1.1
-FEATURED_PROBABILITY: float = 0.2
-MAX_VIEWS_COUNT: int = 500
-MIN_STREET_NUMBER: int = 1
-MAX_STREET_NUMBER: int = 200
-IMAGE_WIDTH: int = 800
-IMAGE_HEIGHT: int = 600
-IMAGES_PER_SPACE_MIN: int = 1
-IMAGES_PER_SPACE_MAX: int = 4
 
 
 class Command(BaseCommand):
@@ -69,12 +45,6 @@ class Command(BaseCommand):
             '--clear',
             action='store_true',
             help='Очистить существующие данные перед заполнением'
-        )
-        parser.add_argument(
-            '--spaces',
-            type=int,
-            default=DEFAULT_SPACES_COUNT,
-            help=f'Количество помещений для генерации (по умолчанию {DEFAULT_SPACES_COUNT})'
         )
 
     def handle(self, *args: Any, **options: Any) -> None:
@@ -97,7 +67,7 @@ class Command(BaseCommand):
                 self.create_admin_user()
                 self.create_moderators()
                 self.create_test_users()
-                self.create_spaces(options['spaces'])
+                self.create_spaces()
 
             self.stdout.write(self.style.SUCCESS(
                 '\n✓ База данных успешно заполнена!\n'
@@ -111,6 +81,7 @@ class Command(BaseCommand):
         """Очистка существующих данных."""
         self.stdout.write('Очистка существующих данных...')
         SpaceImage.objects.all().delete()
+        SpacePrice.objects.all().delete()
         Space.objects.all().delete()
         SpaceCategory.objects.all().delete()
         City.objects.all().delete()
@@ -118,15 +89,17 @@ class Command(BaseCommand):
         PricingPeriod.objects.all().delete()
         BookingStatus.objects.all().delete()
         TransactionStatus.objects.all().delete()
+        User.objects.filter(is_superuser=False).delete()
         self.stdout.write('  → Данные очищены')
 
     def create_regions_and_cities(self) -> None:
-        """Создание 21 города в разных регионах России (включая Иркутск)."""
-        self.stdout.write('\n📍 Создание регионов и городов...')
+        """Создание только городов-миллионников и Иркутска (13 городов)."""
+        self.stdout.write('\n📍 Создание регионов и городов-миллионников...')
 
+        # Только города-миллионники России + Иркутск
         regions_data: dict[str, tuple[str, list[str]]] = {
-            'Москва и Московская область': ('77', ['Москва', 'Подольск', 'Химки']),
-            'Санкт-Петербург и Ленинградская область': ('78', ['Санкт-Петербург']),
+            'Москва': ('77', ['Москва']),
+            'Санкт-Петербург': ('78', ['Санкт-Петербург']),
             'Новосибирская область': ('54', ['Новосибирск']),
             'Свердловская область': ('66', ['Екатеринбург']),
             'Республика Татарстан': ('16', ['Казань']),
@@ -137,13 +110,10 @@ class Command(BaseCommand):
             'Ростовская область': ('61', ['Ростов-на-Дону']),
             'Республика Башкортостан': ('02', ['Уфа']),
             'Красноярский край': ('24', ['Красноярск']),
-            'Пермский край': ('59', ['Пермь']),
             'Воронежская область': ('36', ['Воронеж']),
+            'Пермский край': ('59', ['Пермь']),
             'Волгоградская область': ('34', ['Волгоград']),
-            'Краснодарский край': ('23', ['Краснодар', 'Сочи']),
-            'Саратовская область': ('64', ['Саратов']),
-            'Тюменская область': ('72', ['Тюмень']),
-            'Иркутская область': ('38', ['Иркутск']),  # Added Irkutsk
+            'Иркутская область': ('38', ['Иркутск']),
         }
 
         regions_created: int = 0
@@ -280,7 +250,8 @@ class Command(BaseCommand):
                 'is_staff': True,
                 'is_superuser': True,
                 'user_type': 'admin',
-                'phone': '+7 (999) 123-45-67'
+                'phone': '+7 (999) 123-45-67',
+                'email_verified': True
             }
         )
         if created:
@@ -314,7 +285,8 @@ class Command(BaseCommand):
                     'user_type': 'moderator',
                     'is_staff': True,
                     'is_superuser': False,
-                    'phone': f'+7 (9{random.randint(10, 99)}) {random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(10, 99)}'
+                    'phone': f'+7 (9{random.randint(10, 99)}) {random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(10, 99)}',
+                    'email_verified': True
                 }
             )
             if created:
@@ -330,19 +302,68 @@ class Command(BaseCommand):
             ))
 
     def create_test_users(self) -> None:
-        """Создание тестовых пользователей."""
-        self.stdout.write('\n👤 Создание тестовых пользователей...')
+        """Создание 50 уникальных тестовых пользователей."""
+        self.stdout.write('\n👤 Создание 50 тестовых пользователей...')
 
-        users_data: list[tuple[str, str, str, str]] = [
-            ('user1', 'Иван', 'Петров', 'ivan.petrov@mail.ru'),
-            ('user2', 'Анна', 'Сидорова', 'anna.sidorova@mail.ru'),
-            ('user3', 'Сергей', 'Козлов', 'sergey.kozlov@mail.ru'),
-            ('user4', 'Мария', 'Иванова', 'maria.ivanova@mail.ru'),
-            ('user5', 'Алексей', 'Николаев', 'alexey.nikolaev@mail.ru'),
+        # Русские имена и фамилии для генерации уникальных пользователей
+        first_names_male = [
+            'Александр', 'Михаил', 'Максим', 'Артём', 'Даниил', 'Иван', 'Кирилл',
+            'Дмитрий', 'Андрей', 'Егор', 'Никита', 'Илья', 'Алексей', 'Матвей',
+            'Тимофей', 'Роман', 'Владимир', 'Ярослав', 'Фёдор', 'Георгий', 'Константин',
+            'Лев', 'Николай', 'Степан', 'Марк'
+        ]
+        first_names_female = [
+            'Анастасия', 'Мария', 'Анна', 'Виктория', 'Полина', 'Елизавета', 'Екатерина',
+            'Ксения', 'Валерия', 'Александра', 'Вероника', 'Алиса', 'Варвара', 'Дарья',
+            'София', 'Арина', 'Диана', 'Ульяна', 'Милана', 'Ева', 'Таисия', 'Кира',
+            'Маргарита', 'Алина', 'Юлия'
+        ]
+        last_names = [
+            'Иванов', 'Смирнов', 'Кузнецов', 'Попов', 'Васильев', 'Петров', 'Соколов',
+            'Михайлов', 'Новиков', 'Фёдоров', 'Морозов', 'Волков', 'Алексеев', 'Лебедев',
+            'Семёнов', 'Егоров', 'Павлов', 'Козлов', 'Степанов', 'Николаев', 'Орлов',
+            'Андреев', 'Макаров', 'Никитин', 'Захаров', 'Зайцев', 'Соловьёв', 'Борисов',
+            'Яковлев', 'Григорьев', 'Романов', 'Воробьёв', 'Сергеев', 'Кузьмин', 'Фролов',
+            'Александров', 'Дмитриев', 'Королёв', 'Гусев', 'Киселёв', 'Ильин', 'Максимов',
+            'Поляков', 'Сорокин', 'Виноградов', 'Ковалёв', 'Белов', 'Медведев', 'Антонов', 'Тарасов'
         ]
 
+        companies = [
+            'ООО "Альфа Групп"', 'ИП Технологии', 'ЗАО "Бизнес Решения"', 'ООО "Старт"',
+            'Фриланс', 'ООО "Инновации"', 'ИП Консалтинг', 'ООО "Медиа Плюс"',
+            'Студия дизайна', 'ООО "Финанс Групп"', 'IT-компания', 'Маркетинговое агентство',
+            'ООО "Строй Сервис"', 'Рекламное агентство', 'ООО "Логистика"', ''
+        ]
+
+        domains = ['mail.ru', 'yandex.ru', 'gmail.com', 'bk.ru', 'inbox.ru', 'list.ru']
+
         created_count: int = 0
-        for username, first_name, last_name, email in users_data:
+        used_combinations = set()
+
+        for i in range(50):
+            # Генерируем уникальную комбинацию имя-фамилия
+            while True:
+                is_female = random.random() > 0.5
+                first_name = random.choice(first_names_female if is_female else first_names_male)
+                last_name = random.choice(last_names)
+
+                # Для женщин добавляем окончание "а" к фамилии
+                if is_female and not last_name.endswith('о'):
+                    last_name = last_name + 'а'
+
+                combination = (first_name, last_name)
+                if combination not in used_combinations:
+                    used_combinations.add(combination)
+                    break
+
+            # Генерируем username на основе имени
+            username = f"user_{slugify(unidecode(first_name.lower()))}_{i+1}"
+
+            # Генерируем email
+            email_name = slugify(unidecode(f"{first_name}.{last_name}")).replace('-', '.')
+            domain = random.choice(domains)
+            email = f"{email_name}@{domain}"
+
             user, created = User.objects.get_or_create(
                 username=username,
                 defaults={
@@ -352,237 +373,298 @@ class Command(BaseCommand):
                     'user_type': 'user',
                     'is_staff': False,
                     'is_superuser': False,
-                    'phone': f'+7 (9{random.randint(10, 99)}) {random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(10, 99)}'
+                    'company': random.choice(companies),
+                    'phone': f'+7 (9{random.randint(10, 99)}) {random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(10, 99)}',
+                    'email_verified': random.random() > 0.3  # 70% с подтверждённым email
                 }
             )
             if created:
                 user.set_password('User123!')
                 user.save()
-                UserProfile.objects.get_or_create(user=user)
+                UserProfile.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'bio': random.choice([
+                            'Предприниматель',
+                            'Фрилансер',
+                            'Менеджер проектов',
+                            'IT-специалист',
+                            'Дизайнер',
+                            'Маркетолог',
+                            ''
+                        ])
+                    }
+                )
                 created_count += 1
 
         self.stdout.write(f'  → Создано пользователей: {created_count}')
         if created_count > 0:
             self.stdout.write(self.style.WARNING(
-                '  → Логин: user1-user5 / Пароль: User123!'
+                '  → Логин: user_<имя>_<номер> / Пароль: User123!'
             ))
 
-    def _download_placeholder_image(self, category_slug: str, index: int) -> Optional[ContentFile]:
-        """
-        Скачивает placeholder изображение для помещения.
-
-        Args:
-            category_slug: Slug категории помещения
-            index: Индекс изображения
-
-        Returns:
-            ContentFile с изображением или None при ошибке
-        """
-        # Используем picsum.photos для генерации случайных изображений
-        # Добавляем параметры категории для разнообразия
-        seed = f"{category_slug}-{index}-{random.randint(1, 1000)}"
-        url = f"https://picsum.photos/seed/{seed}/{IMAGE_WIDTH}/{IMAGE_HEIGHT}"
-
-        try:
-            response = urlopen(url, timeout=10)
-            image_data = response.read()
-            return ContentFile(image_data)
-        except (URLError, Exception) as e:
-            self.stdout.write(self.style.WARNING(f'    Не удалось загрузить изображение: {e}'))
-            return None
-
-    def _create_space_images(self, space: Space, category_slug: str) -> int:
-        """
-        Создает изображения для помещения.
-
-        Args:
-            space: Помещение
-            category_slug: Slug категории
-
-        Returns:
-            Количество созданных изображений
-        """
-        images_count = random.randint(IMAGES_PER_SPACE_MIN, IMAGES_PER_SPACE_MAX)
-        created_images: int = 0
-
-        for i in range(images_count):
-            image_content = self._download_placeholder_image(category_slug, i)
-
-            if image_content:
-                image = SpaceImage(
-                    space=space,
-                    alt_text=f'{space.title} - фото {i + 1}',
-                    is_primary=(i == 0),
-                    sort_order=i
-                )
-                image.image.save(
-                    f'space_{space.id}_{i}.jpg',
-                    image_content,
-                    save=True
-                )
-                created_images += 1
-
-        return created_images
-
-    def create_spaces(self, count: int) -> None:
-        """Создание тестовых помещений."""
-        self.stdout.write(f'\n🏢 Создание {count} помещений...')
+    def create_spaces(self) -> None:
+        """Создание 10 реальных помещений с точными координатами."""
+        self.stdout.write('\n🏢 Создание 10 реальных помещений...')
 
         admin = User.objects.filter(user_type='admin').first()
         if not admin:
             admin = User.objects.filter(is_superuser=True).first()
 
-        cities = list(City.objects.filter(is_active=True))
-        categories = list(SpaceCategory.objects.filter(is_active=True))
         periods = list(PricingPeriod.objects.all())
 
-        if not admin or not cities or not categories:
-            self.stdout.write(self.style.ERROR('  → Недостаточно данных для создания помещений'))
+        if not admin:
+            self.stdout.write(self.style.ERROR('  → Администратор не найден'))
             return
 
-        name_templates: dict[str, list[str]] = {
-            'office': [
-                'Современный офис "{city}"',
-                'Бизнес-центр "{city}"',
-                'Офис класса А в центре',
-                'Офисное помещение на {street}',
-            ],
-            'loft': [
-                'Лофт-пространство "Арт"',
-                'Индустриальный лофт "{city}"',
-                'Творческий лофт "Фабрика"',
-                'Лофт с панорамными окнами',
-            ],
-            'coworking': [
-                'Коворкинг "Бизнес Хаб"',
-                'Рабочее пространство "Старт"',
-                'Коворкинг центр "{city}"',
-                'OpenSpace коворкинг',
-            ],
-            'conference': [
-                'Конференц-зал "Успех"',
-                'Переговорная комната "Диалог"',
-                'Зал для семинаров "{city}"',
-                'Конференц-центр "Прогресс"',
-            ],
-            'photo-studio': [
-                'Фотостудия "Свет"',
-                'Профессиональная студия "Кадр"',
-                'Фотолофт "{city}"',
-                'Студия для съёмок "Объектив"',
-            ],
-            'showroom': [
-                'Шоу-рум "Галерея"',
-                'Выставочное пространство',
-                'Шоу-рум в центре "{city}"',
-                'Презентационный зал',
-            ],
-            'warehouse': [
-                'Склад "{city}"',
-                'Складское помещение',
-                'Тёплый склад на {street}',
-                'Мини-склад для бизнеса',
-            ],
-            'retail': [
-                'Торговое помещение "{city}"',
-                'Магазин на первой линии',
-                'Торговая площадь на {street}',
-                'Помещение в ТЦ',
-            ],
-        }
-
-        streets: list[str] = [
-            'ул. Ленина', 'пр. Мира', 'ул. Пушкина', 'ул. Гагарина',
-            'ул. Советская', 'пр. Победы', 'ул. Центральная',
-            'бульвар Строителей', 'ул. Кирова', 'пр. Революции',
-            'ул. Садовая', 'ул. Молодёжная', 'пр. Космонавтов'
+        # 10 реальных помещений с точными адресами и координатами
+        spaces_data = [
+            {
+                'title': 'Бизнес-центр "Москва-Сити" Tower',
+                'slug': 'bc-moscow-city-tower',
+                'city': 'Москва',
+                'address': 'Пресненская наб., 12, Башня Федерация',
+                'category': 'office',
+                'area': 150,
+                'capacity': 30,
+                'latitude': 55.749558,
+                'longitude': 37.537168,
+                'description': 'Престижный офис в самом сердце делового центра Москва-Сити. Панорамные окна с видом на город, современная отделка класса А+. Высокоскоростной интернет, система климат-контроля, круглосуточная охрана. Идеально для представительств крупных компаний.',
+                'is_featured': True,
+                'prices': {'hour': 5000, 'day': 35000, 'week': 180000, 'month': 650000}
+            },
+            {
+                'title': 'Лофт "Красный Октябрь"',
+                'slug': 'loft-krasny-oktyabr',
+                'city': 'Москва',
+                'address': 'Берсеневская наб., 6, стр. 3',
+                'category': 'loft',
+                'area': 200,
+                'capacity': 80,
+                'latitude': 55.742793,
+                'longitude': 37.610401,
+                'description': 'Атмосферный лофт на территории бывшей шоколадной фабрики. Кирпичные стены, высокие потолки 6 метров, панорамные окна с видом на Кремль. Подходит для мероприятий, съёмок, выставок и корпоративов.',
+                'is_featured': True,
+                'prices': {'hour': 8000, 'day': 50000, 'week': 280000, 'month': 900000}
+            },
+            {
+                'title': 'Коворкинг "Невский Проспект"',
+                'slug': 'coworking-nevsky',
+                'city': 'Санкт-Петербург',
+                'address': 'Невский пр., 100',
+                'category': 'coworking',
+                'area': 80,
+                'capacity': 25,
+                'latitude': 59.932485,
+                'longitude': 30.352536,
+                'description': 'Современный коворкинг в историческом центре Петербурга. Эргономичные рабочие места, переговорные комнаты, зона отдыха с кофе-машиной. Wi-Fi 1 Гбит/с, круглосуточный доступ. Идеально для IT-специалистов и стартапов.',
+                'is_featured': True,
+                'prices': {'hour': 400, 'day': 2500, 'week': 12000, 'month': 35000}
+            },
+            {
+                'title': 'Конференц-зал "Академический"',
+                'slug': 'conference-akademichesky',
+                'city': 'Новосибирск',
+                'address': 'Красный пр., 65',
+                'category': 'conference',
+                'area': 120,
+                'capacity': 60,
+                'latitude': 55.030204,
+                'longitude': 82.920430,
+                'description': 'Профессиональный конференц-зал для проведения семинаров, тренингов и деловых встреч. Проектор 4K, звуковая система, видеоконференцсвязь. Возможность организации кофе-брейков и банкетов.',
+                'is_featured': False,
+                'prices': {'hour': 2500, 'day': 15000, 'week': 70000, 'month': 200000}
+            },
+            {
+                'title': 'Фотостудия "Свет и Тень"',
+                'slug': 'photo-studio-svet-i-ten',
+                'city': 'Екатеринбург',
+                'address': 'ул. 8 Марта, 46',
+                'category': 'photo-studio',
+                'area': 90,
+                'capacity': 15,
+                'latitude': 56.835538,
+                'longitude': 60.612973,
+                'description': 'Профессиональная фотостудия с полным комплектом оборудования Profoto. Циклорама 5x8м, зона для предметной съёмки, гримёрная комната. Набор фонов и реквизита включён в стоимость.',
+                'is_featured': True,
+                'prices': {'hour': 2000, 'day': 12000, 'week': 55000, 'month': 180000}
+            },
+            {
+                'title': 'Шоу-рум "Галерея Искусств"',
+                'slug': 'showroom-gallery',
+                'city': 'Казань',
+                'address': 'ул. Баумана, 48',
+                'category': 'showroom',
+                'area': 180,
+                'capacity': 50,
+                'latitude': 55.789425,
+                'longitude': 49.114242,
+                'description': 'Элегантное выставочное пространство на главной пешеходной улице Казани. Панорамные витрины, профессиональное освещение, климат-контроль. Идеально для презентаций, выставок, pop-up магазинов.',
+                'is_featured': False,
+                'prices': {'hour': 3000, 'day': 18000, 'week': 90000, 'month': 300000}
+            },
+            {
+                'title': 'Офис "Байкал Бизнес"',
+                'slug': 'office-baikal-business',
+                'city': 'Иркутск',
+                'address': 'ул. Карла Маркса, 40',
+                'category': 'office',
+                'area': 75,
+                'capacity': 15,
+                'latitude': 52.283468,
+                'longitude': 104.280586,
+                'description': 'Уютный офис в историческом центре Иркутска. Свежий ремонт, кондиционирование, оптоволоконный интернет. Отдельный вход, парковка. Подходит для небольших команд и представительств.',
+                'is_featured': True,
+                'prices': {'hour': 800, 'day': 5000, 'week': 25000, 'month': 80000}
+            },
+            {
+                'title': 'Склад "Логистик-Центр"',
+                'slug': 'warehouse-logistic-center',
+                'city': 'Нижний Новгород',
+                'address': 'ул. Ларина, 15',
+                'category': 'warehouse',
+                'area': 500,
+                'capacity': 10,
+                'latitude': 56.298660,
+                'longitude': 43.936350,
+                'description': 'Современный отапливаемый склад класса B+. Высота потолков 8 метров, пол с антипылевым покрытием. Погрузочно-разгрузочная зона, охрана 24/7, видеонаблюдение.',
+                'is_featured': False,
+                'prices': {'hour': 500, 'day': 3500, 'week': 20000, 'month': 70000}
+            },
+            {
+                'title': 'Торговое помещение "Центральное"',
+                'slug': 'retail-centralnoe',
+                'city': 'Ростов-на-Дону',
+                'address': 'ул. Большая Садовая, 71',
+                'category': 'retail',
+                'area': 100,
+                'capacity': 30,
+                'latitude': 47.222531,
+                'longitude': 39.718705,
+                'description': 'Торговое помещение на первой линии главной улицы города. Большие витринные окна, отдельный вход, высокая проходимость. Все коммуникации, кондиционирование.',
+                'is_featured': False,
+                'prices': {'hour': 1500, 'day': 10000, 'week': 50000, 'month': 180000}
+            },
+            {
+                'title': 'Креативный лофт "Фабрика"',
+                'slug': 'creative-loft-fabrika',
+                'city': 'Самара',
+                'address': 'ул. Ленинградская, 77',
+                'category': 'loft',
+                'area': 250,
+                'capacity': 100,
+                'latitude': 53.195873,
+                'longitude': 50.101084,
+                'description': 'Просторный индустриальный лофт в бывшем заводском здании. Открытые балки, кирпичные стены, панорамное остекление. Идеально для мероприятий, концертов, выставок и корпоративных праздников.',
+                'is_featured': True,
+                'prices': {'hour': 4000, 'day': 25000, 'week': 130000, 'month': 450000}
+            },
         ]
-
-        descriptions: dict[str, str] = {
-            'office': 'Светлое офисное помещение с современным ремонтом. Высокие потолки, панорамные окна, кондиционирование. Есть кухня и санузел. Подходит для IT-компаний, юридических фирм, консалтинга.',
-            'loft': 'Стильное лофт-пространство в бывшем промышленном здании. Высокие потолки, кирпичные стены, открытые коммуникации. Идеально для творческих мероприятий, съёмок, выставок.',
-            'coworking': 'Современное рабочее пространство с высокоскоростным интернетом. Есть переговорные, лаунж-зона, кухня. Включены все коммунальные услуги. Подходит для фрилансеров и небольших команд.',
-            'conference': 'Оборудованный зал для проведения конференций, семинаров и тренингов. Проектор, экран, флипчарт, маркерная доска. Возможность организации кофе-брейков.',
-            'photo-studio': 'Профессиональная фотостудия с полным комплектом оборудования. Циклорама, импульсный и постоянный свет, набор фонов. Гримёрка, зона отдыха для моделей.',
-            'showroom': 'Элегантное выставочное пространство на первой линии. Панорамные витрины, качественное освещение. Идеально для презентаций, выставок, pop-up магазинов.',
-            'warehouse': 'Сухое отапливаемое складское помещение. Удобный подъезд для транспорта, погрузочно-разгрузочная зона. Охрана, видеонаблюдение 24/7.',
-            'retail': 'Торговое помещение в месте с высокой проходимостью. Первая линия домов, отдельный вход, витринные окна. Все коммуникации подведены.',
-        }
-
-        price_multipliers: dict[str, int] = {
-            'hour': 1,
-            'day': 6,
-            'week': 30,
-            'month': 100,
-        }
 
         created_count: int = 0
         total_images: int = 0
 
-        for i in range(count):
-            city = random.choice(cities)
-            category = random.choice(categories)
-            street = random.choice(streets)
-
-            templates = name_templates.get(category.slug, ['Помещение "{city}"'])
-            title = random.choice(templates).format(city=city.name, street=street)
-
-            base_slug = slugify(unidecode(f"{city.name} {category.slug} {i}"))
-            slug = base_slug
-
-            if category.slug in ['warehouse', 'retail']:
-                area = random.randint(MIN_AREA_LARGE, MAX_AREA_LARGE)
-            elif category.slug in ['conference', 'photo-studio']:
-                area = random.randint(MIN_AREA_MEDIUM, MAX_AREA_MEDIUM)
-            else:
-                area = random.randint(MIN_AREA_SMALL, MAX_AREA_SMALL)
-
-            capacity = max(MIN_CAPACITY, area // MIN_CAPACITY_DIVISOR)
+        for space_data in spaces_data:
+            # Находим город и категорию
+            try:
+                city = City.objects.get(name=space_data['city'])
+                category = SpaceCategory.objects.get(slug=space_data['category'])
+            except (City.DoesNotExist, SpaceCategory.DoesNotExist) as e:
+                self.stdout.write(self.style.WARNING(f"  → Пропущено: {space_data['title']} - {e}"))
+                continue
 
             space, created = Space.objects.get_or_create(
-                slug=slug,
+                slug=space_data['slug'],
                 defaults={
-                    'title': title,
-                    'address': f'{street}, {random.randint(MIN_STREET_NUMBER, MAX_STREET_NUMBER)}',
+                    'title': space_data['title'],
+                    'address': space_data['address'],
                     'city': city,
                     'category': category,
-                    'area_sqm': Decimal(str(area)),
-                    'max_capacity': capacity,
-                    'description': descriptions.get(category.slug, 'Помещение для аренды'),
+                    'area_sqm': Decimal(str(space_data['area'])),
+                    'max_capacity': space_data['capacity'],
+                    'description': space_data['description'],
                     'owner': admin,
                     'is_active': True,
-                    'is_featured': random.random() < FEATURED_PROBABILITY,
-                    'views_count': random.randint(0, MAX_VIEWS_COUNT),
+                    'is_featured': space_data['is_featured'],
+                    'views_count': random.randint(50, 500),
+                    'latitude': Decimal(str(space_data['latitude'])),
+                    'longitude': Decimal(str(space_data['longitude'])),
                 }
             )
 
             if created:
-                base_hour_price = random.randint(MIN_BASE_HOUR_PRICE, MAX_BASE_HOUR_PRICE)
-
+                # Создаём цены
                 for period in periods:
-                    multiplier = price_multipliers.get(period.name, 1)
-                    price = base_hour_price * multiplier
-                    price = int(price * random.uniform(PRICE_VARIANCE_MIN, PRICE_VARIANCE_MAX))
-                    price = round(price / PRICE_ROUND_BASE) * PRICE_ROUND_BASE
-
+                    price = space_data['prices'].get(period.name, 1000)
                     SpacePrice.objects.create(
                         space=space,
                         period=period,
-                        price=Decimal(str(max(price, MIN_PRICE))),
+                        price=Decimal(str(price)),
                         is_active=True
                     )
 
-                # Создаем изображения для помещения
-                images_created = self._create_space_images(space, category.slug)
-                total_images += images_created
-
+                # Создаём placeholder изображения
+                images_count = self._create_space_images(space, space_data['category'])
+                total_images += images_count
                 created_count += 1
-
-            if (i + 1) % PAGINATION_STEP == 0:
-                self.stdout.write(f'  → Создано {i + 1} помещений...')
+                self.stdout.write(f'  → Создано: {space_data["title"]}')
 
         self.stdout.write(f'  → Всего создано помещений: {created_count}')
         self.stdout.write(f'  → Всего создано изображений: {total_images}')
+
+    def _create_space_images(self, space: Space, category_slug: str) -> int:
+        """Создаёт placeholder изображения для помещения."""
+        # Создаём 3 изображения для каждого помещения
+        images_queries = {
+            'office': ['modern office interior', 'office workspace', 'office meeting room'],
+            'loft': ['industrial loft interior', 'loft space event', 'loft brick walls'],
+            'coworking': ['coworking space', 'shared workspace', 'modern coworking'],
+            'conference': ['conference room', 'meeting room modern', 'seminar hall'],
+            'photo-studio': ['photo studio equipment', 'photography studio', 'studio cyclorama'],
+            'showroom': ['showroom interior', 'exhibition space', 'retail showroom'],
+            'warehouse': ['warehouse interior', 'storage facility', 'logistics warehouse'],
+            'retail': ['retail store interior', 'shop front', 'commercial space'],
+        }
+
+        queries = images_queries.get(category_slug, ['commercial space'])
+        created_images = 0
+
+        for i, query in enumerate(queries[:3]):
+            image = SpaceImage(
+                space=space,
+                alt_text=f'{space.title} - фото {i + 1}',
+                is_primary=(i == 0),
+                sort_order=i
+            )
+
+            # Создаём путь к файлу в media/spaces/
+            filename = f'space_{space.id}_{i + 1}.jpg'
+
+            # Генерируем placeholder URL для изображения
+            # Сохраняем как placeholder - реальные фото нужно загрузить через админку
+            placeholder_content = self._generate_placeholder_image(query)
+            if placeholder_content:
+                image.image.save(filename, placeholder_content, save=True)
+                created_images += 1
+
+        return created_images
+
+    def _generate_placeholder_image(self, query: str) -> Optional[ContentFile]:
+        """Генерирует placeholder изображение."""
+        try:
+            from urllib.request import urlopen
+            from urllib.error import URLError
+
+            # Используем placeholder.com для генерации изображений
+            seed = hash(query) % 10000
+            url = f"https://picsum.photos/seed/{seed}/800/600"
+
+            response = urlopen(url, timeout=15)
+            image_data = response.read()
+            return ContentFile(image_data)
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f'    Не удалось создать изображение: {e}'))
+            return None
 
     def print_summary(self) -> None:
         """Вывод итоговой статистики."""

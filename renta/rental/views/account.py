@@ -127,8 +127,15 @@ def profile(request: HttpRequest) -> HttpResponse:
 
             if user_form.is_valid() and profile_form.is_valid():
                 try:
-                    user_form.save()
+                    saved_user = user_form.save(commit=False)
+
+                    # Проверяем, был ли загружен новый файл аватара
+                    if 'avatar' in request.FILES:
+                        saved_user.avatar = request.FILES['avatar']
+
+                    saved_user.save()
                     profile_form.save()
+
                     messages.success(request, 'Профиль успешно обновлен!')
                     return redirect('profile')
                 except DatabaseError as e:

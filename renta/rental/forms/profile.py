@@ -80,6 +80,16 @@ class UserProfileForm(forms.ModelForm):
             phone = normalize_phone(phone)
         return phone
 
+    def save(self, commit: bool = True) -> CustomUser:
+        """Сохранить пользователя с аватаром"""
+        user = super().save(commit=False)
+
+        # Если аватар был загружен, он уже будет в cleaned_data
+        if commit:
+            user.save()
+
+        return user
+
 
 class UserProfileExtendedForm(forms.ModelForm):
     """Форма дополнительных данных профиля (UserProfile)"""

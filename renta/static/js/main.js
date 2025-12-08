@@ -67,7 +67,7 @@ function initThemeManager() {
       themeIcon.className = theme === "dark" ? "fas fa-moon" : "fas fa-sun"
     }
 
-    // Обновляем мета-тег цвета для мобильных браузеров
+    // Обновляем цвет темы в мета-теге для мобильных браузеров
     updateThemeColor(theme)
   }
 
@@ -119,13 +119,15 @@ async function handleFavoriteClick(event) {
   const icon = btn.querySelector("i")
   const textEl = btn.querySelector("span, .favorite-text")
 
-  // Получаем CSRF-токен для защиты от межсайтовой подделки запросов
   const csrfToken = getCsrfToken()
 
   if (!csrfToken) {
     showNotification("Ошибка авторизации. Перезагрузите страницу.", "danger")
     return
   }
+
+  btn.style.transform = "scale(0.9)"
+  btn.style.transition = "transform 0.15s ease"
 
   try {
     const response = await fetch(`/spaces/${spaceId}/favorite/`, {
@@ -139,6 +141,7 @@ async function handleFavoriteClick(event) {
     if (!response.ok) {
       if (response.status === 403) {
         showNotification("Войдите в систему для добавления в избранное", "warning")
+        btn.style.transform = "scale(1)"
         return
       }
       throw new Error("Ошибка сервера")
@@ -150,14 +153,27 @@ async function handleFavoriteClick(event) {
     // Обновляем внешний вид кнопки
     updateFavoriteButton(btn, icon, textEl, isFavorite)
 
-    // Показываем уведомление об успехе
+    if (isFavorite) {
+      // Анимация пульса при добавлении
+      icon.style.animation = "heartPulse 0.6s ease"
+      setTimeout(() => {
+        btn.style.transform = "scale(1.15)"
+        setTimeout(() => {
+          btn.style.transform = "scale(1)"
+        }, 150)
+      }, 100)
+    } else {
+      icon.style.animation = "none"
+      setTimeout(() => {
+        btn.style.transform = "scale(1)"
+      }, 100)
+    }
+
     const message = data.message || (isFavorite ? "Добавлено в избранное" : "Удалено из избранного")
     showNotification(message, "success")
 
-    // Если на странице избранного - анимируем удаление карточки
     if (!isFavorite && btn.closest(".col-lg-4, .col-md-6")) {
       const card = btn.closest(".col-lg-4, .col-md-6")
-      // Проверяем, что мы на странице избранного
       if (window.location.pathname.includes("favorites")) {
         animateCardRemoval(card)
       }
@@ -165,6 +181,7 @@ async function handleFavoriteClick(event) {
   } catch (error) {
     console.error("Ошибка при изменении избранного:", error)
     showNotification("Произошла ошибка. Попробуйте ещё раз.", "danger")
+    btn.style.transform = "scale(1)"
   }
 }
 

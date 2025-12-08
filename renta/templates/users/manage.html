@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Управление пользователями | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold mb-3 text-themed">Управление пользователями</h1>
+            <p class="text-muted">Просмотр, блокировка и управление пользователями системы</p>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-2 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold gold-text" id="stat-total">{{ stats.total }}</div>
+                <small class="text-muted">Всего</small>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-primary" id="stat-users">{{ stats.users }}</div>
+                <small class="text-muted">Пользователей</small>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-info" id="stat-moderators">{{ stats.moderators }}</div>
+                <small class="text-muted">Модераторов</small>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-success" id="stat-verified">{{ stats.verified }}</div>
+                <small class="text-muted">Подтверждённых</small>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-danger" id="stat-blocked">{{ stats.blocked }}</div>
+                <small class="text-muted">Заблокированных</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры с живым поиском -->
+    <div class="dashboard-card mb-4">
+        <form id="usersFilterForm" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-themed">Поиск</label>
+                <div class="position-relative">
+                    <i class="fas fa-search position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); color: var(--color-gold);"></i>
+                    <input type="text" name="search" id="userSearch" class="form-control ps-5"
+                           placeholder="Имя, email, компания..." value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-themed">Тип</label>
+                <select name="type" id="userTypeFilter" class="form-select">
+                    <option value="">Все типы</option>
+                    <option value="user" {% if user_type_filter == 'user' %}selected{% endif %}>Пользователи</option>
+                    <option value="moderator" {% if user_type_filter == 'moderator' %}selected{% endif %}>Модераторы</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-themed">Статус</label>
+                <select name="status" id="userStatusFilter" class="form-select">
+                    <option value="">Все статусы</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Активные</option>
+                    <option value="blocked" {% if status_filter == 'blocked' %}selected{% endif %}>Заблокированные</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Неактивные</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" id="searchBtn" class="btn btn-gold w-100">
+                    <i class="fas fa-search me-2"></i>Найти
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" id="resetBtn" class="btn btn-outline-themed w-100">
+                    <i class="fas fa-times me-2"></i>Сбросить
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Индикатор загрузки -->
+    <div id="loadingIndicator" class="text-center py-4 d-none">
+        <div class="spinner-border text-gold" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+        </div>
+        <p class="mt-2 text-muted">Поиск пользователей...</p>
+    </div>
+
+    <!-- Таблица пользователей -->
+    <div class="dashboard-card" id="usersTableContainer">
+        {% include 'users/_users_table.html' %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('userSearch');
+    const typeFilter = document.getElementById('userTypeFilter');
+    const statusFilter = document.getElementById('userStatusFilter');
+    const searchBtn = document.getElementById('searchBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const tableContainer = document.getElementById('usersTableContainer');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    let debounceTimer;
+    let currentPage = 1;
+
+    // Функция дебаунса
+    function debounce(func, delay) {
+        return function(...args) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    // Функция загрузки данных
+    async function loadUsers(page = 1) {
+        currentPage = page;
+        const params = new URLSearchParams({
+            search: searchInput.value,
+            type: typeFilter.value,
+            status: statusFilter.value,
+            page: page
+        });
+
+        // Показываем индикатор загрузки
+        loadingIndicator.classList.remove('d-none');
+        tableContainer.style.opacity = '0.5';
+
+        try {
+            const response = await fetch(`/api/users/?${params.toString()}`);
+            const data = await response.json();
+
+            if (data.success) {
+                tableContainer.innerHTML = data.html;
+
+                // Обновляем статистику
+                if (data.stats) {
+                    document.getElementById('stat-total').textContent = data.stats.total;
+                    document.getElementById('stat-users').textContent = data.stats.users;
+                    document.getElementById('stat-moderators').textContent = data.stats.moderators;
+                    document.getElementById('stat-verified').textContent = data.stats.verified;
+                    document.getElementById('stat-blocked').textContent = data.stats.blocked;
+                }
+
+                // Переподключаем обработчики пагинации
+                bindPaginationLinks();
+
+                // Обновляем URL без перезагрузки страницы
+                const url = new URL(window.location);
+                url.searchParams.set('search', searchInput.value);
+                url.searchParams.set('type', typeFilter.value);
+                url.searchParams.set('status', statusFilter.value);
+                url.searchParams.set('page', page);
+                window.history.replaceState({}, '', url);
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+        } finally {
+            loadingIndicator.classList.add('d-none');
+            tableContainer.style.opacity = '1';
+        }
+    }
+
+    // Привязка обработчиков к ссылкам пагинации
+    function bindPaginationLinks() {
+        document.querySelectorAll('.pagination .page-link[data-page]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.dataset.page;
+                if (page) loadUsers(parseInt(page));
+            });
+        });
+    }
+
+    // Живой поиск с дебаунсом
+    const debouncedSearch = debounce(() => loadUsers(1), 300);
+
+    searchInput.addEventListener('input', debouncedSearch);
+    typeFilter.addEventListener('change', () => loadUsers(1));
+    statusFilter.addEventListener('change', () => loadUsers(1));
+
+    searchBtn.addEventListener('click', () => loadUsers(1));
+
+    resetBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        typeFilter.value = '';
+        statusFilter.value = '';
+        loadUsers(1);
+    });
+
+    // Инициализация пагинации
+    bindPaginationLinks();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,57 @@
+<!-- Частичный шаблон сетки помещений для AJAX -->
+{% for space in spaces %}
+<div class="col-lg-4 col-md-6">
+    <div class="space-card h-100">
+        <div class="space-card-image-wrapper">
+            {% with space.get_main_image as image %}
+            {% if image and image.image %}
+            <img src="{{ image.image.url }}" class="space-image" alt="{{ space.title }}" loading="lazy">
+            {% else %}
+            <img src="https://via.placeholder.com/400x250/171717/d4af37?text=INTERIOR" class="space-image" alt="{{ space.title }}" loading="lazy">
+            {% endif %}
+            {% endwith %}
+
+            <span class="space-badge-overlay">{{ space.category.name }}</span>
+
+            {% if user.is_authenticated %}
+            <button class="space-favorite-btn {% if space.id in favorite_ids %}active{% endif %}"
+                    data-space-id="{{ space.id }}" type="button">
+                <i class="{% if space.id in favorite_ids %}fas{% else %}far{% endif %} fa-heart"></i>
+            </button>
+            {% endif %}
+
+            <span class="space-city-overlay">
+                <i class="fas fa-map-marker-alt me-1"></i>{{ space.city.name }}
+            </span>
+        </div>
+
+        <div class="space-card-body">
+            <h5 class="space-card-title">{{ space.title }}</h5>
+            <div class="space-card-meta">
+                <span>{{ space.area_sqm }} м²</span>
+                <span>до {{ space.max_capacity }} чел.</span>
+            </div>
+            <p class="space-card-desc">{{ space.description|truncatewords:18 }}</p>
+            <div class="space-card-footer">
+                <div class="space-card-price">
+                    {% with space.prices.first as price %}
+                    {% if price %}
+                    <span class="price-amount">от {{ price.price|floatformat:0 }} ₽</span>
+                    <span class="price-type">{{ price.period.description }}</span>
+                    {% else %}
+                    <span class="price-amount">Цена по запросу</span>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                <a href="{% url 'space_detail' space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="col-12 text-center py-5">
+    <i class="fas fa-search fa-3x mb-3 text-muted"></i>
+    <h4 class="text-themed">Помещения не найдены</h4>
+    <p class="text-muted">Попробуйте изменить параметры поиска</p>
+</div>
+{% endfor %}

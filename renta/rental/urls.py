@@ -18,6 +18,7 @@ from .views import (
     create_booking, booking_detail, cancel_booking,
     # Отзывы
     create_review, edit_review, admin_delete_review, approve_review, manage_reviews,
+    manage_users, user_detail, block_user, unblock_user, verify_user_email,
 )
 from .views.favorites import check_favorite
 from .views.bookings import get_price_for_period, confirm_booking, reject_booking, manage_bookings
@@ -27,9 +28,11 @@ from .views.auth import (
     resend_verification,
     password_reset_request,
     password_reset_confirm,
-    verify_email_code,  # Добавлен импорт
-    resend_verification_code,  # Добавлен импорт
+    verify_email_code,
+    resend_verification_code,
 )
+from .views.users import users_ajax
+from .views.spaces import spaces_ajax
 
 
 urlpatterns = [
@@ -39,6 +42,7 @@ urlpatterns = [
     # ============== ПОМЕЩЕНИЯ ==============
     path('spaces/', spaces_list, name='spaces_list'),
     path('spaces/<int:pk>/', space_detail, name='space_detail'),
+    path('api/spaces/', spaces_ajax, name='spaces_ajax'),
 
     # ============== АУТЕНТИФИКАЦИЯ ==============
     path('login/', CustomLoginView.as_view(), name='login'),
@@ -61,6 +65,14 @@ urlpatterns = [
     path('my-reviews/', my_reviews, name='my_reviews'),
 
     path('users/<int:pk>/profile/', view_user_profile, name='view_user_profile'),
+
+    # ============== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (Модератор) ==============
+    path('manage/users/', manage_users, name='manage_users'),
+    path('api/users/', users_ajax, name='users_ajax'),
+    path('manage/users/<int:pk>/', user_detail, name='user_detail_mod'),
+    path('manage/users/<int:pk>/block/', block_user, name='block_user'),
+    path('manage/users/<int:pk>/unblock/', unblock_user, name='unblock_user'),
+    path('manage/users/<int:pk>/verify-email/', verify_user_email, name='verify_user_email_mod'),
 
     # ============== ИЗБРАННОЕ (AJAX) ==============
     path('spaces/<int:pk>/favorite/', toggle_favorite, name='toggle_favorite'),

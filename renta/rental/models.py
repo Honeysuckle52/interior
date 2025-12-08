@@ -44,6 +44,7 @@ class CustomUser(AbstractUser):
         company: Название компании
         avatar: Фото профиля
         email_verified: Флаг подтверждения email
+        is_blocked: Флаг блокировки пользователя
     """
 
     class UserType(models.TextChoices):
@@ -72,6 +73,7 @@ class CustomUser(AbstractUser):
     company = models.CharField(max_length=100, blank=True, verbose_name='Компания')
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name='Аватар')
     email_verified = models.BooleanField(default=False, verbose_name='Email подтвержден')
+    is_blocked = models.BooleanField(default=False, verbose_name='Заблокирован')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата регистрации', db_index=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
 
@@ -370,6 +372,8 @@ class Space(models.Model):
         is_active: Флаг активности
         is_featured: Флаг рекомендации
         views_count: Счетчик просмотров
+        latitude: Широта для карты
+        longitude: Долгота для карты
     """
 
     title = models.CharField(max_length=200, verbose_name='Название помещения')
@@ -411,6 +415,21 @@ class Space(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='Активно', db_index=True)
     is_featured = models.BooleanField(default=False, verbose_name='Рекомендуемое', db_index=True)
     views_count = models.PositiveIntegerField(default=0, verbose_name='Просмотры')
+
+    latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        verbose_name='Широта'
+    )
+    longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        verbose_name='Долгота'
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания', db_index=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')

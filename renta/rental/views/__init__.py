@@ -10,6 +10,7 @@ from .account import dashboard, profile, my_bookings, my_favorites, view_user_pr
 from .favorites import toggle_favorite
 from .bookings import create_booking, booking_detail, cancel_booking
 from .reviews import create_review, edit_review, admin_delete_review, approve_review, manage_reviews
+from .users import manage_users, user_detail, block_user, unblock_user, verify_user_email
 
 __all__ = [
     # Главная
@@ -38,5 +39,10 @@ __all__ = [
     'edit_review',
     'admin_delete_review',
     'approve_review',
-    'manage_reviews',  # Added to exports
+    'manage_reviews',
+    'manage_users',
+    'user_detail',
+    'block_user',
+    'unblock_user',
+    'verify_user_email',
 ]

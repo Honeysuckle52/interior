@@ -88,6 +88,10 @@
                                     <li><a class="dropdown-item" href="{% url 'manage_reviews' %}">
                                         <i class="fas fa-comments me-2 gold-text"></i>Управление отзывами
                                     </a></li>
+                                    <!-- Добавлен пункт меню управления пользователями -->
+                                    <li><a class="dropdown-item" href="{% url 'manage_users' %}">
+                                        <i class="fas fa-users-cog me-2 gold-text"></i>Управление пользователями
+                                    </a></li>
                                 {% endif %}
                                 {% if user.is_staff %}
                                     <li><hr class="dropdown-divider"></li>

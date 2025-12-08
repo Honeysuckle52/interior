@@ -578,7 +578,7 @@ class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
         }),
     )
 
-    actions = ['make_owner', 'make_client', 'deactivate_users', 'verify_emails']
+    actions = ['make_moderator', 'make_user', 'deactivate_users', 'verify_emails']
 
     @admin.display(description='ФИО')
     def get_full_name_display(self, obj: CustomUser) -> str:
@@ -599,15 +599,15 @@ class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
             '<span style="color: #dc3545;"><i class="fas fa-times-circle"></i> Не подтверждён</span>'
         )
 
-    @admin.action(description='Сделать владельцами')
-    def make_owner(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(user_type=CustomUser.UserType.OWNER)
-        self.message_user(request, f'{updated} пользователей стали владельцами')
+    @admin.action(description='Сделать модераторами')
+    def make_moderator(self, request: HttpRequest, queryset: QuerySet) -> None:
+        updated = queryset.update(user_type=CustomUser.UserType.MODERATOR, is_staff=True)
+        self.message_user(request, f'{updated} пользователей стали модераторами')
 
-    @admin.action(description='Сделать клиентами')
-    def make_client(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(user_type=CustomUser.UserType.CLIENT)
-        self.message_user(request, f'{updated} пользователей стали клиентами')
+    @admin.action(description='Сделать пользователями')
+    def make_user(self, request: HttpRequest, queryset: QuerySet) -> None:
+        updated = queryset.update(user_type=CustomUser.UserType.USER, is_staff=False)
+        self.message_user(request, f'{updated} пользователей стали обычными пользователями')
 
     @admin.action(description='Деактивировать')
     def deactivate_users(self, request: HttpRequest, queryset: QuerySet) -> None:
