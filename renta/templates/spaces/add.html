@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Добавить помещение | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
+            <li class="breadcrumb-item">
+                <a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'dashboard' %}" class="breadcrumb-link fw-medium">Личный кабинет</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'manage_spaces' %}" class="breadcrumb-link fw-medium">Управление помещениями</a>
+            </li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page">Добавить</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold mb-2 text-themed">Добавить помещение</h1>
+            <p class="text-muted">Заполните информацию о новом помещении</p>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="spaceForm">
+        {% csrf_token %}
+        
+        <div class="row g-4">
+            <!-- Основная информация -->
+            <div class="col-lg-8">
+                <div class="space-form-card">
+                    <!-- Основные данные -->
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-info-circle"></i>Основная информация
+                        </h5>
+                        
+                        <div class="mb-3">
+                            <label for="id_title" class="form-label">Название помещения *</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                            <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="id_category" class="form-label">Категория *</label>
+                                {{ form.category }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_city" class="form-label">Город *</label>
+                                {{ form.city }}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label for="id_address" class="form-label">Адрес *</label>
+                            {{ form.address }}
+                        </div>
+                        
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-6">
+                                <label for="id_area_sqm" class="form-label">Площадь (м²) *</label>
+                                {{ form.area_sqm }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_max_capacity" class="form-label">Макс. вместимость (чел.) *</label>
+                                {{ form.max_capacity }}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label for="id_description" class="form-label">Описание *</label>
+                            {{ form.description }}
+                        </div>
+                    </div>
+
+                    <!-- Фотографии -->
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-images"></i>Фотографии
+                        </h5>
+                        
+                        <div class="image-upload-zone" id="imageDropZone">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <p class="upload-text">Перетащите фотографии сюда или нажмите для выбора</p>
+                            <p class="upload-hint">Поддерживаются: JPG, PNG, WebP. Макс. размер: 5MB</p>
+                            <input type="file" id="imageInput" name="images" multiple accept="image/*" class="d-none">
+                        </div>
+                        
+                        <div class="image-preview-grid" id="imagePreviewGrid"></div>
+                    </div>
+
+                    <!-- Цены -->
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-ruble-sign"></i>Цены
+                        </h5>
+                        
+                        <div class="price-inputs-grid">
+                            {% for period in pricing_periods %}
+                            <div class="price-input-group">
+                                <label class="price-input-label">
+                                    <i class="fas fa-clock"></i>{{ period.description }}
+                                </label>
+                                <input type="number" 
+                                       name="price_{{ period.id }}" 
+                                       class="form-control" 
+                                       placeholder="Цена в ₽"
+                                       min="0"
+                                       step="100">
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Сайдбар -->
+            <div class="col-lg-4">
+                <div class="space-form-card sticky-top" style="top: 100px;">
+                    <h5 class="space-form-section-title">
+                        <i class="fas fa-cog"></i>Настройки публикации
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="id_is_active">Активно (видно в каталоге)</label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.is_featured }}
+                            <label class="form-check-label" for="id_is_featured">Рекомендуемое</label>
+                        </div>
+                    </div>
+                    
+                    <hr style="border-color: var(--border-color);">
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-gold">
+                            <i class="fas fa-save me-2"></i>Сохранить помещение
+                        </button>
+                        <a href="{% url 'manage_spaces' %}" class="btn btn-outline-themed">
+                            <i class="fas fa-times me-2"></i>Отмена
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('imageDropZone');
+    const fileInput = document.getElementById('imageInput');
+    const previewGrid = document.getElementById('imagePreviewGrid');
+    let uploadedFiles = [];
+    
+    // Клик на зону загрузки
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    // Drag & Drop
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+    
+    // Выбор файлов
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+    
+    function handleFiles(files) {
+        Array.from(files).forEach((file, index) => {
+            if (!file.type.startsWith('image/')) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert(`Файл ${file.name} слишком большой (макс. 5MB)`);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const isPrimary = uploadedFiles.length === 0;
+                uploadedFiles.push({ file, isPrimary });
+                renderPreviews();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    function renderPreviews() {
+        previewGrid.innerHTML = '';
+        uploadedFiles.forEach((item, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item' + (item.isPrimary ? ' primary' : '');
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    ${item.isPrimary ? '<span class="image-preview-badge">Главное</span>' : ''}
+                    <div class="image-preview-actions">
+                        ${!item.isPrimary ? `<button type="button" class="image-action-btn set-primary" onclick="setPrimary(${index})" title="Сделать главным">
+                            <i class="fas fa-star"></i>
+                        </button>` : ''}
+                        <button type="button" class="image-action-btn remove" onclick="removeImage(${index})" title="Удалить">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                previewGrid.appendChild(div);
+            };
+            reader.readAsDataURL(item.file);
+        });
+        updateFileInput();
+    }
+    
+    window.setPrimary = function(index) {
+        uploadedFiles.forEach((item, i) => {
+            item.isPrimary = (i === index);
+        });
+        renderPreviews();
+    };
+    
+    window.removeImage = function(index) {
+        const wasPrimary = uploadedFiles[index].isPrimary;
+        uploadedFiles.splice(index, 1);
+        if (wasPrimary && uploadedFiles.length > 0) {
+            uploadedFiles[0].isPrimary = true;
+        }
+        renderPreviews();
+    };
+    
+    function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        uploadedFiles.forEach(item => {
+            dataTransfer.items.add(item.file);
+        });
+        fileInput.files = dataTransfer.files;
+    }
+});
+</script>
+{% endblock %}

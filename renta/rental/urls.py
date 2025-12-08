@@ -32,7 +32,7 @@ from .views.auth import (
     resend_verification_code,
 )
 from .views.users import users_ajax
-from .views.spaces import spaces_ajax
+from .views.spaces import spaces_ajax, manage_spaces, add_space, edit_space, delete_space  # Добавлены новые views
 
 
 urlpatterns = [
@@ -43,6 +43,12 @@ urlpatterns = [
     path('spaces/', spaces_list, name='spaces_list'),
     path('spaces/<int:pk>/', space_detail, name='space_detail'),
     path('api/spaces/', spaces_ajax, name='spaces_ajax'),
+
+    # ============== УПРАВЛЕНИЕ ПОМЕЩЕНИЯМИ (Модератор/Админ) ==============
+    path('manage/spaces/', manage_spaces, name='manage_spaces'),
+    path('manage/spaces/add/', add_space, name='add_space'),
+    path('manage/spaces/<int:pk>/edit/', edit_space, name='edit_space'),
+    path('manage/spaces/<int:pk>/delete/', delete_space, name='delete_space'),
 
     # ============== АУТЕНТИФИКАЦИЯ ==============
     path('login/', CustomLoginView.as_view(), name='login'),

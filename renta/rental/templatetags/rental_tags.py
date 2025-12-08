@@ -239,3 +239,17 @@ def duration_format(value):
             return f"{days} дн."
     except Exception:
         return str(value)
+
+
+@register.filter
+def get_item(dictionary, key):
+    """
+    Получение значения из словаря по ключу: {{ dict|get_item:key }}
+    Используется для доступа к словарям в шаблонах где ключ - переменная.
+    """
+    if dictionary is None:
+        return None
+    try:
+        return dictionary.get(key)
+    except (AttributeError, TypeError):
+        return None

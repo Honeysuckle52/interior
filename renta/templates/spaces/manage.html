@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Управление помещениями | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
+            <li class="breadcrumb-item">
+                <a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'dashboard' %}" class="breadcrumb-link fw-medium">Личный кабинет</a>
+            </li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page">Управление помещениями</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h1 class="display-6 fw-bold mb-2 text-themed">Управление помещениями</h1>
+                    <p class="text-muted">Добавление, редактирование и управление помещениями</p>
+                </div>
+                <a href="{% url 'add_space' %}" class="btn btn-gold">
+                    <i class="fas fa-plus me-2"></i>Добавить помещение
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold gold-text">{{ stats.total }}</div>
+                <small class="text-muted">Всего</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-success">{{ stats.active }}</div>
+                <small class="text-muted">Активных</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-info">{{ stats.featured }}</div>
+                <small class="text-muted">Рекомендуемых</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-warning">{{ stats.inactive }}</div>
+                <small class="text-muted">Неактивных</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список помещений -->
+    <div class="row g-4">
+        {% for space in spaces %}
+        <div class="col-md-6 col-lg-4">
+            <div class="manage-space-card">
+                <div class="manage-space-image">
+                    {% with main_image=space.get_main_image %}
+                    {% if main_image %}
+                    <img src="{{ main_image.image.url }}" alt="{{ space.title }}">
+                    {% else %}
+                    <img src="/placeholder.svg?height=180&width=320" alt="{{ space.title }}">
+                    {% endif %}
+                    {% endwith %}
+                </div>
+                <div class="manage-space-body">
+                    <h5 class="manage-space-title">{{ space.title }}</h5>
+                    <div class="manage-space-meta">
+                        <span><i class="fas fa-map-marker-alt me-1"></i>{{ space.city.name }}</span>
+                        <span><i class="fas fa-ruler-combined me-1"></i>{{ space.area_sqm }} м²</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        {% if space.is_active %}
+                        <span class="badge bg-success">Активно</span>
+                        {% else %}
+                        <span class="badge bg-warning">Неактивно</span>
+                        {% endif %}
+                        {% if space.is_featured %}
+                        <span class="badge bg-info">Рекомендуемое</span>
+                        {% endif %}
+                    </div>
+                    <div class="manage-space-actions">
+                        <a href="{% url 'space_detail' space.pk %}" class="btn btn-sm btn-outline-themed" title="Просмотр">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'edit_space' space.pk %}" class="btn btn-sm btn-outline-gold" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                onclick="confirmDelete({{ space.pk }}, '{{ space.title }}')" title="Удалить">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="dashboard-card text-center py-5">
+                <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                <h5 class="text-themed">Помещения не найдены</h5>
+                <p class="text-muted mb-3">Добавьте первое помещение для начала работы</p>
+                <a href="{% url 'add_space' %}" class="btn btn-gold">
+                    <i class="fas fa-plus me-2"></i>Добавить помещение
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Пагинация -->
+    {% if spaces.has_other_pages %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination pagination-themed mb-0">
+                {% if spaces.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ spaces.previous_page_number }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for num in spaces.paginator.page_range %}
+                    {% if spaces.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > spaces.number|add:'-3' and num < spaces.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if spaces.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ spaces.next_page_number }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Модальное окно удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-color: var(--border-color);">
+                <h5 class="modal-title text-themed">Удаление помещения</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-themed">Вы уверены, что хотите удалить помещение "<span id="deleteSpaceName"></span>"?</p>
+                <p class="text-muted">Это действие нельзя отменить.</p>
+            </div>
+            <div class="modal-footer" style="border-color: var(--border-color);">
+                <button type="button" class="btn btn-outline-themed" data-bs-dismiss="modal">Отмена</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(spaceId, spaceName) {
+    document.getElementById('deleteSpaceName').textContent = spaceName;
+    document.getElementById('deleteForm').action = '/manage/spaces/' + spaceId + '/delete/';
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

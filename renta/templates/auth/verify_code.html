@@ -16,7 +16,7 @@
 
         <form method="post" class="auth-form" id="verifyCodeForm">
             {% csrf_token %}
-            
+
             <div class="mb-4">
                 <label for="id_code" class="form-label">Код подтверждения</label>
                 {{ form.code }}
@@ -55,12 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (codeInput) {
         // Автофокус на поле ввода
         codeInput.focus();
-        
+
         // Автоотправка при вводе 6 цифр
         codeInput.addEventListener('input', function(e) {
             // Оставляем только цифры
             this.value = this.value.replace(/[^0-9]/g, '');
-            
+
             // Автоотправка при 6 цифрах
             if (this.value.length === 6) {
                 document.getElementById('verifyCodeForm').submit();

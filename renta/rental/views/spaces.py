@@ -14,10 +14,13 @@ from typing import Any
 from django.db.models import Q, Avg, Count, Min, QuerySet
 from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
 from django.http import HttpRequest, HttpResponse, Http404, JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
-from ..models import Space, City, SpaceCategory, Favorite
+from ..models import Space, City, SpaceCategory, Favorite, SpaceImage, SpacePrice, PricingPeriod
+from ..forms.spaces import SpaceForm, SpaceImageForm
 
 # Константы пагинации
 DEFAULT_ITEMS_PER_PAGE: int = 12
@@ -491,3 +494,170 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
         return render(request, 'errors/500.html', {
             'error': 'Произошла ошибка при загрузке помещения'
         }, status=500)
+
+
+@login_required
+def manage_spaces(request: HttpRequest) -> HttpResponse:
+    """
+    Страница управления помещениями для админов и модераторов.
+    """
+    if not request.user.can_moderate:
+        messages.error(request, 'У вас нет прав для управления помещениями')
+        return redirect('dashboard')
+
+    spaces = Space.objects.select_related(
+        'city', 'category', 'owner'
+    ).prefetch_related('images').order_by('-created_at')
+
+    # Статистика
+    stats = {
+        'total': spaces.count(),
+        'active': spaces.filter(is_active=True).count(),
+        'featured': spaces.filter(is_featured=True).count(),
+        'inactive': spaces.filter(is_active=False).count(),
+    }
+
+    # Пагинация
+    paginator = Paginator(spaces, 12)
+    page_number = request.GET.get('page', 1)
+    try:
+        spaces_page = paginator.get_page(page_number)
+    except (EmptyPage, PageNotAnInteger):
+        spaces_page = paginator.get_page(1)
+
+    return render(request, 'spaces/manage.html', {
+        'spaces': spaces_page,
+        'stats': stats,
+    })
+
+
+@login_required
+def add_space(request: HttpRequest) -> HttpResponse:
+    """
+    Добавление нового помещения.
+    """
+    if not request.user.can_moderate:
+        messages.error(request, 'У вас нет прав для добавления помещений')
+        return redirect('dashboard')
+
+    pricing_periods = PricingPeriod.objects.all().order_by('sort_order')
+
+    if request.method == 'POST':
+        form = SpaceForm(request.POST)
+        if form.is_valid():
+            space = form.save(commit=False)
+            space.owner = request.user
+            space.save()
+
+            # Сохраняем изображения
+            images = request.FILES.getlist('images')
+            for i, image_file in enumerate(images):
+                SpaceImage.objects.create(
+                    space=space,
+                    image=image_file,
+                    is_primary=(i == 0),
+                    sort_order=i
+                )
+
+            # Сохраняем цены
+            for period in pricing_periods:
+                price_value = request.POST.get(f'price_{period.id}')
+                if price_value:
+                    try:
+                        SpacePrice.objects.create(
+                            space=space,
+                            period=period,
+                            price=float(price_value),
+                            is_active=True
+                        )
+                    except (ValueError, TypeError):
+                        pass
+
+            messages.success(request, f'Помещение "{space.title}" успешно добавлено')
+            return redirect('manage_spaces')
+    else:
+        form = SpaceForm()
+
+    return render(request, 'spaces/add.html', {
+        'form': form,
+        'pricing_periods': pricing_periods,
+    })
+
+
+@login_required
+def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    Редактирование помещения.
+    """
+    if not request.user.can_moderate:
+        messages.error(request, 'У вас нет прав для редактирования помещений')
+        return redirect('dashboard')
+
+    space = get_object_or_404(Space, pk=pk)
+    pricing_periods = PricingPeriod.objects.all().order_by('sort_order')
+
+    # Получаем текущие цены
+    current_prices = {sp.period_id: sp.price for sp in space.prices.all()}
+
+    if request.method == 'POST':
+        form = SpaceForm(request.POST, instance=space)
+        if form.is_valid():
+            space = form.save()
+
+            # Обновляем изображения если загружены новые
+            images = request.FILES.getlist('images')
+            if images:
+                # Удаляем старые изображения
+                space.images.all().delete()
+                for i, image_file in enumerate(images):
+                    SpaceImage.objects.create(
+                        space=space,
+                        image=image_file,
+                        is_primary=(i == 0),
+                        sort_order=i
+                    )
+
+            # Обновляем цены
+            for period in pricing_periods:
+                price_value = request.POST.get(f'price_{period.id}')
+                if price_value:
+                    try:
+                        SpacePrice.objects.update_or_create(
+                            space=space,
+                            period=period,
+                            defaults={'price': float(price_value), 'is_active': True}
+                        )
+                    except (ValueError, TypeError):
+                        pass
+
+            messages.success(request, f'Помещение "{space.title}" успешно обновлено')
+            return redirect('manage_spaces')
+    else:
+        form = SpaceForm(instance=space)
+
+    return render(request, 'spaces/edit.html', {
+        'form': form,
+        'space': space,
+        'pricing_periods': pricing_periods,
+        'current_prices': current_prices,
+    })
+
+
+@login_required
+def delete_space(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    Удаление помещения.
+    """
+    if not request.user.can_moderate:
+        messages.error(request, 'У вас нет прав для удаления помещений')
+        return redirect('dashboard')
+
+    space = get_object_or_404(Space, pk=pk)
+
+    if request.method == 'POST':
+        title = space.title
+        space.delete()
+        messages.success(request, f'Помещение "{title}" удалено')
+        return redirect('manage_spaces')
+
+    return redirect('manage_spaces')
