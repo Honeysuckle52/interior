@@ -218,18 +218,21 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Цена за {{ booking.period.description|lower }}</span>
-                        <span>{{ booking.price_per_period|floatformat:0 }} ₽</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Количество периодов</span>
-                        <span>x {{ booking.periods_count }}</span>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between">
-                        <span class="fw-bold">Итого</span>
-                        <span class="fw-bold gold-text fs-4">{{ booking.total_amount|floatformat:0 }} ₽</span>
+                    <!-- Added booking-cost-details class for dark theme styling -->
+                    <div class="booking-cost-details">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="cost-label">Цена за {{ booking.period.description|lower }}</span>
+                            <span class="cost-value">{{ booking.price_per_period|floatformat:0 }} ₽</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="cost-label">Количество периодов</span>
+                            <span class="cost-value">x {{ booking.periods_count }}</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold cost-label">Итого</span>
+                            <span class="fw-bold gold-text fs-4">{{ booking.total_amount|floatformat:0 }} ₽</span>
+                        </div>
                     </div>
 
                     <hr>
