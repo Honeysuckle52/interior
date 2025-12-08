@@ -3,46 +3,39 @@
  * ГЛАВНЫЙ JAVASCRIPT ФАЙЛ
  * Сайт аренды помещений "ИНТЕРЬЕР"
  * =============================================================================
- *
- * СТРУКТУРА:
- * 1. Инициализация при загрузке DOM
- * 2. Управление темой (светлая/тёмная)
- * 3. Избранное (AJAX-запросы)
- * 4. Уведомления (toast)
- * 5. Анимации при прокрутке
- * 6. Вспомогательные функции
+ * ИСПРАВЛЕННАЯ ВЕРСИЯ:
+ * - Улучшена работа темы
+ * - Добавлены анимации
+ * - Исправлены баги
  */
 
 /* =============================================================================
    1. ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ DOM
    ============================================================================= */
 document.addEventListener("DOMContentLoaded", () => {
-  // Инициализация всех модулей
   initThemeManager()
   initFavoriteButtons()
   initScrollAnimations()
   initSmoothScroll()
+  initButtonAnimations()
+  initFormEnhancements()
 })
 
 /* =============================================================================
-   2. УПРАВЛЕНИЕ ТЕМОЙ
+   2. УПРАВЛЕНИЕ ТЕМОЙ - УЛУЧШЕНО
    ============================================================================= */
-
-/**
- * Инициализация менеджера темы
- * Отвечает за переключение между светлой и тёмной темой
- * и сохранение выбора пользователя в localStorage
- */
 function initThemeManager() {
   const themeToggle = document.getElementById("themeToggle")
   const themeIcon = document.getElementById("themeIcon")
   const html = document.documentElement
 
-  // Получаем сохранённую тему или используем тёмную по умолчанию
-  const savedTheme = localStorage.getItem("interior_theme") || "dark"
+  // Получаем сохранённую тему или системную
+  const savedTheme = localStorage.getItem("interior_theme")
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+  const initialTheme = savedTheme || (prefersDark ? "dark" : "light")
 
   // Применяем тему при загрузке
-  applyTheme(savedTheme)
+  applyTheme(initialTheme, false)
 
   // Обработчик клика на кнопку переключения темы
   if (themeToggle) {
@@ -50,31 +43,47 @@ function initThemeManager() {
       const currentTheme = html.getAttribute("data-theme")
       const newTheme = currentTheme === "dark" ? "light" : "dark"
 
-      applyTheme(newTheme)
-      localStorage.setItem("interior_theme", newTheme)
+      // Добавляем анимацию переключения
+      themeToggle.style.transform = "rotate(360deg) scale(0.8)"
+
+      setTimeout(() => {
+        applyTheme(newTheme, true)
+        localStorage.setItem("interior_theme", newTheme)
+        themeToggle.style.transform = ""
+      }, 150)
     })
   }
 
-  /**
-   * Применяет указанную тему к документу
-   * @param {string} theme - название темы: 'dark' или 'light'
-   */
-  function applyTheme(theme) {
-    html.setAttribute("data-theme", theme)
+  // Слушаем изменения системной темы
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    if (!localStorage.getItem("interior_theme")) {
+      applyTheme(e.matches ? "dark" : "light", true)
+    }
+  })
 
-    // Обновляем иконку: луна для тёмной темы, солнце для светлой
-    if (themeIcon) {
-      themeIcon.className = theme === "dark" ? "fas fa-moon" : "fas fa-sun"
+  function applyTheme(theme, animate = true) {
+    if (animate) {
+      html.style.transition = "background-color 0.3s, color 0.3s"
     }
 
-    // Обновляем цвет темы в мета-теге для мобильных браузеров
+    html.setAttribute("data-theme", theme)
+
+    // Обновляем иконку
+    if (themeIcon) {
+      if (animate) {
+        themeIcon.style.transform = "scale(0)"
+        setTimeout(() => {
+          themeIcon.className = theme === "dark" ? "fas fa-moon" : "fas fa-sun"
+          themeIcon.style.transform = "scale(1)"
+        }, 150)
+      } else {
+        themeIcon.className = theme === "dark" ? "fas fa-moon" : "fas fa-sun"
+      }
+    }
+
     updateThemeColor(theme)
   }
 
-  /**
-   * Обновляет цвет темы в мета-теге для мобильных браузеров
-   * @param {string} theme - текущая тема
-   */
   function updateThemeColor(theme) {
     let metaThemeColor = document.querySelector('meta[name="theme-color"]')
 
@@ -84,19 +93,88 @@ function initThemeManager() {
       document.head.appendChild(metaThemeColor)
     }
 
-    // Устанавливаем цвет фона в зависимости от темы
     metaThemeColor.content = theme === "dark" ? "#0a0a0a" : "#fafafa"
   }
 }
 
 /* =============================================================================
-   3. ИЗБРАННОЕ (AJAX)
+   3. АНИМАЦИИ КНОПОК - НОВОЕ
    ============================================================================= */
+function initButtonAnimations() {
+  // Ripple эффект для кнопок
+  document.querySelectorAll(".btn").forEach((btn) => {
+    btn.addEventListener("click", function (e) {
+      const rect = this.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
 
-/**
- * Инициализация всех кнопок избранного на странице
- * Назначает обработчики событий для добавления/удаления из избранного
- */
+      const ripple = document.createElement("span")
+      ripple.style.cssText = `
+        position: absolute;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple 0.6s linear;
+        pointer-events: none;
+        left: ${x}px;
+        top: ${y}px;
+        width: 100px;
+        height: 100px;
+        margin-left: -50px;
+        margin-top: -50px;
+      `
+
+      this.style.position = "relative"
+      this.style.overflow = "hidden"
+      this.appendChild(ripple)
+
+      setTimeout(() => ripple.remove(), 600)
+    })
+  })
+
+  // Добавляем CSS для ripple анимации
+  if (!document.getElementById("ripple-styles")) {
+    const style = document.createElement("style")
+    style.id = "ripple-styles"
+    style.textContent = `
+      @keyframes ripple {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+    `
+    document.head.appendChild(style)
+  }
+}
+
+/* =============================================================================
+   4. УЛУЧШЕНИЯ ФОРМ - НОВОЕ
+   ============================================================================= */
+function initFormEnhancements() {
+  // Анимация фокуса для инпутов
+  document.querySelectorAll(".form-control, .form-select").forEach((input) => {
+    input.addEventListener("focus", function () {
+      this.parentElement?.classList.add("input-focused")
+    })
+
+    input.addEventListener("blur", function () {
+      this.parentElement?.classList.remove("input-focused")
+    })
+  })
+
+  // Автоматическое изменение размера textarea
+  document.querySelectorAll("textarea").forEach((textarea) => {
+    textarea.addEventListener("input", function () {
+      this.style.height = "auto"
+      this.style.height = Math.min(this.scrollHeight, 300) + "px"
+    })
+  })
+}
+
+/* =============================================================================
+   5. ИЗБРАННОЕ (AJAX) - УЛУЧШЕНО
+   ============================================================================= */
 function initFavoriteButtons() {
   const favoriteButtons = document.querySelectorAll(".space-favorite-btn, .favorite-inline-btn, .favorite-btn")
 
@@ -105,11 +183,6 @@ function initFavoriteButtons() {
   })
 }
 
-/**
- * Обработчик клика на кнопку избранного
- * Отправляет AJAX-запрос для добавления/удаления помещения из избранного
- * @param {Event} event - событие клика
- */
 async function handleFavoriteClick(event) {
   event.preventDefault()
   event.stopPropagation()
@@ -126,8 +199,9 @@ async function handleFavoriteClick(event) {
     return
   }
 
-  btn.style.transform = "scale(0.9)"
-  btn.style.transition = "transform 0.15s ease"
+  // Анимация нажатия
+  btn.style.transform = "scale(0.85)"
+  btn.style.transition = "transform 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55)"
 
   try {
     const response = await fetch(`/spaces/${spaceId}/favorite/`, {
@@ -153,25 +227,18 @@ async function handleFavoriteClick(event) {
     // Обновляем внешний вид кнопки
     updateFavoriteButton(btn, icon, textEl, isFavorite)
 
-    if (isFavorite) {
-      // Анимация пульса при добавлении
-      icon.style.animation = "heartPulse 0.6s ease"
-      setTimeout(() => {
-        btn.style.transform = "scale(1.15)"
-        setTimeout(() => {
-          btn.style.transform = "scale(1)"
-        }, 150)
-      }, 100)
-    } else {
-      icon.style.animation = "none"
+    // Анимация отскока
+    setTimeout(() => {
+      btn.style.transform = isFavorite ? "scale(1.2)" : "scale(1)"
       setTimeout(() => {
         btn.style.transform = "scale(1)"
-      }, 100)
-    }
+      }, 150)
+    }, 100)
 
     const message = data.message || (isFavorite ? "Добавлено в избранное" : "Удалено из избранного")
     showNotification(message, "success")
 
+    // Удаление карточки на странице избранного
     if (!isFavorite && btn.closest(".col-lg-4, .col-md-6")) {
       const card = btn.closest(".col-lg-4, .col-md-6")
       if (window.location.pathname.includes("favorites")) {
@@ -185,20 +252,19 @@ async function handleFavoriteClick(event) {
   }
 }
 
-/**
- * Обновляет визуальное состояние кнопки избранного
- * @param {Element} btn - кнопка избранного
- * @param {Element} icon - иконка сердца
- * @param {Element} textEl - текстовый элемент (если есть)
- * @param {boolean} isFavorite - добавлено ли в избранное
- */
 function updateFavoriteButton(btn, icon, textEl, isFavorite) {
   btn.classList.toggle("active", isFavorite)
 
   if (icon) {
-    // Меняем иконку: закрашенное сердце для избранного, контурное для обычного
     icon.classList.remove("fas", "far")
     icon.classList.add(isFavorite ? "fas" : "far")
+
+    if (isFavorite) {
+      icon.style.animation = "heartPulse 0.6s ease"
+      setTimeout(() => {
+        icon.style.animation = ""
+      }, 600)
+    }
   }
 
   if (textEl) {
@@ -206,65 +272,55 @@ function updateFavoriteButton(btn, icon, textEl, isFavorite) {
   }
 }
 
-/**
- * Анимирует удаление карточки с плавным исчезновением
- * @param {Element} card - элемент карточки для удаления
- */
 function animateCardRemoval(card) {
-  card.style.transition = "opacity 0.3s, transform 0.3s"
+  card.style.transition = "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
   card.style.opacity = "0"
-  card.style.transform = "scale(0.95)"
+  card.style.transform = "scale(0.8) translateY(20px)"
 
   setTimeout(() => {
     card.remove()
 
-    // Если карточек не осталось - перезагружаем страницу
     if (document.querySelectorAll(".space-card").length === 0) {
       location.reload()
     }
-  }, 300)
+  }, 400)
 }
 
 /* =============================================================================
-   4. УВЕДОМЛЕНИЯ (TOAST)
+   6. УВЕДОМЛЕНИЯ (TOAST) - УЛУЧШЕНО
    ============================================================================= */
-
-/**
- * Показывает всплывающее уведомление
- * @param {string} message - текст сообщения
- * @param {string} type - тип: 'success', 'danger', 'warning', 'info'
- */
 function showNotification(message, type = "success") {
-  // Удаляем предыдущее уведомление, если есть
+  // Удаляем предыдущее уведомление
   const existingToast = document.querySelector(".notification-toast")
   if (existingToast) {
-    existingToast.remove()
+    existingToast.style.animation = "slideOut 0.3s ease forwards"
+    setTimeout(() => existingToast.remove(), 300)
   }
 
   // Создаём новое уведомление
   const toast = document.createElement("div")
   toast.className = `notification-toast alert alert-${type}`
   toast.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 0.625rem;">
-      <i class="fas ${getNotificationIcon(type)}"></i>
-      <span>${message}</span>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <i class="fas ${getNotificationIcon(type)}" style="font-size: 1.1rem;"></i>
+      <span style="flex: 1;">${message}</span>
+      <button type="button" style="background: none; border: none; cursor: pointer; opacity: 0.7; padding: 0;" onclick="this.parentElement.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
   `
 
   document.body.appendChild(toast)
 
-  // Автоматическое скрытие через 3 секунды
+  // Автоматическое скрытие через 4 секунды
   setTimeout(() => {
-    toast.style.animation = "slideOut 0.3s ease forwards"
-    setTimeout(() => toast.remove(), 300)
-  }, 3000)
+    if (toast.parentElement) {
+      toast.style.animation = "slideOut 0.3s ease forwards"
+      setTimeout(() => toast.remove(), 300)
+    }
+  }, 4000)
 }
 
-/**
- * Возвращает класс иконки для типа уведомления
- * @param {string} type - тип уведомления
- * @returns {string} - класс иконки FontAwesome
- */
 function getNotificationIcon(type) {
   const icons = {
     success: "fa-check-circle",
@@ -276,37 +332,33 @@ function getNotificationIcon(type) {
 }
 
 /* =============================================================================
-   5. АНИМАЦИИ ПРИ ПРОКРУТКЕ
+   7. АНИМАЦИИ ПРИ ПРОКРУТКЕ
    ============================================================================= */
-
-/**
- * Инициализация анимаций появления элементов при прокрутке
- * Использует Intersection Observer для отслеживания видимости
- */
 function initScrollAnimations() {
-  // Настройки наблюдателя
   const observerOptions = {
     threshold: 0.1,
-    rootMargin: "0px 0px -40px 0px",
+    rootMargin: "0px 0px -50px 0px",
   }
 
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
+    entries.forEach((entry, index) => {
       if (entry.isIntersecting) {
-        entry.target.classList.add("animate-fade-in")
+        // Добавляем задержку для каскадного эффекта
+        setTimeout(() => {
+          entry.target.classList.add("animate-fade-in")
+        }, index * 50)
         observer.unobserve(entry.target)
       }
     })
   }, observerOptions)
 
-  // Наблюдаем за карточками и другими анимируемыми элементами
-  const animatedElements = document.querySelectorAll(".space-card, .dashboard-card, .glass-card")
-  animatedElements.forEach((el) => observer.observe(el))
+  const animatedElements = document.querySelectorAll(".space-card, .dashboard-card, .glass-card, .detail-card")
+  animatedElements.forEach((el) => {
+    el.style.opacity = "0"
+    observer.observe(el)
+  })
 }
 
-/**
- * Инициализация плавной прокрутки к якорям
- */
 function initSmoothScroll() {
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener("click", function (e) {
@@ -328,28 +380,16 @@ function initSmoothScroll() {
 }
 
 /* =============================================================================
-   6. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+   8. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
    ============================================================================= */
-
-/**
- * Получает CSRF-токен из cookies или скрытого поля формы
- * @returns {string|null} - CSRF-токен или null
- */
 function getCsrfToken() {
-  // Сначала ищем в cookies
   const cookieToken = getCookie("csrftoken")
   if (cookieToken) return cookieToken
 
-  // Затем в скрытом поле формы
   const tokenInput = document.querySelector("[name=csrfmiddlewaretoken]")
   return tokenInput ? tokenInput.value : null
 }
 
-/**
- * Получает значение cookie по имени
- * @param {string} name - имя cookie
- * @returns {string|null} - значение или null
- */
 function getCookie(name) {
   if (!document.cookie) return null
 
@@ -366,11 +406,6 @@ function getCookie(name) {
   return null
 }
 
-/**
- * Форматирует число как цену в рублях
- * @param {number} price - сумма
- * @returns {string} - отформатированная строка
- */
 function formatPrice(price) {
   return new Intl.NumberFormat("ru-RU", {
     style: "currency",
@@ -380,12 +415,6 @@ function formatPrice(price) {
   }).format(price)
 }
 
-/**
- * Функция debounce для оптимизации частых вызовов
- * @param {Function} func - функция для оптимизации
- * @param {number} wait - задержка в миллисекундах
- * @returns {Function} - оптимизированная функция
- */
 function debounce(func, wait) {
   let timeout
 
@@ -401,11 +430,12 @@ function debounce(func, wait) {
 }
 
 /* =============================================================================
-   ЭКСПОРТ ФУНКЦИЙ ДЛЯ ИСПОЛЬЗОВАНИЯ В INLINE-СКРИПТАХ
+   ЭКСПОРТ ФУНКЦИЙ
    ============================================================================= */
 window.InteriorApp = {
   showNotification,
   formatPrice,
   getCsrfToken,
   debounce,
+  initFavoriteButtons,
 }

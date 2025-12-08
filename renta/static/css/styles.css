@@ -2,6 +2,12 @@
  * =============================================================================
  * ДИЗАЙН-СИСТЕМА САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
  * =============================================================================
+ * Полностью переработанная версия с исправлением всех проблем:
+ * - Исправлена темная/светлая тема
+ * - Добавлены анимации кнопок
+ * - Стилизованы фильтры
+ * - Исправлен календарь
+ * - Добавлены недостающие компоненты
  */
 
 /* =============================================================================
@@ -12,24 +18,32 @@
   --color-gold: #d4af37;
   --color-gold-light: #e5c666;
   --color-gold-dark: #b8941f;
+  --color-gold-rgb: 212, 175, 55;
 
   /* Семантические цвета */
   --color-success: #22c55e;
+  --color-success-bg: rgba(34, 197, 94, 0.1);
   --color-danger: #ef4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
   --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
   --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.1);
 
   /* Тёмная тема (по умолчанию) */
   --bg-primary: #0a0a0a;
   --bg-secondary: #111111;
+  --bg-tertiary: #1a1a1a;
   --bg-card: #171717;
   --bg-input: #1a1a1a;
+  --bg-hover: #222222;
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
   --border-color: #27272a;
   --border-hover: #3f3f46;
   --shadow-color: rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
   --navbar-bg: rgba(10, 10, 10, 0.95);
   --overlay-bg: rgba(0, 0, 0, 0.75);
 
@@ -41,25 +55,29 @@
   --radius-full: 9999px;
 
   /* Переходы */
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --transition-slow: 400ms ease;
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-/* Светлая тема */
+/* Светлая тема - ПОЛНОСТЬЮ ПЕРЕРАБОТАНА */
 [data-theme="light"] {
   --bg-primary: #fafafa;
   --bg-secondary: #f4f4f5;
+  --bg-tertiary: #e4e4e7;
   --bg-card: #ffffff;
   --bg-input: #ffffff;
+  --bg-hover: #f0f0f0;
   --text-primary: #18181b;
-  --text-secondary: #52525b;
+  --text-secondary: #3f3f46;
   --text-muted: #71717a;
-  --border-color: #e4e4e7;
-  --border-hover: #d4d4d8;
-  --shadow-color: rgba(0, 0, 0, 0.08);
-  --navbar-bg: rgba(250, 250, 250, 0.95);
-  --overlay-bg: rgba(0, 0, 0, 0.6);
+  --border-color: #d4d4d8;
+  --border-hover: #a1a1aa;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --navbar-bg: rgba(255, 255, 255, 0.95);
+  --overlay-bg: rgba(0, 0, 0, 0.5);
 }
 
 /* =============================================================================
@@ -75,6 +93,8 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -105,6 +125,17 @@ main {
   color: var(--color-gold) !important;
 }
 
+/* Ссылки */
+a {
+  color: var(--color-gold);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-gold-light);
+}
+
 /* =============================================================================
    3. НАВИГАЦИЯ
    ============================================================================= */
@@ -115,6 +146,7 @@ main {
   border-bottom: 1px solid var(--border-color);
   padding: 0.75rem 0;
   transition: all var(--transition-normal);
+  z-index: 1030;
 }
 
 .navbar-brand {
@@ -122,22 +154,45 @@ main {
   font-weight: 700;
   color: var(--color-gold) !important;
   letter-spacing: 2px;
+  transition: transform var(--transition-fast);
+}
+
+.navbar-brand:hover {
+  transform: scale(1.02);
 }
 
 .nav-link {
   color: var(--text-primary) !important;
   font-weight: 500;
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
   padding: 0.5rem 1rem !important;
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--color-gold);
+  transition: all var(--transition-fast);
+  transform: translateX(-50%);
 }
 
 .nav-link:hover {
   color: var(--color-gold) !important;
 }
 
+.nav-link:hover::after {
+  width: 60%;
+}
+
 .navbar-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 2px solid var(--color-gold);
   overflow: hidden;
@@ -145,6 +200,12 @@ main {
   align-items: center;
   justify-content: center;
   background: var(--bg-secondary);
+  transition: all var(--transition-fast);
+}
+
+.navbar-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px rgba(var(--color-gold-rgb), 0.2);
 }
 
 .navbar-avatar img {
@@ -155,30 +216,66 @@ main {
 
 .navbar-toggler {
   border-color: var(--border-color);
+  padding: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.navbar-toggler:hover {
+  border-color: var(--color-gold);
+}
+
+.navbar-toggler:focus {
+  box-shadow: 0 0 0 3px rgba(var(--color-gold-rgb), 0.2);
 }
 
 .navbar-toggler-icon {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(212, 175, 55, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
+/* Dropdown меню */
 .dropdown-menu {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  box-shadow: 0 10px 40px var(--shadow-color);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dropdown-item {
   color: var(--text-primary);
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
 }
 
 .dropdown-item:hover {
-  background: var(--bg-secondary);
+  background: var(--bg-hover);
   color: var(--color-gold);
+  transform: translateX(4px);
+}
+
+.dropdown-item i {
+  width: 20px;
+  text-align: center;
 }
 
 .dropdown-divider {
   border-color: var(--border-color);
+  margin: 0.5rem 0;
 }
 
 /* Переключатель темы */
@@ -194,12 +291,27 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .theme-toggle:hover {
   border-color: var(--color-gold);
   color: var(--color-gold);
-  background: rgba(212, 175, 55, 0.1);
+  background: rgba(var(--color-gold-rgb), 0.1);
+  transform: rotate(15deg);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95) rotate(15deg);
+}
+
+.theme-toggle i {
+  transition: transform var(--transition-normal);
+}
+
+.theme-toggle:hover i {
+  transform: scale(1.1);
 }
 
 /* =============================================================================
@@ -227,16 +339,19 @@ main {
 }
 
 .breadcrumb-styled .breadcrumb-item.active {
-  color: var(--text-muted);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .breadcrumb-styled .breadcrumb-item + .breadcrumb-item::before {
   color: var(--text-muted);
+  content: "/";
 }
 
-/* Видимые крошки (альтернативный стиль) */
+/* Видимые крошки */
 .breadcrumb-visible {
-  background: rgba(212, 175, 55, 0.1);
+  background: rgba(var(--color-gold-rgb), 0.08);
+  border: 1px solid rgba(var(--color-gold-rgb), 0.2);
   border-radius: var(--radius-md);
   margin-bottom: 0;
 }
@@ -253,6 +368,7 @@ main {
 
 .breadcrumb-visible .breadcrumb-item.active {
   color: var(--color-gold);
+  font-weight: 600;
 }
 
 .breadcrumb-visible .breadcrumb-item + .breadcrumb-item::before {
@@ -260,14 +376,326 @@ main {
 }
 
 /* =============================================================================
-   5. ГЛАВНАЯ СТРАНИЦА (HERO & STATS)
+   5. КНОПКИ - ПОЛНОСТЬЮ ПЕРЕРАБОТАНЫ С АНИМАЦИЯМИ
    ============================================================================= */
+.btn {
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  padding: 0.625rem 1.25rem;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
 
-/* Герой секция */
+.btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Золотая кнопка - главная */
+.btn-gold {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+  border: none;
+  color: #000;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(var(--color-gold-rgb), 0.3);
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(var(--color-gold-rgb), 0.4);
+}
+
+.btn-gold:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(var(--color-gold-rgb), 0.3);
+}
+
+/* Контурная золотая */
+.btn-outline-gold {
+  background: transparent;
+  border: 2px solid var(--color-gold);
+  color: var(--color-gold);
+}
+
+.btn-outline-gold:hover {
+  background: var(--color-gold);
+  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(var(--color-gold-rgb), 0.3);
+}
+
+/* Тематическая контурная */
+.btn-outline-themed {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-outline-themed:hover {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+  background: rgba(var(--color-gold-rgb), 0.08);
+  transform: translateY(-1px);
+}
+
+/* Светлая контурная */
+.btn-outline-light {
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.btn-outline-light:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+/* Success кнопка */
+.btn-success {
+  background: linear-gradient(135deg, var(--color-success), #16a34a);
+  border: none;
+  color: #fff;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #34d058, var(--color-success));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+  color: #fff;
+}
+
+/* Danger кнопка */
+.btn-danger {
+  background: linear-gradient(135deg, var(--color-danger), #dc2626);
+  border: none;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #f87171, var(--color-danger));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+  color: #fff;
+}
+
+.btn-outline-danger {
+  background: transparent;
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+}
+
+.btn-outline-danger:hover {
+  background: var(--color-danger);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-outline-warning {
+  background: transparent;
+  border: 1px solid var(--color-warning);
+  color: var(--color-warning);
+}
+
+.btn-outline-warning:hover {
+  background: var(--color-warning);
+  color: #000;
+}
+
+.btn-outline-info {
+  background: transparent;
+  border: 1px solid var(--color-info);
+  color: var(--color-info);
+}
+
+.btn-outline-info:hover {
+  background: var(--color-info);
+  color: #fff;
+}
+
+/* Кнопка закрытия для алертов */
+.btn-close {
+  filter: invert(1);
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-close:hover {
+  opacity: 1;
+}
+
+[data-theme="light"] .btn-close {
+  filter: none;
+}
+
+/* =============================================================================
+   6. ФОРМЫ - УЛУЧШЕНЫ
+   ============================================================================= */
+.form-control,
+.form-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  transition: all var(--transition-fast);
+  font-size: 0.95rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: var(--bg-input);
+  border-color: var(--color-gold);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-gold-rgb), 0.15);
+  outline: none;
+}
+
+.form-control:hover:not(:focus),
+.form-select:hover:not(:focus) {
+  border-color: var(--border-hover);
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+
+.form-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.form-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* Чекбоксы и радио */
+.form-check-input {
+  background-color: var(--bg-input);
+  border-color: var(--border-color);
+}
+
+.form-check-input:checked {
+  background-color: var(--color-gold);
+  border-color: var(--color-gold);
+}
+
+.form-check-input:focus {
+  box-shadow: 0 0 0 3px rgba(var(--color-gold-rgb), 0.15);
+  border-color: var(--color-gold);
+}
+
+.form-check-label {
+  color: var(--text-secondary);
+}
+
+/* Поле с иконкой */
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon .input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gold);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.input-with-icon .form-control,
+.input-with-icon .form-select {
+  padding-left: 44px;
+}
+
+/* =============================================================================
+   7. КАРТОЧКИ
+   ============================================================================= */
+.card,
+.glass-card,
+.dashboard-card,
+.detail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
+}
+
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--border-color);
+  padding: 1.25rem 1.5rem;
+  color: var(--text-primary);
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+}
+
+.dashboard-card {
+  padding: 1.5rem;
+}
+
+.dashboard-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 10px 40px var(--shadow-color);
+}
+
+.dashboard-stat .number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-gold);
+  line-height: 1;
+}
+
+.dashboard-stat .label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 0.5rem;
+}
+
+.detail-card {
+  padding: 1.5rem;
+}
+
+/* =============================================================================
+   8. ГЛАВНАЯ СТРАНИЦА (HERO & STATS)
+   ============================================================================= */
 .hero-section {
   position: relative;
-  padding: 6rem 0 5rem;
-  min-height: 70vh;
+  padding: 8rem 0 6rem;
+  min-height: 75vh;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -284,14 +712,18 @@ main {
   z-index: 1;
 }
 
+[data-theme="light"] .hero-section::before {
+  background: linear-gradient(135deg, rgba(250, 250, 250, 0.95) 0%, rgba(244, 244, 245, 0.9) 100%);
+}
+
 .hero-bg {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(ellipse at 20% 50%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 40%);
+  background: radial-gradient(ellipse at 20% 50%, rgba(var(--color-gold-rgb), 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(var(--color-gold-rgb), 0.08) 0%, transparent 40%);
   z-index: 0;
 }
 
@@ -301,14 +733,16 @@ main {
 }
 
 .hero-section h1 {
-  font-size: 3.5rem;
+  font-size: clamp(2rem, 5vw, 3.5rem);
   line-height: 1.2;
   margin-bottom: 1.5rem;
+  color: var(--text-primary);
 }
 
 .hero-section .lead {
   font-size: 1.25rem;
   max-width: 600px;
+  color: var(--text-secondary);
 }
 
 /* Статистика */
@@ -343,11 +777,9 @@ main {
 .animate-fade-in.delay-1 {
   animation-delay: 0.1s;
 }
-
 .animate-fade-in.delay-2 {
   animation-delay: 0.2s;
 }
-
 .animate-fade-in.delay-3 {
   animation-delay: 0.3s;
 }
@@ -364,314 +796,492 @@ main {
 }
 
 /* =============================================================================
-   6. КНОПКИ
+   9. ФИЛЬТРЫ - ПОЛНОСТЬЮ НОВЫЙ ДИЗАЙН
    ============================================================================= */
-.btn {
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  padding: 0.625rem 1.25rem;
-  transition: all var(--transition-fast);
-}
-
-.btn-gold {
-  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
-  border: none;
-  color: #000;
-}
-
-.btn-gold:hover {
-  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
-  color: #000;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-}
-
-.btn-outline-gold {
-  background: transparent;
-  border: 1px solid var(--color-gold);
-  color: var(--color-gold);
-}
-
-.btn-outline-gold:hover {
-  background: var(--color-gold);
-  color: #000;
-}
-
-.btn-outline-themed {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-.btn-outline-themed:hover {
-  border-color: var(--color-gold);
-  color: var(--color-gold);
-  background: rgba(212, 175, 55, 0.1);
-}
-
-.btn-outline-light {
-  border-color: var(--border-color);
-  color: var(--text-primary);
-}
-
-.btn-outline-light:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-
-/* =============================================================================
-   7. ФОРМЫ
-   ============================================================================= */
-.form-control,
-.form-select {
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  transition: all var(--transition-fast);
-}
-
-.form-control:focus,
-.form-select:focus {
-  background: var(--bg-input);
-  border-color: var(--color-gold);
-  color: var(--text-primary);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
-  outline: none;
-}
-
-.form-control::placeholder {
-  color: var(--text-muted);
-}
-
-.form-label {
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-}
-
-.form-select option {
-  background: var(--bg-card);
-  color: var(--text-primary);
-}
-
-/* Поле с иконкой */
-.input-with-icon {
-  position: relative;
-}
-
-.input-with-icon .input-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-gold);
-  z-index: 2;
-}
-
-.input-with-icon .form-control {
-  padding-left: 44px;
-}
-
-/* =============================================================================
-   8. КАРТОЧКИ
-   ============================================================================= */
-.card,
-.glass-card,
-.dashboard-card,
-.detail-card {
+.spaces-filter-panel {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  transition: all var(--transition-normal);
-}
-
-.card-header {
-  background: transparent;
-  border-bottom: 1px solid var(--border-color);
-  padding: 1.25rem 1.5rem;
-  color: var(--text-primary);
-}
-
-.card-body {
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
+  margin-bottom: 2rem;
 }
 
-.dashboard-card {
-  padding: 1.5rem;
-}
-
-.dashboard-card:hover {
-  border-color: var(--border-hover);
-}
-
-.dashboard-stat .number {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--color-gold);
-  line-height: 1;
-}
-
-.dashboard-stat .label {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 0.5rem;
-}
-
-/* Детальная карточка для страницы помещения */
-.detail-card {
-  padding: 1.5rem;
-}
-
-/* =============================================================================
-   9. ДЕТАЛЬНАЯ СТРАНИЦА ПОМЕЩЕНИЯ
-   ============================================================================= */
-
-/* Галерея */
-.detail-gallery {
+/* Поиск */
+.filter-search-wrapper {
   margin-bottom: 1.5rem;
 }
 
-.detail-gallery-main {
+.filter-search-box-modern {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-search-box-modern > i {
+  position: absolute;
+  left: 1rem;
+  color: var(--color-gold);
+  font-size: 1rem;
+  z-index: 2;
+}
+
+.filter-search-input-modern {
   width: 100%;
-  height: 450px;
-  object-fit: cover;
+  padding: 1rem 3rem 1rem 3rem;
+  background: var(--bg-input);
+  border: 2px solid var(--border-color);
   border-radius: var(--radius-lg);
-  margin-bottom: 0.75rem;
-}
-
-.detail-gallery-thumbs {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.detail-gallery-thumb {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: all var(--transition-fast);
-  opacity: 0.7;
-}
-
-.detail-gallery-thumb:hover,
-.detail-gallery-thumb.active {
-  opacity: 1;
-  border-color: var(--color-gold);
-}
-
-/* Бейджи на детальной странице */
-.detail-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-full);
-  padding: 8px 16px;
-  font-size: 0.9rem;
   color: var(--text-primary);
+  font-size: 1rem;
   transition: all var(--transition-fast);
 }
 
-.detail-badge:hover {
+.filter-search-input-modern:focus {
   border-color: var(--color-gold);
+  box-shadow: 0 0 0 4px rgba(var(--color-gold-rgb), 0.1);
+  outline: none;
 }
 
-/* Сайдбар с ценой */
-.price-sidebar {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-}
-
-.price-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.price-row:last-of-type {
-  border-bottom: none;
-}
-
-.price-value {
-  color: var(--color-gold);
-  font-size: 1.1rem;
-}
-
-/* Секция характеристик */
-.characteristics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-}
-
-.characteristic-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.characteristic-icon {
-  width: 48px;
-  height: 48px;
-  background: rgba(212, 175, 55, 0.1);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-gold);
-  flex-shrink: 0;
-}
-
-.characteristic-label {
-  font-size: 0.85rem;
+.filter-search-input-modern::placeholder {
   color: var(--text-muted);
-  margin-bottom: 0.25rem;
 }
 
-.characteristic-value {
+.search-loader {
+  position: absolute;
+  right: 1rem;
+}
+
+/* Сетка фильтров */
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-label-modern {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.filter-select-modern,
+.filter-input-modern {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+  appearance: none;
+}
+
+.filter-select-modern {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3e%3cpath fill='%23d4af37' d='M6 8L1 3h10z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.filter-select-modern:focus,
+.filter-input-modern:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(var(--color-gold-rgb), 0.1);
+  outline: none;
+}
+
+.filter-select-modern option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* Диапазон */
+.filter-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-range .filter-input-modern {
+  flex: 1;
+}
+
+.filter-range-divider {
+  color: var(--text-muted);
   font-weight: 500;
 }
 
-/* Карта */
-.map-container {
-  width: 100%;
-  height: 400px;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--bg-secondary);
+/* Категории - чипы */
+.filter-categories-section {
+  margin-bottom: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
 }
 
-.map-controls {
+.category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.category-chip:hover {
+  border-color: var(--color-gold);
+  background: rgba(var(--color-gold-rgb), 0.05);
+}
+
+.category-chip.active {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: #000;
+}
+
+.category-chip.active .chip-content {
+  color: #000;
+}
+
+.category-checkbox {
+  display: none;
+}
+
+.chip-content {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.category-chip:hover .chip-content {
+  color: var(--color-gold);
+}
+
+/* Действия фильтра */
+.filter-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filter-select-sm {
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* Результаты поиска */
+.search-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.results-count {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.results-count strong {
+  color: var(--color-gold);
 }
 
 /* =============================================================================
-   10. КНОПКИ ИЗБРАННОГО
+   10. КАСТОМНЫЙ КАЛЕНДАРЬ - НОВЫЙ
    ============================================================================= */
+.custom-datepicker-wrapper {
+  position: relative;
+}
 
-/* Кнопка на карточке (сердце в углу) */
+.custom-datepicker-trigger {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 0.95rem;
+}
+
+.custom-datepicker-trigger:hover {
+  border-color: var(--border-hover);
+}
+
+.custom-datepicker-trigger:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(var(--color-gold-rgb), 0.15);
+  outline: none;
+}
+
+.custom-calendar {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 320px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1rem;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--transition-fast);
+}
+
+.custom-calendar.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.calendar-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.calendar-nav-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.calendar-nav-btn:hover {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: #000;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0.5rem 0;
+  text-transform: uppercase;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.calendar-day:hover:not(.disabled):not(.other-month) {
+  background: rgba(var(--color-gold-rgb), 0.15);
+  color: var(--color-gold);
+}
+
+.calendar-day.today {
+  border: 2px solid var(--color-gold);
+}
+
+.calendar-day.selected {
+  background: var(--color-gold);
+  color: #000;
+  font-weight: 600;
+}
+
+.calendar-day.other-month {
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.calendar-day.disabled {
+  color: var(--text-muted);
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* =============================================================================
+   11. КАРТОЧКИ ПОМЕЩЕНИЙ
+   ============================================================================= */
+.space-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.space-card:hover {
+  border-color: var(--color-gold);
+  transform: translateY(-6px);
+  box-shadow: 0 20px 60px var(--shadow-color);
+}
+
+.space-card-image-wrapper {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.space-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+
+.space-card:hover .space-image {
+  transform: scale(1.08);
+}
+
+.space-badge-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--color-gold);
+  color: #000;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.space-city-overlay {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  backdrop-filter: blur(4px);
+}
+
+.space-card-body {
+  padding: 1.25rem;
+}
+
+.space-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.space-card-meta {
+  display: flex;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.space-card-desc {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.space-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.space-card-price .price-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.space-card-price .price-type {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* =============================================================================
+   12. КНОПКИ ИЗБРАННОГО
+   ============================================================================= */
 .space-favorite-btn {
   position: absolute;
   top: 12px;
   right: 12px;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: none;
   background: rgba(0, 0, 0, 0.5);
@@ -687,7 +1297,7 @@ main {
 .space-favorite-btn:hover {
   background: var(--color-danger);
   color: #fff;
-  transform: scale(1.1);
+  transform: scale(1.15);
 }
 
 .space-favorite-btn.active {
@@ -703,12 +1313,12 @@ main {
   transform: scale(0.9);
 }
 
-/* Inline кнопка на детальной странице */
+/* Inline кнопка избранного */
 .favorite-inline-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-color);
   background: transparent;
@@ -722,7 +1332,7 @@ main {
 .favorite-inline-btn:hover {
   border-color: var(--color-danger);
   color: var(--color-danger);
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--color-danger-bg);
 }
 
 .favorite-inline-btn.active {
@@ -745,7 +1355,6 @@ main {
   animation: heartPulse 0.6s ease;
 }
 
-/* Анимация пульса сердца */
 @keyframes heartPulse {
   0% {
     transform: scale(1);
@@ -765,7 +1374,150 @@ main {
 }
 
 /* =============================================================================
-   11. ОТЗЫВЫ
+   13. ДЕТАЛЬНЫЕ БЕЙДЖИ
+   ============================================================================= */
+.detail-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.detail-badge:hover {
+  border-color: var(--color-gold);
+  background: rgba(var(--color-gold-rgb), 0.05);
+}
+
+/* =============================================================================
+   14. ТАБЛИЦЫ - НОВЫЙ ДИЗАЙН
+   ============================================================================= */
+.table-themed {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-themed thead th {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.table-themed thead th:first-child {
+  border-radius: var(--radius-md) 0 0 0;
+}
+
+.table-themed thead th:last-child {
+  border-radius: 0 var(--radius-md) 0 0;
+}
+
+.table-themed tbody tr {
+  transition: all var(--transition-fast);
+}
+
+.table-themed tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.table-themed tbody td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.table-themed tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Бейджи статусов */
+.badge {
+  padding: 0.4em 0.8em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+}
+
+.bg-warning {
+  background: var(--color-warning) !important;
+  color: #000 !important;
+}
+
+.bg-success {
+  background: var(--color-success) !important;
+  color: #fff !important;
+}
+
+.bg-danger {
+  background: var(--color-danger) !important;
+  color: #fff !important;
+}
+
+.bg-secondary {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+.bg-info {
+  background: var(--color-info) !important;
+  color: #fff !important;
+}
+
+/* =============================================================================
+   15. ПАГИНАЦИЯ
+   ============================================================================= */
+.pagination-themed {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pagination-themed .page-item .page-link {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+}
+
+.pagination-themed .page-item .page-link:hover {
+  background: var(--bg-hover);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+.pagination-themed .page-item.active .page-link {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: #000;
+  font-weight: 600;
+}
+
+.pagination-themed .page-item.disabled .page-link {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* =============================================================================
+   16. ОТЗЫВЫ
    ============================================================================= */
 .reviews-count-badge {
   background: var(--bg-secondary);
@@ -782,6 +1534,7 @@ main {
   padding: 1.5rem;
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
 }
 
 .rating-overview-left {
@@ -854,6 +1607,7 @@ main {
 /* Форма отзыва */
 .review-form-box {
   background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
 }
@@ -872,9 +1626,9 @@ main {
 
 .star-rating-input label {
   cursor: pointer;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   color: var(--border-color);
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .star-rating-input label::before {
@@ -887,6 +1641,7 @@ main {
 .star-rating-input label:hover,
 .star-rating-input label:hover ~ label {
   color: var(--color-gold);
+  transform: scale(1.1);
 }
 
 .star-rating-input input:checked ~ label::before,
@@ -904,8 +1659,14 @@ main {
 
 .review-item {
   background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
+  transition: all var(--transition-fast);
+}
+
+.review-item:hover {
+  border-color: var(--border-hover);
 }
 
 .review-header {
@@ -968,111 +1729,295 @@ main {
 }
 
 /* =============================================================================
-   12. КАРТОЧКИ ПОМЕЩЕНИЙ
+   17. САЙДБАР ЦЕН
    ============================================================================= */
-.space-card {
+.price-sidebar,
+.booking-sidebar {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  overflow: hidden;
-  transition: all var(--transition-normal);
+  padding: 1.5rem;
 }
 
-.space-card:hover {
-  border-color: var(--color-gold);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px var(--shadow-color);
-}
-
-.space-card-image-wrapper {
-  position: relative;
-  height: 200px;
-  overflow: hidden;
-}
-
-.space-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-slow);
-}
-
-.space-card:hover .space-image {
-  transform: scale(1.05);
-}
-
-.space-badge-overlay {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: var(--color-gold);
-  color: #000;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.space-city-overlay {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  backdrop-filter: blur(4px);
-}
-
-.space-card-body {
-  padding: 1.25rem;
-}
-
-.space-card-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.space-card-meta {
-  display: flex;
-  gap: 1rem;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-}
-
-.space-card-desc {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.space-card-footer {
+.price-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.space-card-price .price-amount {
-  font-size: 1.1rem;
-  font-weight: 700;
+.price-row:last-of-type {
+  border-bottom: none;
+}
+
+.price-value {
   color: var(--color-gold);
-}
-
-.space-card-price .price-type {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 /* =============================================================================
-   13. ТАБЛИЦ
+   18. ФОРМА БРОНИРОВАНИЯ
    ============================================================================= */
+.booking-form-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+}
+
+/* =============================================================================
+   19. АВТОРИЗАЦИЯ
+   ============================================================================= */
+.auth-container {
+  min-height: calc(100vh - 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  padding-top: 100px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-card h2 {
+  font-size: 1.75rem;
+  letter-spacing: 2px;
+}
+
+/* =============================================================================
+   20. АЛЕРТЫ
+   ============================================================================= */
+.alert {
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  padding: 1rem 1.25rem;
+}
+
+.alert-success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.alert-danger {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.alert-warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning);
+  color: #92400e;
+}
+
+[data-theme="dark"] .alert-warning {
+  color: var(--color-warning);
+}
+
+.alert-info {
+  background: var(--color-info-bg);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+/* =============================================================================
+   21. УВЕДОМЛЕНИЯ (TOAST)
+   ============================================================================= */
+.notification-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  min-width: 300px;
+  max-width: 400px;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* =============================================================================
+   22. ФУТЕР
+   ============================================================================= */
+footer {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+}
+
+/* =============================================================================
+   23. ЗАГРУЗКА
+   ============================================================================= */
+.spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.spinner-border-lg {
+  width: 3rem;
+  height: 3rem;
+}
+
+.text-gold {
+  color: var(--color-gold) !important;
+}
+
+/* =============================================================================
+   24. АДАПТИВНОСТЬ
+   ============================================================================= */
+@media (max-width: 991.98px) {
+  .hero-section {
+    padding: 6rem 0 4rem;
+    min-height: auto;
+  }
+
+  .hero-section h1 {
+    font-size: 2rem;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .rating-overview {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .rating-overview-left {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-sort {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-sort .filter-label-modern {
+    margin-bottom: 0.5rem;
+  }
+
+  .custom-calendar {
+    width: 100%;
+    left: 0;
+    right: 0;
+  }
+
+  .dashboard-stat .number {
+    font-size: 2rem;
+  }
+
+  .auth-card {
+    padding: 1.5rem;
+  }
+
+  .notification-toast {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    min-width: auto;
+  }
+}
+
+/* =============================================================================
+   25. УТИЛИТЫ
+   ============================================================================= */
+.sticky-top {
+  position: sticky !important;
+}
+
+.rounded-3 {
+  border-radius: var(--radius-lg) !important;
+}
+
+.border-top {
+  border-top: 1px solid var(--border-color) !important;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Selection */
+::selection {
+  background: rgba(var(--color-gold-rgb), 0.3);
+  color: var(--text-primary);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
