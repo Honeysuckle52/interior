@@ -6,10 +6,16 @@
 {% block content %}
 <div class="container" style="padding-top: 100px;">
     <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb breadcrumb-styled">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}"><i class="fas fa-home me-1"></i>Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'space_detail' space.id %}">{{ space.title|truncatechars:25 }}</a></li>
-            <li class="breadcrumb-item active">Бронирование</li>
+        <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
+            <li class="breadcrumb-item">
+                <a href="{% url 'home' %}" class="breadcrumb-link fw-medium">
+                    <i class="fas fa-home me-1"></i>Главная
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'space_detail' space.id %}" class="breadcrumb-link fw-medium">{{ space.title|truncatechars:25 }}</a>
+            </li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page">Бронирование</li>
         </ol>
     </nav>
 

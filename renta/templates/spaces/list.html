@@ -5,6 +5,16 @@
 
 {% block content %}
 <div class="container" style="padding-top: 100px;">
+    <!-- Добавлен унифицированный breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
+            <li class="breadcrumb-item">
+                <a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a>
+            </li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page">Все помещения</li>
+        </ol>
+    </nav>
+
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="display-6 fw-bold mb-2 text-themed">Все помещения</h1>

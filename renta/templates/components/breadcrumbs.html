@@ -1,6 +1,6 @@
 {% comment %}
 ================================================================================
-КОМПОНЕНТ: Хлебные крошки
+КОМПОНЕНТ: Хлебные крошки (УНИФИЦИРОВАННЫЙ СТИЛЬ)
 ================================================================================
 Используется на всех внутренних страницах
 
@@ -8,18 +8,19 @@
 - items: список элементов [{'title': '...', 'url': '...'}, ...], последний без url
 {% endcomment %}
 
+<!-- Унифицированный стиль breadcrumb с золотым фоном -->
 <nav aria-label="breadcrumb" class="mb-4">
-    <ol class="breadcrumb breadcrumb-styled">
+    <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
         {% for item in items %}
             {% if item.url %}
             <li class="breadcrumb-item">
-                <a href="{{ item.url }}">
+                <a href="{{ item.url }}" class="breadcrumb-link fw-medium">
                     {% if item.icon %}<i class="fas {{ item.icon }} me-1"></i>{% endif %}
                     {{ item.title }}
                 </a>
             </li>
             {% else %}
-            <li class="breadcrumb-item active" aria-current="page">{{ item.title }}</li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page">{{ item.title }}</li>
             {% endif %}
         {% endfor %}
     </ol>

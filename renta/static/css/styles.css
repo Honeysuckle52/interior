@@ -8,6 +8,8 @@
  * - Стилизованы фильтры
  * - Исправлен календарь
  * - Добавлены недостающие компоненты
+ * - Добавлен prefers-reduced-motion
+ * - Удалены неиспользуемые стили
  */
 
 /* =============================================================================
@@ -54,14 +56,14 @@
   --radius-xl: 20px;
   --radius-full: 9999px;
 
-  /* Переходы */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-bounce: 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  /* Замедленные переходы для более плавных анимаций */
+  --transition-fast: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 600ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-/* Светлая тема - ПОЛНОСТЬЮ ПЕРЕРАБОТАНА */
+/* Светлая тема */
 [data-theme="light"] {
   --bg-primary: #fafafa;
   --bg-secondary: #f4f4f5;
@@ -78,6 +80,18 @@
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
   --navbar-bg: rgba(255, 255, 255, 0.95);
   --overlay-bg: rgba(0, 0, 0, 0.5);
+}
+
+/* Поддержка prefers-reduced-motion для пользователей с ограничениями */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* =============================================================================
@@ -112,7 +126,6 @@ main {
   flex: 1;
 }
 
-/* Тематический текст */
 .text-themed {
   color: var(--text-primary) !important;
 }
@@ -125,7 +138,6 @@ main {
   color: var(--color-gold) !important;
 }
 
-/* Ссылки */
 a {
   color: var(--color-gold);
   text-decoration: none;
@@ -137,7 +149,7 @@ a:hover {
 }
 
 /* =============================================================================
-   3. НАВИГАЦИЯ
+   3. НАВИГАЦИЯ - ИСПРАВЛЕНО ВЫРАВНИВАНИЕ
    ============================================================================= */
 .navbar {
   background: var(--navbar-bg);
@@ -168,6 +180,8 @@ a:hover {
   padding: 0.5rem 1rem !important;
   border-radius: var(--radius-md);
   position: relative;
+  /* Убираем подчеркивание с навигационных ссылок */
+  text-decoration: none !important;
 }
 
 .nav-link::after {
@@ -184,10 +198,75 @@ a:hover {
 
 .nav-link:hover {
   color: var(--color-gold) !important;
+  text-decoration: none !important;
 }
 
 .nav-link:hover::after {
   width: 60%;
+}
+
+/* Исправлено - dropdown-toggle не должен иметь подчеркивание */
+.nav-link.dropdown-toggle::after {
+  content: none;
+  display: inline-block;
+  margin-left: 0.255em;
+  vertical-align: 0.255em;
+  border-top: 0.3em solid;
+  border-right: 0.3em solid transparent;
+  border-bottom: 0;
+  border-left: 0.3em solid transparent;
+  width: auto;
+  height: auto;
+  background: none;
+  position: static;
+  transform: none;
+}
+
+/* Выравнивание элементов в navbar */
+.navbar-nav {
+  align-items: center;
+}
+
+.navbar-nav .nav-item {
+  display: flex;
+  align-items: center;
+}
+
+/* Исправленный стиль для кнопки темы и выравнивание с именем */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-toggle:hover {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+  background: rgba(var(--color-gold-rgb), 0.1);
+  transform: rotate(15deg);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95) rotate(15deg);
+}
+
+/* Замедленная анимация иконки темы */
+.theme-toggle i {
+  transition: transform var(--transition-slow);
+}
+
+.theme-toggle:hover i {
+  transform: scale(1.1);
 }
 
 .navbar-avatar {
@@ -239,7 +318,7 @@ a:hover {
   box-shadow: var(--shadow-lg);
   border-radius: var(--radius-lg);
   padding: 0.5rem;
-  animation: dropdownFadeIn 0.2s ease;
+  animation: dropdownFadeIn 0.25s ease;
 }
 
 @keyframes dropdownFadeIn {
@@ -260,12 +339,14 @@ a:hover {
   transition: all var(--transition-fast);
   display: flex;
   align-items: center;
+  text-decoration: none !important;
 }
 
 .dropdown-item:hover {
   background: var(--bg-hover);
   color: var(--color-gold);
   transform: translateX(4px);
+  text-decoration: none !important;
 }
 
 .dropdown-item i {
@@ -278,105 +359,59 @@ a:hover {
   margin: 0.5rem 0;
 }
 
-/* Переключатель темы */
-.theme-toggle {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.theme-toggle:hover {
-  border-color: var(--color-gold);
-  color: var(--color-gold);
-  background: rgba(var(--color-gold-rgb), 0.1);
-  transform: rotate(15deg);
-}
-
-.theme-toggle:active {
-  transform: scale(0.95) rotate(15deg);
-}
-
-.theme-toggle i {
-  transition: transform var(--transition-normal);
-}
-
-.theme-toggle:hover i {
-  transform: scale(1.1);
-}
-
 /* =============================================================================
-   4. ХЛЕБНЫЕ КРОШКИ
+   4. ХЛЕБНЫЕ КРОШКИ - УНИФИЦИРОВАННЫЙ СТИЛЬ
    ============================================================================= */
-.breadcrumb-styled {
-  background: transparent;
-  padding: 0;
-  margin: 0;
-}
-
-.breadcrumb-styled .breadcrumb-item {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.breadcrumb-styled .breadcrumb-item a {
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-
-.breadcrumb-styled .breadcrumb-item a:hover {
-  color: var(--color-gold);
-}
-
-.breadcrumb-styled .breadcrumb-item.active {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.breadcrumb-styled .breadcrumb-item + .breadcrumb-item::before {
-  color: var(--text-muted);
-  content: "/";
-}
-
-/* Видимые крошки */
+/* Единый стиль breadcrumb для всех страниц */
+.breadcrumb-styled,
 .breadcrumb-visible {
   background: rgba(var(--color-gold-rgb), 0.08);
   border: 1px solid rgba(var(--color-gold-rgb), 0.2);
   border-radius: var(--radius-md);
+  padding: 0.625rem 1rem;
   margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
 }
 
-.breadcrumb-visible .breadcrumb-item a {
+.breadcrumb-styled .breadcrumb-item,
+.breadcrumb-visible .breadcrumb-item {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.breadcrumb-styled .breadcrumb-item a,
+.breadcrumb-visible .breadcrumb-item a,
+.breadcrumb-link {
   color: var(--text-secondary);
-  text-decoration: none;
+  text-decoration: none !important;
   transition: color var(--transition-fast);
 }
 
-.breadcrumb-visible .breadcrumb-item a:hover {
+.breadcrumb-styled .breadcrumb-item a:hover,
+.breadcrumb-visible .breadcrumb-item a:hover,
+.breadcrumb-link:hover {
   color: var(--color-gold);
+  text-decoration: none !important;
 }
 
+.breadcrumb-styled .breadcrumb-item.active,
 .breadcrumb-visible .breadcrumb-item.active {
-  color: var(--color-gold);
+  color: var(--color-gold) !important;
   font-weight: 600;
 }
 
+.breadcrumb-styled .breadcrumb-item + .breadcrumb-item::before,
 .breadcrumb-visible .breadcrumb-item + .breadcrumb-item::before {
   color: var(--text-muted);
+  content: "/";
+  padding: 0 0.5rem;
 }
 
 /* =============================================================================
-   5. КНОПКИ - ПОЛНОСТЬЮ ПЕРЕРАБОТАНЫ С АНИМАЦИЯМИ
+   5. КНОПКИ
    ============================================================================= */
 .btn {
   font-weight: 500;
@@ -389,6 +424,7 @@ a:hover {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  text-decoration: none !important;
 }
 
 .btn::before {
@@ -409,7 +445,6 @@ a:hover {
   height: 300px;
 }
 
-/* Золотая кнопка - главная */
 .btn-gold {
   background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
   border: none;
@@ -430,7 +465,6 @@ a:hover {
   box-shadow: 0 2px 10px rgba(var(--color-gold-rgb), 0.3);
 }
 
-/* Контурная золотая */
 .btn-outline-gold {
   background: transparent;
   border: 2px solid var(--color-gold);
@@ -444,7 +478,6 @@ a:hover {
   box-shadow: 0 6px 20px rgba(var(--color-gold-rgb), 0.3);
 }
 
-/* Тематическая контурная */
 .btn-outline-themed {
   background: transparent;
   border: 1px solid var(--border-color);
@@ -458,7 +491,6 @@ a:hover {
   transform: translateY(-1px);
 }
 
-/* Светлая контурная */
 .btn-outline-light {
   border: 1px solid var(--border-color);
   color: var(--text-primary);
@@ -471,7 +503,6 @@ a:hover {
   color: var(--text-primary);
 }
 
-/* Success кнопка */
 .btn-success {
   background: linear-gradient(135deg, var(--color-success), #16a34a);
   border: none;
@@ -485,7 +516,6 @@ a:hover {
   color: #fff;
 }
 
-/* Danger кнопка */
 .btn-danger {
   background: linear-gradient(135deg, var(--color-danger), #dc2626);
   border: none;
@@ -533,7 +563,6 @@ a:hover {
   color: #fff;
 }
 
-/* Кнопка закрытия для алертов */
 .btn-close {
   filter: invert(1);
   opacity: 0.5;
@@ -549,7 +578,7 @@ a:hover {
 }
 
 /* =============================================================================
-   6. ФОРМЫ - УЛУЧШЕНЫ
+   6. ФОРМЫ
    ============================================================================= */
 .form-control,
 .form-select {
@@ -592,7 +621,6 @@ a:hover {
   color: var(--text-primary);
 }
 
-/* Чекбоксы и радио */
 .form-check-input {
   background-color: var(--bg-input);
   border-color: var(--border-color);
@@ -612,7 +640,6 @@ a:hover {
   color: var(--text-secondary);
 }
 
-/* Поле с иконкой */
 .input-with-icon {
   position: relative;
 }
@@ -690,7 +717,7 @@ a:hover {
 }
 
 /* =============================================================================
-   8. ГЛАВНАЯ СТРАНИЦА (HERO & STATS)
+   8. ГЛАВНАЯ СТРАНИЦА
    ============================================================================= */
 .hero-section {
   position: relative;
@@ -745,7 +772,6 @@ a:hover {
   color: var(--text-secondary);
 }
 
-/* Статистика */
 .stats-section {
   background: var(--bg-card);
   border-top: 1px solid var(--border-color);
@@ -768,7 +794,6 @@ a:hover {
   letter-spacing: 1.5px;
 }
 
-/* Анимации появления */
 .animate-fade-in {
   animation: fadeInUp 0.8s ease forwards;
   opacity: 0;
@@ -796,7 +821,7 @@ a:hover {
 }
 
 /* =============================================================================
-   9. ФИЛЬТРЫ - ПОЛНОСТЬЮ НОВЫЙ ДИЗАЙН
+   9. ФИЛЬТРЫ
    ============================================================================= */
 .spaces-filter-panel {
   background: var(--bg-card);
@@ -806,7 +831,6 @@ a:hover {
   margin-bottom: 2rem;
 }
 
-/* Поиск */
 .filter-search-wrapper {
   margin-bottom: 1.5rem;
 }
@@ -851,7 +875,6 @@ a:hover {
   right: 1rem;
 }
 
-/* Сетка фильтров */
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -905,7 +928,6 @@ a:hover {
   color: var(--text-primary);
 }
 
-/* Диапазон */
 .filter-range {
   display: flex;
   align-items: center;
@@ -921,7 +943,6 @@ a:hover {
   font-weight: 500;
 }
 
-/* Категории - чипы */
 .filter-categories-section {
   margin-bottom: 1.5rem;
   padding-top: 1rem;
@@ -976,7 +997,6 @@ a:hover {
   color: var(--color-gold);
 }
 
-/* Действия фильтра */
 .filter-actions {
   display: flex;
   justify-content: space-between;
@@ -998,7 +1018,6 @@ a:hover {
   font-size: 0.85rem;
 }
 
-/* Результаты поиска */
 .search-results-header {
   display: flex;
   justify-content: space-between;
@@ -1015,7 +1034,7 @@ a:hover {
 }
 
 /* =============================================================================
-   10. КАСТОМНЫЙ КАЛЕНДАРЬ - НОВЫЙ
+   10. КАСТОМНЫЙ КАЛЕНДАРЬ
    ============================================================================= */
 .custom-datepicker-wrapper {
   position: relative;
@@ -1313,7 +1332,6 @@ a:hover {
   transform: scale(0.9);
 }
 
-/* Inline кнопка избранного */
 .favorite-inline-btn {
   display: inline-flex;
   align-items: center;
@@ -1395,7 +1413,7 @@ a:hover {
 }
 
 /* =============================================================================
-   14. ТАБЛИЦЫ - НОВЫЙ ДИЗАЙН
+   14. ТАБЛИЦЫ
    ============================================================================= */
 .table-themed {
   width: 100%;
@@ -1494,6 +1512,7 @@ a:hover {
   align-items: center;
   justify-content: center;
   min-width: 42px;
+  text-decoration: none !important;
 }
 
 .pagination-themed .page-item .page-link:hover {
@@ -1604,7 +1623,6 @@ a:hover {
   color: var(--text-muted);
 }
 
-/* Форма отзыва */
 .review-form-box {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -1612,7 +1630,7 @@ a:hover {
   padding: 1.5rem;
 }
 
-/* Star rating input */
+/* Исправленный Star rating input с улучшенной кликабельностью */
 .star-rating-input {
   display: flex;
   flex-direction: row-reverse;
@@ -1629,6 +1647,7 @@ a:hover {
   font-size: 1.75rem;
   color: var(--border-color);
   transition: all var(--transition-fast);
+  padding: 2px;
 }
 
 .star-rating-input label::before {
@@ -1650,7 +1669,6 @@ a:hover {
   font-weight: 900;
 }
 
-/* Список отзывов */
 .reviews-list {
   display: flex;
   flex-direction: column;
@@ -1729,7 +1747,7 @@ a:hover {
 }
 
 /* =============================================================================
-   17. САЙДБАР ЦЕН
+   17. САЙДБАРЫ
    ============================================================================= */
 .price-sidebar,
 .booking-sidebar {
@@ -1832,7 +1850,7 @@ a:hover {
 }
 
 /* =============================================================================
-   21. УВЕДОМЛЕНИЯ (TOAST)
+   21. УВЕДОМЛЕНИЯ
    ============================================================================= */
 .notification-toast {
   position: fixed;
@@ -1997,13 +2015,11 @@ footer {
   border: 0 !important;
 }
 
-/* Selection */
 ::selection {
   background: rgba(var(--color-gold-rgb), 0.3);
   color: var(--text-primary);
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -2020,4 +2036,25 @@ footer {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover);
+}
+
+/* Убираем подчеркивание со всех ссылок в навигации */
+.navbar a,
+.dropdown-menu a {
+  text-decoration: none !important;
+}
+
+/* Booking card link style */
+.booking-card-link {
+  transition: all var(--transition-fast);
+}
+
+.booking-card-link:hover {
+  border-color: var(--color-gold);
+}
+
+.price-tag {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-gold);
 }

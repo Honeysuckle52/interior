@@ -4,9 +4,9 @@
  * Сайт аренды помещений "ИНТЕРЬЕР"
  * =============================================================================
  * ИСПРАВЛЕННАЯ ВЕРСИЯ:
- * - Улучшена работа темы
+ * - Улучшена работа темы с замедленными анимациями
+ * - Исправлена форма отзывов (rating)
  * - Добавлены анимации
- * - Исправлены баги
  */
 
 /* =============================================================================
@@ -19,42 +19,39 @@ document.addEventListener("DOMContentLoaded", () => {
   initSmoothScroll()
   initButtonAnimations()
   initFormEnhancements()
+  initReviewForm()
 })
 
 /* =============================================================================
-   2. УПРАВЛЕНИЕ ТЕМОЙ - УЛУЧШЕНО
+   2. УПРАВЛЕНИЕ ТЕМОЙ - ЗАМЕДЛЕННЫЕ АНИМАЦИИ
    ============================================================================= */
 function initThemeManager() {
   const themeToggle = document.getElementById("themeToggle")
   const themeIcon = document.getElementById("themeIcon")
   const html = document.documentElement
 
-  // Получаем сохранённую тему или системную
   const savedTheme = localStorage.getItem("interior_theme")
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
   const initialTheme = savedTheme || (prefersDark ? "dark" : "light")
 
-  // Применяем тему при загрузке
   applyTheme(initialTheme, false)
 
-  // Обработчик клика на кнопку переключения темы
   if (themeToggle) {
     themeToggle.addEventListener("click", () => {
       const currentTheme = html.getAttribute("data-theme")
       const newTheme = currentTheme === "dark" ? "light" : "dark"
 
-      // Добавляем анимацию переключения
       themeToggle.style.transform = "rotate(360deg) scale(0.8)"
+      themeToggle.style.transition = "transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)"
 
       setTimeout(() => {
         applyTheme(newTheme, true)
         localStorage.setItem("interior_theme", newTheme)
         themeToggle.style.transform = ""
-      }, 150)
+      }, 250)
     })
   }
 
-  // Слушаем изменения системной темы
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
     if (!localStorage.getItem("interior_theme")) {
       applyTheme(e.matches ? "dark" : "light", true)
@@ -63,19 +60,18 @@ function initThemeManager() {
 
   function applyTheme(theme, animate = true) {
     if (animate) {
-      html.style.transition = "background-color 0.3s, color 0.3s"
+      html.style.transition = "background-color 0.5s ease, color 0.5s ease"
     }
 
     html.setAttribute("data-theme", theme)
 
-    // Обновляем иконку
     if (themeIcon) {
       if (animate) {
         themeIcon.style.transform = "scale(0)"
         setTimeout(() => {
           themeIcon.className = theme === "dark" ? "fas fa-moon" : "fas fa-sun"
           themeIcon.style.transform = "scale(1)"
-        }, 150)
+        }, 250)
       } else {
         themeIcon.className = theme === "dark" ? "fas fa-moon" : "fas fa-sun"
       }
@@ -98,10 +94,53 @@ function initThemeManager() {
 }
 
 /* =============================================================================
-   3. АНИМАЦИИ КНОПОК - НОВОЕ
+   3. ФОРМА ОТЗЫВОВ - ИСПРАВЛЕНО
+   ============================================================================= */
+function initReviewForm() {
+  const starRating = document.getElementById("starRating")
+  const ratingValue = document.getElementById("ratingValue")
+  const reviewForm = document.getElementById("reviewForm")
+
+  if (starRating && ratingValue) {
+    // Обрабатываем клики по звездам
+    const starInputs = starRating.querySelectorAll('input[type="radio"]')
+    const starLabels = starRating.querySelectorAll("label")
+
+    starInputs.forEach((input) => {
+      input.addEventListener("change", function () {
+        ratingValue.value = this.value
+      })
+    })
+
+    // Также добавляем обработчик клика на лейблы для надежности
+    starLabels.forEach((label) => {
+      label.addEventListener("click", function () {
+        const forAttr = this.getAttribute("for")
+        const input = document.getElementById(forAttr)
+        if (input) {
+          input.checked = true
+          ratingValue.value = input.value
+        }
+      })
+    })
+  }
+
+  // Валидация формы перед отправкой
+  if (reviewForm) {
+    reviewForm.addEventListener("submit", (e) => {
+      if (!ratingValue || !ratingValue.value) {
+        e.preventDefault()
+        showNotification("Пожалуйста, выберите оценку (звёзды)", "warning")
+        return false
+      }
+    })
+  }
+}
+
+/* =============================================================================
+   4. АНИМАЦИИ КНОПОК
    ============================================================================= */
 function initButtonAnimations() {
-  // Ripple эффект для кнопок
   document.querySelectorAll(".btn").forEach((btn) => {
     btn.addEventListener("click", function (e) {
       const rect = this.getBoundingClientRect()
@@ -132,7 +171,6 @@ function initButtonAnimations() {
     })
   })
 
-  // Добавляем CSS для ripple анимации
   if (!document.getElementById("ripple-styles")) {
     const style = document.createElement("style")
     style.id = "ripple-styles"
@@ -149,10 +187,9 @@ function initButtonAnimations() {
 }
 
 /* =============================================================================
-   4. УЛУЧШЕНИЯ ФОРМ - НОВОЕ
+   5. УЛУЧШЕНИЯ ФОРМ
    ============================================================================= */
 function initFormEnhancements() {
-  // Анимация фокуса для инпутов
   document.querySelectorAll(".form-control, .form-select").forEach((input) => {
     input.addEventListener("focus", function () {
       this.parentElement?.classList.add("input-focused")
@@ -163,7 +200,6 @@ function initFormEnhancements() {
     })
   })
 
-  // Автоматическое изменение размера textarea
   document.querySelectorAll("textarea").forEach((textarea) => {
     textarea.addEventListener("input", function () {
       this.style.height = "auto"
@@ -173,7 +209,7 @@ function initFormEnhancements() {
 }
 
 /* =============================================================================
-   5. ИЗБРАННОЕ (AJAX) - УЛУЧШЕНО
+   6. ИЗБРАННОЕ (AJAX)
    ============================================================================= */
 function initFavoriteButtons() {
   const favoriteButtons = document.querySelectorAll(".space-favorite-btn, .favorite-inline-btn, .favorite-btn")
@@ -199,7 +235,6 @@ async function handleFavoriteClick(event) {
     return
   }
 
-  // Анимация нажатия
   btn.style.transform = "scale(0.85)"
   btn.style.transition = "transform 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55)"
 
@@ -224,10 +259,8 @@ async function handleFavoriteClick(event) {
     const data = await response.json()
     const isFavorite = data.is_favorite || data.status === "added"
 
-    // Обновляем внешний вид кнопки
     updateFavoriteButton(btn, icon, textEl, isFavorite)
 
-    // Анимация отскока
     setTimeout(() => {
       btn.style.transform = isFavorite ? "scale(1.2)" : "scale(1)"
       setTimeout(() => {
@@ -238,7 +271,6 @@ async function handleFavoriteClick(event) {
     const message = data.message || (isFavorite ? "Добавлено в избранное" : "Удалено из избранного")
     showNotification(message, "success")
 
-    // Удаление карточки на странице избранного
     if (!isFavorite && btn.closest(".col-lg-4, .col-md-6")) {
       const card = btn.closest(".col-lg-4, .col-md-6")
       if (window.location.pathname.includes("favorites")) {
@@ -287,24 +319,22 @@ function animateCardRemoval(card) {
 }
 
 /* =============================================================================
-   6. УВЕДОМЛЕНИЯ (TOAST) - УЛУЧШЕНО
+   7. УВЕДОМЛЕНИЯ (TOAST)
    ============================================================================= */
 function showNotification(message, type = "success") {
-  // Удаляем предыдущее уведомление
   const existingToast = document.querySelector(".notification-toast")
   if (existingToast) {
     existingToast.style.animation = "slideOut 0.3s ease forwards"
     setTimeout(() => existingToast.remove(), 300)
   }
 
-  // Создаём новое уведомление
   const toast = document.createElement("div")
   toast.className = `notification-toast alert alert-${type}`
   toast.innerHTML = `
     <div style="display: flex; align-items: center; gap: 0.75rem;">
       <i class="fas ${getNotificationIcon(type)}" style="font-size: 1.1rem;"></i>
       <span style="flex: 1;">${message}</span>
-      <button type="button" style="background: none; border: none; cursor: pointer; opacity: 0.7; padding: 0;" onclick="this.parentElement.parentElement.remove()">
+      <button type="button" style="background: none; border: none; cursor: pointer; opacity: 0.7; padding: 0; color: inherit;" onclick="this.parentElement.parentElement.remove()">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -312,7 +342,6 @@ function showNotification(message, type = "success") {
 
   document.body.appendChild(toast)
 
-  // Автоматическое скрытие через 4 секунды
   setTimeout(() => {
     if (toast.parentElement) {
       toast.style.animation = "slideOut 0.3s ease forwards"
@@ -332,9 +361,13 @@ function getNotificationIcon(type) {
 }
 
 /* =============================================================================
-   7. АНИМАЦИИ ПРИ ПРОКРУТКЕ
+   8. АНИМАЦИИ ПРИ ПРОКРУТКЕ
    ============================================================================= */
 function initScrollAnimations() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return
+  }
+
   const observerOptions = {
     threshold: 0.1,
     rootMargin: "0px 0px -50px 0px",
@@ -343,7 +376,6 @@ function initScrollAnimations() {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry, index) => {
       if (entry.isIntersecting) {
-        // Добавляем задержку для каскадного эффекта
         setTimeout(() => {
           entry.target.classList.add("animate-fade-in")
         }, index * 50)
@@ -380,7 +412,7 @@ function initSmoothScroll() {
 }
 
 /* =============================================================================
-   8. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+   9. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
    ============================================================================= */
 function getCsrfToken() {
   const cookieToken = getCookie("csrftoken")
@@ -438,4 +470,5 @@ window.InteriorApp = {
   getCsrfToken,
   debounce,
   initFavoriteButtons,
+  initReviewForm,
 }
