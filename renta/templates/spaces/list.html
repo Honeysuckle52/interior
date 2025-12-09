@@ -27,8 +27,6 @@
         <form id="spacesFilterForm">
             <!-- Улучшенная строка поиска -->
             <div class="filter-search-wrapper">
-                <div class="filter-search-box-modern">
-                    <i class="fas fa-search"></i>
                     <input type="text" name="search" id="spaceSearch"
                            class="filter-search-input-modern"
                            placeholder="Умный поиск: офис 100 м² на 20 человек..."
@@ -37,14 +35,13 @@
                     <div class="search-loader d-none" id="searchLoader">
                         <div class="spinner-border spinner-border-sm text-gold" role="status"></div>
                     </div>
-                </div>
             </div>
 
             <!-- Основные фильтры в сетке -->
             <div class="filter-grid">
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-map-marker-alt me-2 gold-text"></i>Город
+                        </i>Город
                     </label>
                     <select name="city" id="cityFilter" class="filter-select-modern">
                         <option value="">Все города</option>
@@ -56,7 +53,7 @@
 
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-ruler-combined me-2 gold-text"></i>Площадь, м²
+                        </i>Площадь, м²
                     </label>
                     <div class="filter-range">
                         <input type="number" name="min_area" id="minArea" class="filter-input-modern" placeholder="от" value="{{ min_area }}" min="0">
@@ -67,14 +64,14 @@
 
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-users me-2 gold-text"></i>Вместимость
+                        </i>Вместимость
                     </label>
                     <input type="number" name="min_capacity" id="minCapacity" class="filter-input-modern" placeholder="от человек" value="{{ min_capacity }}" min="1">
                 </div>
 
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-ruble-sign me-2 gold-text"></i>Цена, ₽
+                        </i>Цена, ₽
                     </label>
                     <div class="filter-range">
                         <input type="number" name="min_price" id="minPrice" class="filter-input-modern" placeholder="от" value="{{ min_price }}" min="0">
@@ -87,7 +84,7 @@
             <!-- Категории в виде чипов -->
             <div class="filter-categories-section">
                 <label class="filter-label-modern mb-3">
-                    <i class="fas fa-th-large me-2 gold-text"></i>Категории
+                    </i>Категории
                 </label>
                 <div class="category-chips">
                     {% for category in categories %}
@@ -107,7 +104,7 @@
             <div class="filter-actions">
                 <div class="filter-sort">
                     <label class="filter-label-modern mb-0">
-                        <i class="fas fa-sort me-2 gold-text"></i>Сортировка:
+                        </i>Сортировка:
                     </label>
                     <select name="sort" id="sortFilter" class="filter-select-modern filter-select-sm">
                         <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Новые</option>
