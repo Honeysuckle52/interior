@@ -1,8 +1,40 @@
 """
-ПРЕДСТАВЛЕНИЯ ДЛЯ ПОМЕЩЕНИЙ
+====================================================================
+ПРЕДСТАВЛЕНИЯ ДЛЯ ПОМЕЩЕНИЙ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит представления Django для всей функциональности,
+связанной с помещениями для аренды, включая просмотр списка, деталей,
+фильтрацию, сортировку, а также управление помещениями для администраторов.
 
-Handles listing and detail views for rental spaces with filtering,
-sorting, and pagination support.
+Основные представления:
+- spaces_list: Список помещений с фильтрацией, сортировкой и пагинацией
+- spaces_ajax: AJAX endpoint для динамической фильтрации помещений
+- space_detail: Детальная страница помещения с отзывами, изображениями и ценами
+- manage_spaces: Панель управления помещениями для администраторов
+- add_space: Добавление нового помещения
+- edit_space: Редактирование существующего помещения
+- delete_space: Удаление помещения
+
+Вспомогательные функции:
+- _parse_int, _parse_float: Безопасный парсинг числовых значений
+- _parse_smart_search: "Умный" поиск с извлечением числовых параметров
+- _apply_filters: Применение фильтров к queryset
+- _apply_sorting: Применение сортировки к queryset
+
+Константы:
+- DEFAULT_ITEMS_PER_PAGE: Количество элементов на странице по умолчанию
+- MAX_ITEMS_PER_PAGE: Максимальное количество элементов на странице
+- MIN_RATING, MAX_RATING: Границы рейтинга
+- RELATED_SPACES_LIMIT: Количество похожих помещений на детальной странице
+- MAX_RECENT_REVIEWS: Максимальное количество отображаемых отзывов
+
+Особенности:
+- "Умный" поиск с распознаванием числовых параметров (площадь, вместимость)
+- AJAX фильтрация без перезагрузки страницы
+- Оптимизированные запросы к БД с select_related и prefetch_related
+- Статистика отзывов и рейтингов на детальной странице
+- Пагинация с настраиваемым количеством элементов на странице
+====================================================================
 """
 
 from __future__ import annotations
@@ -34,7 +66,16 @@ logger = logging.getLogger(__name__)
 
 
 def _parse_int(value: str, default: int | None = None) -> int | None:
-    """Safely parse integer from string."""
+    """
+    Безопасный парсинг целочисленного значения из строки.
+
+    Args:
+        value (str): Строка для парсинга
+        default (int | None): Значение по умолчанию при ошибке
+
+    Returns:
+        int | None: Распарсенное целое число или значение по умолчанию
+    """
     if not value:
         return default
     try:
@@ -44,7 +85,16 @@ def _parse_int(value: str, default: int | None = None) -> int | None:
 
 
 def _parse_float(value: str, default: float | None = None) -> float | None:
-    """Safely parse float from string."""
+    """
+    Безопасный парсинг вещественного числа из строки.
+
+    Args:
+        value (str): Строка для парсинга
+        default (float | None): Значение по умолчанию при ошибке
+
+    Returns:
+        float | None: Распарсенное вещественное число или значение по умолчанию
+    """
     if not value:
         return default
     try:
@@ -55,11 +105,21 @@ def _parse_float(value: str, default: float | None = None) -> float | None:
 
 def _parse_smart_search(query: str) -> dict[str, Any]:
     """
-    Parse natural language search query to extract structured filters.
-    Examples:
-    - "100 м²" -> {'area': 100}
-    - "50 человек" -> {'capacity': 50}
+    Парсинг естественно-языкового поискового запроса для извлечения структурированных фильтров.
+
+    Примеры:
+    - "100 м²" -> {'text': '', 'area': 100, 'capacity': None}
+    - "50 человек" -> {'text': '', 'area': None, 'capacity': 50}
     - "офис 200 м² на 30 человек" -> {'text': 'офис', 'area': 200, 'capacity': 30}
+
+    Args:
+        query (str): Поисковый запрос пользователя
+
+    Returns:
+        dict[str, Any]: Словарь с извлеченными параметрами:
+            - text: Текстовый поисковый запрос (очищенный от числовых параметров)
+            - area: Извлеченная площадь помещения
+            - capacity: Извлеченная вместимость помещения
     """
     result = {'text': query, 'area': None, 'capacity': None}
 
@@ -101,14 +161,14 @@ def _apply_filters(
     filters: dict[str, Any]
 ) -> QuerySet[Space]:
     """
-    Apply all filters to the spaces queryset.
+    Применение всех фильтров к queryset помещений.
 
     Args:
-        spaces: Base queryset
-        filters: Dictionary with filter values
+        spaces (QuerySet[Space]): Базовый queryset помещений
+        filters (dict[str, Any]): Словарь с значениями фильтров
 
     Returns:
-        Filtered queryset
+        QuerySet[Space]: Отфильтрованный queryset
     """
     try:
         if filters.get('search_query'):
@@ -174,14 +234,14 @@ def _apply_filters(
 
 def _apply_sorting(spaces: QuerySet[Space], sort_by: str) -> QuerySet[Space]:
     """
-    Apply sorting to the spaces queryset.
+    Применение сортировки к queryset помещений.
 
     Args:
-        spaces: Queryset to sort
-        sort_by: Sort option key
+        spaces (QuerySet[Space]): Queryset для сортировки
+        sort_by (str): Ключ варианта сортировки
 
     Returns:
-        Sorted queryset
+        QuerySet[Space]: Отсортированный queryset
     """
     sort_options: dict[str, str] = {
         'price_asc': 'min_price_value',
@@ -202,13 +262,28 @@ def _apply_sorting(spaces: QuerySet[Space], sort_by: str) -> QuerySet[Space]:
 
 def spaces_list(request: HttpRequest) -> HttpResponse:
     """
-    Display paginated list of spaces with filtering and sorting.
+    Отображение пагинированного списка помещений с фильтрацией и сортировкой.
 
     Args:
-        request: HTTP request object
+        request (HttpRequest): Объект HTTP запроса
 
     Returns:
-        Rendered spaces list template
+        HttpResponse: Отрисовка шаблона списка помещений
+
+    Template:
+        spaces/list.html
+
+    Context:
+        - spaces: Пагинированный список помещений
+        - cities: Список городов для фильтра
+        - categories: Список категорий для фильтра
+        - search_query: Текущий поисковый запрос
+        - selected_city: Выбранный город
+        - selected_categories: Выбранные категории
+        - min_area, max_area, min_price, max_price, min_capacity: Числовые фильтры
+        - sort_by: Текущая сортировка
+        - favorite_ids: Множество ID избранных помещений для авторизованных пользователей
+        - total_count: Общее количество найденных помещений
     """
     try:
         # Base queryset with optimizations
@@ -282,7 +357,7 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
             'categories': categories,
             'search_query': filters['search_query'],
             'selected_city': request.GET.get('city', ''),
-            'selected_categories': [str(c) for c in category_ids],  # List of selected categories
+            'selected_categories': [str(c) for c in category_ids],
             'min_area': request.GET.get('min_area', ''),
             'max_area': request.GET.get('max_area', ''),
             'min_price': request.GET.get('min_price', ''),
@@ -306,8 +381,26 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
 
 def spaces_ajax(request: HttpRequest) -> JsonResponse:
     """
-    AJAX endpoint для живой фильтрации помещений.
-    Возвращает HTML карточек и количество результатов.
+    AJAX endpoint для динамической (живой) фильтрации помещений.
+
+    Используется для обновления списка помещений без перезагрузки страницы.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        JsonResponse: JSON с HTML карточек и метаданными пагинации
+
+    Response Format:
+        {
+            'success': bool,
+            'html': str (HTML карточек),
+            'total_count': int,
+            'has_next': bool,
+            'has_previous': bool,
+            'current_page': int,
+            'total_pages': int
+        }
     """
     try:
         # Base queryset with optimizations
@@ -394,14 +487,34 @@ def spaces_ajax(request: HttpRequest) -> JsonResponse:
 
 def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Display detailed information about a specific space.
+    Детальная страница помещения.
+
+    Отображает полную информацию о помещении, включая изображения,
+    цены, отзывы, статистику рейтингов и похожие помещения.
 
     Args:
-        request: HTTP request object
-        pk: Space primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID помещения
 
     Returns:
-        Rendered space detail template
+        HttpResponse: Отрисовка детальной страницы помещения
+
+    Template:
+        spaces/detail.html
+
+    Context:
+        - space: Объект помещения
+        - images: Все изображения помещения
+        - main_image: Главное (основное) изображение
+        - space_prices: Активные цены помещения по периодам
+        - related_spaces: Похожие помещения (та же категория или город)
+        - reviews: Последние одобренные отзывы
+        - avg_rating: Средний рейтинг (округленный до 1 знака)
+        - reviews_count: Общее количество одобренных отзывов
+        - rating_distribution: Распределение рейтингов по звездам
+        - rating_list: Список рейтингов для итерации в шаблоне
+        - is_favorite: Находится ли помещение в избранном у пользователя
+        - can_review: Может ли пользователь оставить отзыв для этого помещения
     """
     try:
         space: Space = get_object_or_404(
@@ -493,7 +606,7 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
             'avg_rating': round(avg_rating, 1),
             'reviews_count': reviews_count,
             'rating_distribution': rating_distribution,
-            'rating_list': rating_list,  # Added for template iteration
+            'rating_list': rating_list,
             'is_favorite': is_favorite,
             'can_review': can_review,
         }
@@ -511,7 +624,20 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def manage_spaces(request: HttpRequest) -> HttpResponse:
     """
-    Страница управления помещениями для админов и модераторов.
+    Страница управления помещениями для администраторов и модераторов.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка страницы управления помещениями
+
+    Template:
+        spaces/manage.html
+
+    Context:
+        - spaces: Пагинированный список всех помещений
+        - stats: Статистика помещений (всего, активных, рекомендуемых, неактивных)
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для управления помещениями')
@@ -547,6 +673,19 @@ def manage_spaces(request: HttpRequest) -> HttpResponse:
 def add_space(request: HttpRequest) -> HttpResponse:
     """
     Добавление нового помещения.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка формы добавления или редирект при успехе
+
+    Template:
+        spaces/add.html
+
+    Context:
+        - form: Форма добавления помещения
+        - pricing_periods: Все доступные периоды ценообразования
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для добавления помещений')
@@ -599,7 +738,23 @@ def add_space(request: HttpRequest) -> HttpResponse:
 @login_required
 def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Редактирование помещения.
+    Редактирование существующего помещения.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID помещения для редактирования
+
+    Returns:
+        HttpResponse: Отрисовка формы редактирования или редирект при успехе
+
+    Template:
+        spaces/edit.html
+
+    Context:
+        - form: Форма редактирования помещения
+        - space: Объект редактируемого помещения
+        - pricing_periods: Все доступные периоды ценообразования
+        - current_prices: Текущие цены помещения для предзаполнения формы
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для редактирования помещений')
@@ -664,6 +819,13 @@ def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
 def delete_space(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Удаление помещения.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID помещения для удаления
+
+    Returns:
+        HttpResponse: Редирект на страницу управления помещениями
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для удаления помещений')

@@ -1,7 +1,32 @@
 """
-ПРЕДСТАВЛЕНИЯ ДЛЯ ОТЗЫВОВ
+====================================================================
+ПРЕДСТАВЛЕНИЯ ДЛЯ ОТЗЫВОВ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит представления Django для всей функциональности,
+связанной с отзывами на помещения, включая создание, просмотр,
+редактирование, удаление и модерацию отзывов.
 
-Handles review creation, listing, and deletion.
+Основные представления:
+- create_review: Создание нового отзыва на помещение
+- my_reviews: Просмотр всех отзывов текущего пользователя
+- delete_review: Удаление собственного отзыва
+- edit_review: Редактирование отзыва (только для администраторов/модераторов)
+- admin_delete_review: Удаление любого отзыва (админ/модератор)
+- approve_review: Одобрение отзыва для публикации (админ/модератор)
+- manage_reviews: Панель управления отзывами для модерации
+
+Константы:
+- REVIEWS_PER_PAGE: Количество отзывов на странице пагинации
+- COMPLETED_BOOKING_STATUS: Статус завершенного бронирования для связывания
+
+Особенности:
+- Проверка, что пользователь не оставлял отзыв на то же помещение ранее
+- Связывание отзывов с завершенными бронированиями (при наличии)
+- Модерация: все отзывы создаются в статусе неодобренных (is_approved=False)
+- Разделение прав: пользователи могут удалять только свои отзывы
+- Фильтрация и поиск в панели управления отзывами
+- Статистика отзывов для администраторов
+====================================================================
 """
 
 from __future__ import annotations
@@ -32,14 +57,20 @@ logger = logging.getLogger(__name__)
 @require_POST
 def create_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Create a review for a space.
+    Создание нового отзыва на помещение.
+
+    Проверяет, что пользователь не оставлял отзыв на это помещение ранее,
+    и связывает отзыв с завершенным бронированием (если есть).
 
     Args:
-        request: HTTP request
-        pk: Space primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID помещения для отзыва
 
     Returns:
-        Redirect to space detail page
+        HttpResponse: Редирект на страницу помещения
+
+    Note:
+        Все новые отзывы создаются с is_approved=False и требуют модерации
     """
     try:
         space: Space = get_object_or_404(Space, pk=pk, is_active=True)
@@ -96,13 +127,20 @@ def create_review(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def my_reviews(request: HttpRequest) -> HttpResponse:
     """
-    Display all reviews by the current user.
+    Просмотр всех отзывов текущего пользователя.
 
     Args:
-        request: HTTP request
+        request (HttpRequest): Объект HTTP запроса
 
     Returns:
-        Rendered reviews list template
+        HttpResponse: Отрисовка страницы со списком отзывов
+
+    Template:
+        account/reviews.html
+
+    Context:
+        - reviews: Пагинированный список отзывов пользователя
+        - error: Сообщение об ошибке (при наличии)
     """
     try:
         reviews = Review.objects.filter(
@@ -136,14 +174,14 @@ def my_reviews(request: HttpRequest) -> HttpResponse:
 @require_POST
 def delete_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Delete a user's own review.
+    Удаление собственного отзыва пользователя.
 
     Args:
-        request: HTTP request
-        pk: Review primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID отзыва для удаления
 
     Returns:
-        Redirect to space detail page
+        HttpResponse: Редирект на страницу помещения или список отзывов
     """
     try:
         review: Review = get_object_or_404(Review, pk=pk, author=request.user)
@@ -163,14 +201,21 @@ def delete_review(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def edit_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Edit a review (admin/moderator only).
+    Редактирование отзыва (только для администраторов и модераторов).
 
     Args:
-        request: HTTP request
-        pk: Review primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID отзыва для редактирования
 
     Returns:
-        Rendered edit form or redirect
+        HttpResponse: Отрисовка формы редактирования или редирект
+
+    Template:
+        reviews/edit.html
+
+    Context:
+        - form: Форма редактирования отзыва
+        - review: Объект отзыва для редактирования
     """
     try:
         user = request.user
@@ -211,14 +256,14 @@ def edit_review(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def admin_delete_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Delete any review (admin/moderator only).
+    Удаление любого отзыва (только для администраторов и модераторов).
 
     Args:
-        request: HTTP request
-        pk: Review primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID отзыва для удаления
 
     Returns:
-        Redirect to space detail page
+        HttpResponse: Редирект на страницу помещения
     """
     try:
         user = request.user
@@ -245,14 +290,14 @@ def admin_delete_review(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def approve_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Approve a review (admin/moderator only).
+    Одобрение отзыва для публикации (только для администраторов и модераторов).
 
     Args:
-        request: HTTP request
-        pk: Review primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID отзыва для одобрения
 
     Returns:
-        Redirect to previous page
+        HttpResponse: Редирект на предыдущую страницу или страницу помещения
     """
     try:
         user = request.user
@@ -283,13 +328,29 @@ def approve_review(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def manage_reviews(request: HttpRequest) -> HttpResponse:
     """
-    Display all reviews for moderation (admin/moderator only).
+    Панель управления отзывами для модерации (администраторы и модераторы).
+
+    Предоставляет фильтрацию по статусу, рейтингу и поиск по отзывам,
+    а также статистику и возможность массовой модерации.
 
     Args:
-        request: HTTP request
+        request (HttpRequest): Объект HTTP запроса
 
     Returns:
-        Rendered reviews management template
+        HttpResponse: Отрисовка страницы управления отзывами
+
+    Template:
+        reviews/manage.html
+
+    Context:
+        - reviews: Пагинированный список отзывов
+        - selected_status: Текущий фильтр по статусу
+        - selected_rating: Текущий фильтр по рейтингу
+        - search_query: Текущий поисковый запрос
+        - pending_count: Количество отзывов на модерации
+        - approved_count: Количество одобренных отзывов
+        - total_count: Общее количество отзывов
+        - avg_rating: Средний рейтинг всех отзывов
     """
     try:
         user = request.user

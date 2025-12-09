@@ -1,7 +1,22 @@
 """
-СЕРВИС БРОНИРОВАНИЙ
+====================================================================
+СЕРВИС БРОНИРОВАНИЙ ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит бизнес-логику для операций с бронированиями,
+включая создание, подтверждение, отмену и завершение бронирований,
+а также расчет стоимости и проверку доступности.
 
-Business logic for booking operations.
+Основные классы:
+- BookingError: Кастомное исключение для ошибок бронирования
+- BookingService: Сервисный класс с бизнес-логикой бронирования
+
+Функционал:
+- Расчет стоимости бронирования с учетом периода и количества
+- Проверка доступности помещений в указанные даты
+- Создание новых бронирований с транзакционной безопасностью
+- Управление статусами бронирований (подтверждение, отмена, завершение)
+- Получение списков бронирований для пользователей и помещений
+====================================================================
 """
 
 from __future__ import annotations
@@ -25,12 +40,24 @@ logger = logging.getLogger(__name__)
 
 
 class BookingError(Exception):
-    """Custom exception for booking errors."""
+    """
+    Кастомное исключение для ошибок бронирования.
+
+    Используется для обработки специфичных ошибок, связанных
+    с операциями бронирования, таких как недоступность помещения,
+    отсутствие цены или проблемы с базой данных.
+    """
     pass
 
 
 class BookingService:
-    """Service class for booking operations."""
+    """
+    Сервисный класс для операций с бронированиями.
+
+    Содержит статические методы для выполнения основных операций
+    с бронированиями, обеспечивая транзакционную безопасность
+    и централизованную логику.
+    """
 
     @staticmethod
     def calculate_total_price(
@@ -39,15 +66,24 @@ class BookingService:
         periods_count: int
     ) -> dict[str, Any]:
         """
-        Calculate booking cost.
+        Расчет стоимости бронирования.
+
+        Вычисляет общую стоимость аренды на основе цены помещения
+        за выбранный период и количества периодов.
 
         Args:
-            space_id: Space primary key
-            period_id: Period primary key
-            periods_count: Number of periods
+            space_id (int): ID помещения
+            period_id (int): ID периода аренды
+            periods_count (int): Количество периодов
 
         Returns:
-            Dictionary with price details or error
+            dict[str, Any]: Словарь с деталями расчета или ошибкой
+                - success (bool): Флаг успешности расчета
+                - price_per_period (Decimal): Цена за один период
+                - total (Decimal): Общая стоимость
+                - hours (int): Общее количество часов
+                - period_name (str): Описание периода
+                - error (str): Сообщение об ошибке (при неудаче)
         """
         try:
             price_obj = SpacePrice.objects.select_related('period').get(
@@ -87,16 +123,20 @@ class BookingService:
         exclude_booking_id: Optional[int] = None
     ) -> bool:
         """
-        Check if space is available for the given period.
+        Проверка доступности помещения в указанный период.
+
+        Проверяет, свободно ли помещение в запрашиваемый промежуток
+        времени, исключая указанное бронирование (для обновлений).
 
         Args:
-            space_id: Space primary key
-            start_datetime: Start of booking period
-            end_datetime: End of booking period
-            exclude_booking_id: Booking ID to exclude (for updates)
+            space_id (int): ID помещения
+            start_datetime: Дата и время начала аренды
+            end_datetime: Дата и время окончания аренды
+            exclude_booking_id (Optional[int]): ID бронирования для исключения
+                (используется при редактировании существующего бронирования)
 
         Returns:
-            True if available, False otherwise
+            bool: True если помещение доступно, False если занято
         """
         try:
             conflicting = Booking.objects.active().filter(
@@ -115,7 +155,22 @@ class BookingService:
 
     @staticmethod
     def _get_or_create_status(code: str, defaults: dict[str, Any]) -> BookingStatus:
-        """Get or create a booking status."""
+        """
+        Получение или создание статуса бронирования.
+
+        Вспомогательный метод для безопасного получения статуса
+        с автоматическим созданием при необходимости.
+
+        Args:
+            code (str): Код статуса (например, 'pending', 'confirmed')
+            defaults (dict[str, Any]): Значения по умолчанию для создания
+
+        Returns:
+            BookingStatus: Объект статуса бронирования
+
+        Raises:
+            BookingError: При ошибке получения или создания статуса
+        """
         try:
             status, _ = BookingStatus.objects.get_or_create(code=code, defaults=defaults)
             return status
@@ -134,21 +189,25 @@ class BookingService:
         comment: str = ''
     ) -> Booking:
         """
-        Create a new booking.
+        Создание нового бронирования.
+
+        Создает новое бронирование с проверкой доступности,
+        расчетом стоимости и транзакционной безопасностью.
 
         Args:
-            space: Space to book
-            tenant: User making the booking
-            period: Pricing period
-            start_datetime: Start of booking
-            periods_count: Number of periods
-            comment: Optional comment
+            space (Space): Помещение для бронирования
+            tenant (CustomUser): Пользователь, создающий бронирование
+            period (PricingPeriod): Период аренды
+            start_datetime: Дата и время начала аренды
+            periods_count (int): Количество периодов
+            comment (str): Дополнительный комментарий (по умолчанию '')
 
         Returns:
-            Created booking
+            Booking: Созданное бронирование
 
         Raises:
-            BookingError: If booking cannot be created
+            BookingError: При невозможности создать бронирование
+                (помещение занято, цена не найдена, ошибка БД и т.д.)
         """
         try:
             # Get price
@@ -205,16 +264,20 @@ class BookingService:
     @transaction.atomic
     def confirm_booking(booking_id: int) -> Booking:
         """
-        Confirm a pending booking.
+        Подтверждение ожидающего бронирования.
+
+        Изменяет статус бронирования с 'pending' на 'confirmed'
+        с транзакционной безопасностью.
 
         Args:
-            booking_id: Booking primary key
+            booking_id (int): ID бронирования для подтверждения
 
         Returns:
-            Updated booking
+            Booking: Подтвержденное бронирование
 
         Raises:
-            BookingError: If booking cannot be confirmed
+            BookingError: При невозможности подтвердить бронирование
+                (бронирование не найдено, неверный статус, ошибка БД)
         """
         try:
             booking = Booking.objects.select_for_update().get(pk=booking_id)
@@ -250,17 +313,22 @@ class BookingService:
         by_user: Optional[CustomUser] = None
     ) -> Booking:
         """
-        Cancel a booking.
+        Отмена бронирования.
+
+        Изменяет статус бронирования на 'cancelled' с проверкой
+        возможности отмены и транзакционной безопасностью.
 
         Args:
-            booking_id: Booking primary key
-            by_user: User cancelling the booking
+            booking_id (int): ID бронирования для отмены
+            by_user (Optional[CustomUser]): Пользователь, отменяющий бронирование
+                (в текущей реализации не используется, оставлен для будущего расширения)
 
         Returns:
-            Updated booking
+            Booking: Отмененное бронирование
 
         Raises:
-            BookingError: If booking cannot be cancelled
+            BookingError: При невозможности отменить бронирование
+                (бронирование не найдено, отмена невозможна, ошибка БД)
         """
         try:
             booking = Booking.objects.select_for_update().get(pk=booking_id)
@@ -293,16 +361,20 @@ class BookingService:
     @transaction.atomic
     def complete_booking(booking_id: int) -> Booking:
         """
-        Mark booking as completed.
+        Завершение бронирования.
+
+        Изменяет статус бронирования с 'confirmed' на 'completed'
+        после успешного завершения аренды.
 
         Args:
-            booking_id: Booking primary key
+            booking_id (int): ID бронирования для завершения
 
         Returns:
-            Updated booking
+            Booking: Завершенное бронирование
 
         Raises:
-            BookingError: If booking cannot be completed
+            BookingError: При невозможности завершить бронирование
+                (бронирование не найдено, неверный статус, ошибка БД)
         """
         try:
             booking = Booking.objects.select_for_update().get(pk=booking_id)
@@ -337,14 +409,19 @@ class BookingService:
         status_code: Optional[str] = None
     ) -> QuerySet[Booking]:
         """
-        Get bookings for a user.
+        Получение списка бронирований пользователя.
+
+        Возвращает все бронирования пользователя с возможностью
+        фильтрации по статусу и предзагрузкой связанных данных.
 
         Args:
-            user: User to get bookings for
-            status_code: Optional status filter
+            user (CustomUser): Пользователь, чьи бронирования запрашиваются
+            status_code (Optional[str]): Код статуса для фильтрации
+                (например, 'pending', 'confirmed', 'completed', 'cancelled')
 
         Returns:
-            Queryset of bookings
+            QuerySet[Booking]: Набор бронирований пользователя,
+                отсортированный по дате создания (новые сначала)
         """
         try:
             bookings = Booking.objects.for_user(user).select_related(
@@ -365,14 +442,18 @@ class BookingService:
         include_cancelled: bool = False
     ) -> QuerySet[Booking]:
         """
-        Get bookings for a space.
+        Получение списка бронирований помещения.
+
+        Возвращает все бронирования указанного помещения
+        с возможностью включения или исключения отмененных.
 
         Args:
-            space_id: Space primary key
-            include_cancelled: Whether to include cancelled bookings
+            space_id (int): ID помещения
+            include_cancelled (bool): Включать ли отмененные бронирования
 
         Returns:
-            Queryset of bookings
+            QuerySet[Booking]: Набор бронирований помещения,
+                отсортированный по дате начала аренды
         """
         try:
             bookings = Booking.objects.for_space(space_id).select_related(

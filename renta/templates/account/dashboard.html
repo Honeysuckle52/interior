@@ -96,7 +96,6 @@
                     <a href="{% url 'my_favorites' %}" class="btn btn-outline-themed">
                         <i class="fas fa-heart me-2"></i>Избранное
                         {% if stats.favorites_count > 0 %}
-                        <span class="badge bg-gold ms-2">{{ stats.favorites_count }}</span>
                         {% endif %}
                     </a>
                     <a href="{% url 'profile' %}" class="btn btn-outline-themed">

@@ -1,7 +1,30 @@
 """
+====================================================================
 ПРЕДСТАВЛЕНИЯ ДЛЯ УПРАВЛЕНИЯ КАТЕГОРИЯМИ ПОМЕЩЕНИЙ
+САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит представления Django для выполнения операций CRUD
+с категориями помещений (SpaceCategory), доступные только администраторам
+и модераторам сайта.
 
-Handles CRUD operations for space categories (admin/moderator only).
+Основные представления:
+- manage_categories: Просмотр списка всех категорий с пагинацией и статистикой
+- add_category: Добавление новой категории помещений
+- edit_category: Редактирование существующей категории
+- delete_category: Удаление категории (с проверкой связанных помещений)
+- toggle_category_status: AJAX переключение статуса активности категории
+
+Константы:
+- DEFAULT_ITEMS_PER_PAGE: Количество категорий на странице по умолчанию
+
+Особенности:
+- Проверка прав доступа через can_moderate флаг пользователя
+- Генерация SEO-дружественных slug из названий категорий
+- Использование кэширования для ускорения работы (header_categories)
+- Подсчет количества помещений в каждой категории через аннотации
+- AJAX поддержка для динамического переключения статусов
+- Валидация входных данных на стороне сервера
+====================================================================
 """
 
 from __future__ import annotations
@@ -30,7 +53,23 @@ DEFAULT_ITEMS_PER_PAGE: int = 12
 @login_required
 def manage_categories(request: HttpRequest) -> HttpResponse:
     """
-    Страница управления категориями помещений для админов и модераторов.
+    Страница управления категориями помещений для администраторов и модераторов.
+
+    Отображает список всех категорий с статистикой, пагинацией и возможностями
+    управления (добавление, редактирование, удаление).
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка страницы управления категориями или редирект
+
+    Template:
+        categories/manage.html
+
+    Context:
+        - categories: Пагинированный список категорий с количеством помещений
+        - stats: Статистика по категориям (всего, активных, неактивных и т.д.)
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для управления категориями')
@@ -68,6 +107,18 @@ def manage_categories(request: HttpRequest) -> HttpResponse:
 def add_category(request: HttpRequest) -> HttpResponse:
     """
     Добавление новой категории помещений.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка формы добавления или редирект при успехе
+
+    Template:
+        categories/add.html
+
+    Context:
+        - form_data: Данные для предзаполнения формы (в случае ошибки валидации)
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для добавления категорий')
@@ -134,7 +185,21 @@ def add_category(request: HttpRequest) -> HttpResponse:
 @login_required
 def edit_category(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Редактирование категории помещений.
+    Редактирование существующей категории помещений.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID категории для редактирования
+
+    Returns:
+        HttpResponse: Отрисовка формы редактирования или редирект при успехе
+
+    Template:
+        categories/edit.html
+
+    Context:
+        - category: Объект категории для редактирования
+        - form_data: Данные для предзаполнения формы
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для редактирования категорий')
@@ -206,7 +271,16 @@ def edit_category(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def delete_category(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Удаление категории помещений.
+    Удаление категории помещений с проверкой на связанные помещения.
+
+    Категорию можно удалить только если к ней не привязано ни одного помещения.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID категории для удаления
+
+    Returns:
+        HttpResponse: Редирект на страницу управления категориями
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для удаления категорий')
@@ -240,7 +314,17 @@ def delete_category(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def toggle_category_status(request: HttpRequest, pk: int) -> JsonResponse:
     """
-    AJAX: Переключение статуса активности категории.
+    AJAX endpoint для переключения статуса активности категории.
+
+    Используется для быстрой активации/деактивации категории
+    без перезагрузки страницы.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID категории для переключения статуса
+
+    Returns:
+        JsonResponse: JSON с результатом операции
     """
     if not request.user.can_moderate:
         return JsonResponse({'success': False, 'error': 'Недостаточно прав'}, status=403)

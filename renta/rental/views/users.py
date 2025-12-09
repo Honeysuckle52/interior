@@ -1,7 +1,35 @@
 """
-ПРЕДСТАВЛЕНИЯ ДЛЯ УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ (Модератор)
+====================================================================
+ПРЕДСТАВЛЕНИЯ ДЛЯ УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит представления Django для управления пользователями,
+доступные только модераторам и администраторам сайта. Включает просмотр
+списка пользователей, детальной информации, блокировку/разблокировку
+и ручное подтверждение email.
 
-Управление пользователями: просмотр, блокировка, разблокировка.
+Основные представления:
+- manage_users: Список пользователей с фильтрацией и пагинацией
+- users_ajax: AJAX endpoint для динамической фильтрации пользователей
+- user_detail: Детальная страница пользователя со статистикой
+- block_user: Блокировка пользователя (POST)
+- unblock_user: Разблокировка пользователя (POST)
+- verify_user_email: Ручное подтверждение email пользователя (POST)
+
+Декораторы:
+- moderator_required: Проверка прав модератора/администратора
+
+Вспомогательные функции:
+- _get_users_queryset: Общая логика получения и фильтрации пользователей
+
+Константы:
+- USERS_PER_PAGE: Количество пользователей на странице по умолчанию
+
+Особенности:
+- Защита от блокировки администраторов и суперпользователей
+- Подробная статистика по пользователям (бронирования, отзывы, траты)
+- AJAX фильтрация для обновления списка без перезагрузки страницы
+- Логирование всех административных действий
+====================================================================
 """
 
 from __future__ import annotations
@@ -26,7 +54,15 @@ logger = logging.getLogger(__name__)
 
 
 def moderator_required(view_func):
-    """Декоратор для проверки прав модератора."""
+    """
+    Декоратор для проверки прав модератора или администратора.
+
+    Args:
+        view_func: Функция представления для обертывания
+
+    Returns:
+        Функция-обертка, проверяющая права доступа
+    """
     def wrapper(request: HttpRequest, *args, **kwargs):
         if not request.user.is_authenticated:
             messages.error(request, 'Необходимо войти в систему')
@@ -39,7 +75,19 @@ def moderator_required(view_func):
 
 
 def _get_users_queryset(request: HttpRequest):
-    """Общая логика получения и фильтрации пользователей."""
+    """
+    Общая логика получения и фильтрации пользователей.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        tuple: Кортеж из четырех элементов:
+            - users: Отфильтрованный queryset пользователей
+            - user_type_filter: Текущий фильтр по типу пользователя
+            - status_filter: Текущий фильтр по статусу
+            - search_query: Текущий поисковый запрос
+    """
     # Получаем всех пользователей кроме суперпользователей
     users = CustomUser.objects.filter(
         is_superuser=False
@@ -81,7 +129,23 @@ def _get_users_queryset(request: HttpRequest):
 @moderator_required
 def manage_users(request: HttpRequest) -> HttpResponse:
     """
-    Страница управления пользователями для модераторов.
+    Страница управления пользователями для модераторов и администраторов.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка страницы управления пользователями
+
+    Template:
+        users/manage.html
+
+    Context:
+        - users: Пагинированный список пользователей
+        - stats: Статистика по пользователям
+        - user_type_filter: Текущий фильтр по типу пользователя
+        - status_filter: Текущий фильтр по статусу
+        - search_query: Текущий поисковый запрос
     """
     try:
         users, user_type_filter, status_filter, search_query = _get_users_queryset(request)
@@ -123,8 +187,23 @@ def manage_users(request: HttpRequest) -> HttpResponse:
 @moderator_required
 def users_ajax(request: HttpRequest) -> JsonResponse:
     """
-    AJAX endpoint для живой фильтрации пользователей.
-    Возвращает HTML таблицы и обновленную статистику.
+    AJAX endpoint для живой (динамической) фильтрации пользователей.
+
+    Используется для обновления таблицы пользователей без перезагрузки страницы.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        JsonResponse: JSON с HTML таблицы и обновленной статистикой
+
+    Response Format:
+        {
+            'success': bool,
+            'html': str (HTML таблицы пользователей),
+            'stats': dict (статистика пользователей),
+            'total_count': int (общее количество пользователей)
+        }
     """
     try:
         users, user_type_filter, status_filter, search_query = _get_users_queryset(request)
@@ -173,12 +252,24 @@ def user_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Детальная страница пользователя для модератора.
 
+    Отображает полную информацию о пользователе, включая статистику
+    бронирований, отзывов и финансовую активность.
+
     Args:
-        request: HTTP request
-        pk: User primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID пользователя
 
     Returns:
-        Rendered user detail template
+        HttpResponse: Отрисовка детальной страницы пользователя
+
+    Template:
+        users/detail.html
+
+    Context:
+        - profile_user: Объект пользователя, чья страница просматривается
+        - user_stats: Статистика пользователя (бронирования, траты и т.д.)
+        - recent_bookings: Последние бронирования пользователя
+        - recent_reviews: Последние отзывы пользователя
     """
     try:
         user = get_object_or_404(
@@ -243,12 +334,14 @@ def block_user(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Блокировка пользователя.
 
+    Защищает от блокировки администраторов, модераторов и суперпользователей.
+
     Args:
-        request: HTTP request
-        pk: User primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID пользователя для блокировки
 
     Returns:
-        Redirect to user detail or users list
+        HttpResponse: Редирект на детальную страницу пользователя
     """
     try:
         user = get_object_or_404(CustomUser, pk=pk)
@@ -285,11 +378,11 @@ def unblock_user(request: HttpRequest, pk: int) -> HttpResponse:
     Разблокировка пользователя.
 
     Args:
-        request: HTTP request
-        pk: User primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID пользователя для разблокировки
 
     Returns:
-        Redirect to user detail or users list
+        HttpResponse: Редирект на детальную страницу пользователя
     """
     try:
         user = get_object_or_404(CustomUser, pk=pk)
@@ -315,12 +408,15 @@ def verify_user_email(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Ручное подтверждение email пользователя модератором.
 
+    Используется для подтверждения email пользователя без отправки
+    письма с кодом подтверждения.
+
     Args:
-        request: HTTP request
-        pk: User primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID пользователя для подтверждения email
 
     Returns:
-        Redirect to user detail
+        HttpResponse: Редирект на детальную страницу пользователя
     """
     try:
         user = get_object_or_404(CustomUser, pk=pk)

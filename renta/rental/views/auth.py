@@ -1,5 +1,29 @@
 """
-ПРЕДСТАВЛЕНИЯ АУТЕНТИФИКАЦИИ
+====================================================================
+ПРЕДСТАВЛЕНИЯ АУТЕНТИФИКАЦИИ ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит представления Django для всей функциональности
+аутентификации и авторизации на сайте, включая регистрацию, вход,
+выход, подтверждение email и сброс пароля.
+
+Основные представления:
+- register_view: Регистрация нового пользователя
+- CustomLoginView: Кастомная страница входа (наследуется от LoginView)
+- verify_email_code: Ввод 6-значного кода подтверждения email
+- resend_verification_code: Повторная отправка кода подтверждения
+- logout_view: Выход из системы (только POST)
+- verify_email: Подтверждение email по ссылке из письма
+- resend_verification: Повторная отправка письма подтверждения
+- password_reset_request: Запрос на сброс пароля
+- password_reset_confirm: Установка нового пароля по токену
+
+Основные особенности:
+- Двойная верификация email (код и ссылка)
+- Защита представлений декораторами
+- Обработка ошибок с логированием и пользовательскими сообщениями
+- Использование сессий для временного хранения кодов подтверждения
+- Интеграция с сервисом email-уведомлений
+====================================================================
 """
 
 from __future__ import annotations
@@ -33,7 +57,16 @@ logger = logging.getLogger(__name__)
 
 
 class CustomLoginView(LoginView):
-    """Кастомная страница входа"""
+    """
+    Кастомная страница входа с поддержкой входа по email
+    и проверкой подтверждения email.
+
+    Наследует стандартный LoginView Django, добавляя:
+    - Проверку подтверждения email перед входом
+    - Генерацию и отправку кода подтверждения при необходимости
+    - Перенаправление на страницу ввода кода для неподтвержденных пользователей
+    - Кастомные сообщения об успехе/ошибке
+    """
 
     form_class = CustomAuthenticationForm
     template_name = 'auth/login.html'
@@ -41,9 +74,18 @@ class CustomLoginView(LoginView):
     next_page = reverse_lazy('home')
 
     def form_valid(self, form) -> HttpResponse:
-        """Проверка подтверждения email перед входом"""
+        """
+        Обработка успешной валидации формы с проверкой подтверждения email.
+
+        Args:
+            form: Валидная форма аутентификации
+
+        Returns:
+            HttpResponse: Редирект на dashboard или страницу подтверждения кода
+        """
         user = form.get_user()
 
+        # Администраторы и суперпользователи пропускают проверку email
         if user.is_staff or user.is_superuser:
             try:
                 messages.success(
@@ -82,6 +124,7 @@ class CustomLoginView(LoginView):
 
             return redirect('verify_email_code')
 
+        # Успешный вход для подтвержденных пользователей
         try:
             messages.success(
                 self.request,
@@ -94,7 +137,15 @@ class CustomLoginView(LoginView):
             return super().form_invalid(form)
 
     def form_invalid(self, form) -> HttpResponse:
-        """Показать ошибку при неудачном входе"""
+        """
+        Обработка невалидной формы входа.
+
+        Args:
+            form: Невалидная форма аутентификации
+
+        Returns:
+            HttpResponse: Отрисовка формы с сообщением об ошибке
+        """
         messages.error(
             self.request,
             'Неверное имя пользователя или пароль'
@@ -102,7 +153,12 @@ class CustomLoginView(LoginView):
         return super().form_invalid(form)
 
     def get_success_url(self) -> str:
-        """URL перенаправления после входа"""
+        """
+        Определение URL для перенаправления после успешного входа.
+
+        Returns:
+            str: URL для редиректа
+        """
         next_url = self.request.GET.get('next')
         if next_url:
             return next_url
@@ -110,7 +166,25 @@ class CustomLoginView(LoginView):
 
 
 def verify_email_code(request: HttpRequest) -> HttpResponse:
-    """Страница ввода кода подтверждения email"""
+    """
+    Страница ввода 6-значного кода подтверждения email.
+
+    Проверяет код, сохраненный в сессии, и подтверждает email пользователя
+    при успешной проверке.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка страницы ввода кода или редирект на dashboard
+
+    Template:
+        auth/verify_code.html
+
+    Context:
+        - form: Форма для ввода кода подтверждения
+        - email: Email пользователя для отображения
+    """
     user_id = request.session.get('verification_user_id')
 
     if not user_id:
@@ -157,7 +231,15 @@ def verify_email_code(request: HttpRequest) -> HttpResponse:
 
 
 def resend_verification_code(request: HttpRequest) -> HttpResponse:
-    """Повторная отправка кода подтверждения"""
+    """
+    Повторная отправка кода подтверждения email.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Редирект на страницу ввода кода с сообщением
+    """
     user_id = request.session.get('verification_user_id')
 
     if not user_id:
@@ -186,7 +268,24 @@ def resend_verification_code(request: HttpRequest) -> HttpResponse:
 
 
 def register_view(request: HttpRequest) -> HttpResponse:
-    """Регистрация нового пользователя"""
+    """
+    Регистрация нового пользователя.
+
+    Создает нового пользователя, генерирует код подтверждения
+    и перенаправляет на страницу его ввода.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка формы регистрации или редирект на ввод кода
+
+    Template:
+        auth/register.html
+
+    Context:
+        - form: Форма регистрации пользователя
+    """
     if request.user.is_authenticated:
         return redirect('home')
 
@@ -228,6 +327,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 logger.error(f"Database error during registration: {e}", exc_info=True)
                 messages.error(request, 'Ошибка базы данных при регистрации')
         else:
+            # Отображение ошибок валидации формы
             for field, errors in form.errors.items():
                 for error in errors:
                     if field == '__all__':
@@ -240,7 +340,21 @@ def register_view(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def logout_view(request: HttpRequest) -> HttpResponse:
-    """Выход из системы (только POST)"""
+    """
+    Выход из системы (только POST метод).
+
+    Предоставляет страницу подтверждения выхода и обрабатывает
+    POST запрос для завершения сеанса пользователя.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка страницы подтверждения или редирект на главную
+
+    Template:
+        auth/logout_confirm.html (для GET запроса)
+    """
     try:
         if request.method == 'POST':
             username = request.user.username
@@ -257,7 +371,19 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 
 
 def verify_email(request: HttpRequest, token: str) -> HttpResponse:
-    """Подтверждение email по ссылке из письма (альтернативный метод)"""
+    """
+    Подтверждение email по ссылке из письма (альтернативный метод).
+
+    Используется для подтверждения email через ссылку, отправленную
+    в письме, а не через 6-значный код.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+        token (str): Уникальный токен подтверждения из URL
+
+    Returns:
+        HttpResponse: Редирект на dashboard или login с соответствующим сообщением
+    """
     try:
         try:
             token_obj = EmailVerificationToken.objects.get(token=token)
@@ -290,7 +416,15 @@ def verify_email(request: HttpRequest, token: str) -> HttpResponse:
 
 
 def resend_verification(request: HttpRequest) -> HttpResponse:
-    """Повторная отправка письма подтверждения"""
+    """
+    Повторная отправка письма подтверждения email.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Редирект на dashboard с сообщением
+    """
     if not request.user.is_authenticated:
         messages.error(request, 'Войдите в систему')
         return redirect('login')
@@ -310,7 +444,21 @@ def resend_verification(request: HttpRequest) -> HttpResponse:
 
 
 def password_reset_request(request: HttpRequest) -> HttpResponse:
-    """Запрос на сброс пароля"""
+    """
+    Запрос на сброс пароля по email.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+
+    Returns:
+        HttpResponse: Отрисовка формы запроса сброса или редирект на login
+
+    Template:
+        auth/password_reset.html
+
+    Context:
+        - form: Форма запроса сброса пароля
+    """
     if request.user.is_authenticated:
         return redirect('dashboard')
 
@@ -330,6 +478,7 @@ def password_reset_request(request: HttpRequest) -> HttpResponse:
                 )
                 return redirect('login')
             except CustomUser.DoesNotExist:
+                # Всегда показываем успешное сообщение для безопасности
                 messages.success(
                     request,
                     'Если email зарегистрирован, вы получите инструкции по сбросу пароля'
@@ -343,7 +492,23 @@ def password_reset_request(request: HttpRequest) -> HttpResponse:
 
 
 def password_reset_confirm(request: HttpRequest, token: str) -> HttpResponse:
-    """Установка нового пароля по ссылке из письма"""
+    """
+    Установка нового пароля по ссылке из письма.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса
+        token (str): Уникальный токен сброса пароля из URL
+
+    Returns:
+        HttpResponse: Отрисовка формы установки нового пароля или редирект
+
+    Template:
+        auth/password_reset_confirm.html
+
+    Context:
+        - form: Форма установки нового пароля
+        - token: Токен сброса пароля (для hidden поля)
+    """
     try:
         try:
             token_obj = PasswordResetToken.objects.get(token=token)

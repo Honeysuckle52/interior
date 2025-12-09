@@ -1,7 +1,31 @@
 """
-ПРЕДСТАВЛЕНИЯ ЛИЧНОГО КАБИНЕТА
+====================================================================
+ПРЕДСТАВЛЕНИЯ ЛИЧНОГО КАБИНЕТА ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит представления Django для функционала личного кабинета,
+включая дашборд, управление профилем, просмотр бронирований и избранного,
+а также просмотр профилей пользователей для администраторов.
 
-Handles user dashboard, profile, bookings, and favorites.
+Основные представления:
+- dashboard: Главная страница личного кабинета со статистикой
+- profile: Редактирование профиля пользователя
+- my_bookings: Список бронирований пользователя с фильтрацией
+- my_favorites: Список избранных помещений пользователя
+- view_user_profile: Просмотр профиля другого пользователя (админ)
+
+Константы:
+- RECENT_BOOKINGS_LIMIT: Количество последних бронирований на дашборде
+- RECENT_FAVORITES_LIMIT: Количество последних избранных на дашборде
+- BOOKINGS_PER_PAGE: Количество бронирований на странице
+- FAVORITES_PER_PAGE: Количество избранных на странице
+- USER_RECENT_BOOKINGS_LIMIT: Количество бронирований в профиле пользователя
+
+Особенности:
+- Защита представлений декоратором @login_required
+- Обработка ошибок с логированием и пользовательскими сообщениями
+- Оптимизированные запросы к БД с использованием select_related и prefetch_related
+- Пагинация для списков бронирований и избранного
+====================================================================
 """
 
 from __future__ import annotations
@@ -33,13 +57,25 @@ logger = logging.getLogger(__name__)
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
     """
-    Display user dashboard with recent activity.
+    Отображение главной страницы личного кабинета пользователя.
+
+    Показывает последние бронирования, избранные помещения
+    и сводную статистику пользователя.
 
     Args:
-        request: HTTP request
+        request (HttpRequest): Объект HTTP запроса
 
     Returns:
-        Rendered dashboard template
+        HttpResponse: Отрендеренный шаблон дашборда
+
+    Template:
+        account/dashboard.html
+
+    Context:
+        - recent_bookings: Последние бронирования пользователя
+        - recent_favorites: Последние избранные помещения
+        - stats: Статистика пользователя (общие бронирования, активные и т.д.)
+        - error: Сообщение об ошибке (при наличии)
     """
     try:
         user = request.user
@@ -100,13 +136,23 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 @login_required
 def profile(request: HttpRequest) -> HttpResponse:
     """
-    Display and handle profile editing.
+    Отображение и обработка формы редактирования профиля пользователя.
+
+    Позволяет пользователю изменять свои личные данные,
+    контактную информацию, аватар и настройки профиля.
 
     Args:
-        request: HTTP request
+        request (HttpRequest): Объект HTTP запроса
 
     Returns:
-        Rendered profile template
+        HttpResponse: Отрендеренный шаблон профиля или редирект
+
+    Template:
+        account/profile.html
+
+    Context:
+        - user_form: Форма с основными данными пользователя
+        - profile_form: Форма с дополнительными данными профиля
     """
     try:
         user = request.user
@@ -162,13 +208,25 @@ def profile(request: HttpRequest) -> HttpResponse:
 @login_required
 def my_bookings(request: HttpRequest) -> HttpResponse:
     """
-    Display all user bookings with filtering.
+    Отображение списка всех бронирований пользователя.
+
+    Поддерживает фильтрацию по статусу бронирования
+    и отображает статистику по каждому статусу.
 
     Args:
-        request: HTTP request
+        request (HttpRequest): Объект HTTP запроса
 
     Returns:
-        Rendered bookings list template
+        HttpResponse: Отрендеренный шаблон списка бронирований
+
+    Template:
+        account/bookings.html
+
+    Context:
+        - bookings: Пагинированный список бронирований
+        - status_filter: Текущий фильтр статуса
+        - status_stats: Статистика бронирований по статусам
+        - error: Сообщение об ошибке (при наличии)
     """
     try:
         user = request.user
@@ -219,13 +277,20 @@ def my_bookings(request: HttpRequest) -> HttpResponse:
 @login_required
 def my_favorites(request: HttpRequest) -> HttpResponse:
     """
-    Display user's favorite spaces.
+    Отображение списка избранных помещений пользователя.
 
     Args:
-        request: HTTP request
+        request (HttpRequest): Объект HTTP запроса
 
     Returns:
-        Rendered favorites list template
+        HttpResponse: Отрендеренный шаблон списка избранного
+
+    Template:
+        account/favorites.html
+
+    Context:
+        - favorites: Пагинированный список избранных помещений
+        - error: Сообщение об ошибке (при наличии)
     """
     try:
         favorites = Favorite.objects.filter(
@@ -257,15 +322,25 @@ def my_favorites(request: HttpRequest) -> HttpResponse:
 @login_required
 def view_user_profile(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    View user profile (admin/moderator only).
-    Allows admins to see user details when reviewing bookings.
+    Просмотр профиля другого пользователя (только для администраторов).
+
+    Используется администраторами при проверке бронирований
+    для просмотра информации о клиенте.
 
     Args:
-        request: HTTP request
-        pk: User primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID пользователя, чей профиль нужно посмотреть
 
     Returns:
-        Rendered user profile template
+        HttpResponse: Отрендеренный шаблон профиля пользователя или редирект
+
+    Template:
+        account/user_profile.html
+
+    Context:
+        - profile_user: Пользователь, чей профиль просматривается
+        - user_stats: Статистика пользователя (бронирования, расходы)
+        - recent_bookings: Последние бронирования пользователя
     """
     try:
         current_user = request.user

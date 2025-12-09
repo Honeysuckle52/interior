@@ -1,5 +1,29 @@
 """
-MIDDLEWARE ДЛЯ ЛОГИРОВАНИЯ ДЕЙСТВИЙ
+====================================================================
+MIDDLEWARE ДЛЯ ЛОГИРОВАНИЯ ДЕЙСТВИЙ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит middleware и вспомогательные функции для
+автоматического логирования действий пользователей на сайте,
+включая HTTP запросы и события аутентификации.
+
+Основные компоненты:
+- ActionLoggingMiddleware: Middleware для логирования HTTP запросов
+- log_action: Утилитарная функция для создания записей в журнале действий
+- get_client_ip: Вспомогательная функция для получения IP-адреса клиента
+- log_user_login, log_user_logout: Обработчики сигналов для логирования входа/выхода
+
+Функционал:
+- Автоматическое логирование всех POST, PUT, PATCH, DELETE запросов
+- Логирование событий входа и выхода пользователей через сигналы Django
+- Получение и сохранение метаданных (IP-адрес, User-Agent)
+- Исключение несущественных путей из логирования для оптимизации
+
+Особенности:
+- Использование сигналов Django для отслеживания событий аутентификации
+- Пропуск статических файлов и служебных путей для снижения нагрузки
+- Безопасная обработка ошибок логирования без прерывания основного потока
+- Интеграция с моделью ActionLog для сохранения записей в БД
+====================================================================
 """
 
 import json
@@ -16,7 +40,18 @@ logger = logging.getLogger('rental')
 
 
 def get_client_ip(request: HttpRequest) -> Optional[str]:
-    """Получить IP адрес клиента."""
+    """
+    Получить реальный IP-адрес клиента из HTTP запроса.
+
+    Корректно обрабатывает случаи использования прокси-серверов
+    через заголовок HTTP_X_FORWARDED_FOR.
+
+    Args:
+        request (HttpRequest): Объект HTTP запроса Django
+
+    Returns:
+        Optional[str]: IP-адрес клиента или None если не удалось определить
+    """
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0].strip()
@@ -37,17 +72,26 @@ def log_action(
     """
     Создать запись в журнале действий.
 
+    Утилитарная функция для создания стандартизированных записей
+    в журнале действий с автоматическим извлечением метаданных из запроса.
+
     Args:
-        user: Пользователь (может быть None для анонимов)
-        action_type: Тип действия из ActionLog.ActionType
-        model_name: Название модели
-        object_id: ID объекта
-        object_repr: Строковое представление объекта
-        changes: Словарь с изменениями
-        request: HTTP запрос для получения IP и User-Agent
+        user (Optional[CustomUser]): Пользователь, совершивший действие
+            (None для анонимных действий)
+        action_type (str): Тип действия из ActionLog.ActionType
+            (например: 'create', 'update', 'delete', 'login', 'logout')
+        model_name (str): Название модели, с которой связано действие
+        object_id (Optional[int]): ID объекта, с которым связано действие
+        object_repr (str): Строковое представление объекта
+        changes (Optional[dict]): Словарь с изменениями объекта
+        request (Optional[HttpRequest]): HTTP запрос для получения
+            IP-адреса и User-Agent
 
     Returns:
-        Созданная запись ActionLog
+        ActionLog: Созданная запись в журнале действий
+
+    Raises:
+        Exception: Возможны любые исключения при создании записи в БД
     """
     ip_address = None
     user_agent = ''
@@ -70,11 +114,19 @@ def log_action(
 
 class ActionLoggingMiddleware(MiddlewareMixin):
     """
-    Middleware для автоматического логирования действий.
-    Логирует POST/PUT/DELETE запросы.
+    Middleware для автоматического логирования действий пользователей.
+
+    Логирует все POST, PUT, PATCH, DELETE запросы и сохраняет информацию
+    о действиях пользователей в журнал действий (ActionLog).
+
+    Особенности:
+    - Логирует только успешные запросы (статус 200-399)
+    - Исключает служебные пути (статика, медиа, админка и т.д.)
+    - Автоматически определяет тип действия по HTTP методу
+    - Извлекает метаданные (IP, User-Agent) из запроса
     """
 
-    # Пути, которые не нужно логировать
+    # Пути, которые не нужно логировать (для оптимизации)
     EXCLUDED_PATHS = (
         '/admin/jsi18n/',
         '/static/',
@@ -87,8 +139,17 @@ class ActionLoggingMiddleware(MiddlewareMixin):
         request: HttpRequest,
         response: HttpResponse
     ) -> HttpResponse:
-        """Обработка ответа для логирования."""
-        # Пропускаем исключенные пути
+        """
+        Обработка HTTP ответа для логирования действий.
+
+        Args:
+            request (HttpRequest): Объект HTTP запроса
+            response (HttpResponse): Объект HTTP ответа
+
+        Returns:
+            HttpResponse: Исходный ответ (middleware не изменяет ответ)
+        """
+        # Пропускаем исключенные пути для оптимизации
         if any(request.path.startswith(path) for path in self.EXCLUDED_PATHS):
             return response
 
@@ -100,10 +161,18 @@ class ActionLoggingMiddleware(MiddlewareMixin):
         return response
 
     def _log_request(self, request: HttpRequest, response: HttpResponse) -> None:
-        """Внутренний метод для логирования запроса."""
+        """
+        Внутренний метод для логирования HTTP запроса.
+
+        Создает запись в журнале действий на основе информации о запросе.
+
+        Args:
+            request (HttpRequest): Объект HTTP запроса
+            response (HttpResponse): Объект HTTP ответа
+        """
         user = request.user if request.user.is_authenticated else None
 
-        # Определяем тип действия по методу
+        # Определяем тип действия по HTTP методу
         action_map = {
             'POST': ActionLog.ActionType.CREATE,
             'PUT': ActionLog.ActionType.UPDATE,
@@ -112,7 +181,7 @@ class ActionLoggingMiddleware(MiddlewareMixin):
         }
         action_type = action_map.get(request.method, ActionLog.ActionType.OTHER)
 
-        # Получаем название модели из пути
+        # Получаем название модели из пути URL
         path_parts = request.path.strip('/').split('/')
         model_name = path_parts[0] if path_parts else 'unknown'
 
@@ -125,12 +194,21 @@ class ActionLoggingMiddleware(MiddlewareMixin):
                 request=request
             )
         except Exception as e:
+            # Логируем ошибку, но не прерываем выполнение
             logger.error(f"Error logging action: {e}")
 
 
-# Обработчики сигналов для логирования входа/выхода
+# Обработчики сигналов Django для логирования событий аутентификации
 def log_user_login(sender, request, user, **kwargs):
-    """Логирование входа пользователя."""
+    """
+    Логирование успешного входа пользователя в систему.
+
+    Args:
+        sender: Отправитель сигнала
+        request (HttpRequest): Объект HTTP запроса
+        user (CustomUser): Аутентифицированный пользователь
+        **kwargs: Дополнительные аргументы сигнала
+    """
     try:
         log_action(
             user=user,
@@ -144,7 +222,15 @@ def log_user_login(sender, request, user, **kwargs):
 
 
 def log_user_logout(sender, request, user, **kwargs):
-    """Логирование выхода пользователя."""
+    """
+    Логирование выхода пользователя из системы.
+
+    Args:
+        sender: Отправитель сигнала
+        request (HttpRequest): Объект HTTP запроса
+        user (CustomUser): Пользователь, выходящий из системы
+        **kwargs: Дополнительные аргументы сигнала
+    """
     try:
         log_action(
             user=user,
@@ -157,6 +243,6 @@ def log_user_logout(sender, request, user, **kwargs):
         logger.error(f"Error logging logout: {e}")
 
 
-# Подключаем сигналы
+# Подключаем сигналы Django для автоматического логирования входа/выхода
 user_logged_in.connect(log_user_login)
 user_logged_out.connect(log_user_logout)

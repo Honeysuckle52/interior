@@ -1,6 +1,21 @@
 """
-ФОРМЫ БРОНИРОВАНИЯ
+====================================================================
+ФОРМЫ БРОНИРОВАНИЯ ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит все Django формы, связанные с бронированием помещений,
+включая создание бронирований и их фильтрацию в админке.
+
+Основные формы:
+- BookingForm: Создание нового бронирования
+- BookingFilterForm: Фильтрация бронирований в админке
+
+Функционал:
+- Валидация дат и времени бронирования
+- Выбор периода аренды и количества периодов
+- Фильтрация по статусу, датам и поиск
+====================================================================
 """
+
 from __future__ import annotations  # для поддержки forward references
 
 from typing import Any, Optional  # добавлены type hints
@@ -14,7 +29,17 @@ from ..models import Booking, PricingPeriod
 
 class BookingForm(forms.ModelForm):
     """
-    Форма создания бронирования
+    Форма создания бронирования.
+
+    Используется клиентами для бронирования помещений с указанием
+    даты, времени, периода аренды и дополнительных комментариев.
+
+    Поля формы:
+    - start_date: Дата начала аренды
+    - start_time: Время начала аренды
+    - period: Тип периода аренды (час, день и т.д.)
+    - periods_count: Количество выбранных периодов
+    - comment: Дополнительные пожелания или вопросы
     """
     start_date = forms.DateField(
         label='Дата начала',
@@ -70,15 +95,37 @@ class BookingForm(forms.ModelForm):
             'comment': 'Комментарий',
         }
 
-    def clean_start_date(self) -> date:  # type hints
-        """Проверка даты начала"""
+    def clean_start_date(self) -> date:
+        """
+        Проверка даты начала бронирования.
+
+        Args:
+            start_date (date): Дата начала бронирования
+
+        Returns:
+            date: Валидная дата начала
+
+        Raises:
+            forms.ValidationError: Если дата в прошлом
+        """
         start_date: Optional[date] = self.cleaned_data.get('start_date')
         if start_date and start_date < date.today():
             raise forms.ValidationError('Дата начала не может быть в прошлом')
         return start_date
 
-    def clean_periods_count(self) -> int:  # type hints
-        """Проверка количества периодов"""
+    def clean_periods_count(self) -> int:
+        """
+        Проверка количества периодов бронирования.
+
+        Args:
+            periods_count (int): Количество периодов
+
+        Returns:
+            int: Валидное количество периодов
+
+        Raises:
+            forms.ValidationError: Если количество не в диапазоне 1-100
+        """
         periods_count: Optional[int] = self.cleaned_data.get('periods_count')
         if periods_count and periods_count < 1:
             raise forms.ValidationError('Минимум 1 период')
@@ -89,7 +136,16 @@ class BookingForm(forms.ModelForm):
 
 class BookingFilterForm(forms.Form):
     """
-    Форма фильтрации бронирований (для админки)
+    Форма фильтрации бронирований (для админки).
+
+    Используется администраторами для фильтрации списка бронирований
+    по статусу, датам и текстовому поиску.
+
+    Поля формы:
+    - status: Статус бронирования
+    - date_from: Начальная дата диапазона
+    - date_to: Конечная дата диапазона
+    - search: Текстовый поиск
     """
     STATUS_CHOICES = [
         ('', 'Все статусы'),
@@ -98,13 +154,13 @@ class BookingFilterForm(forms.Form):
         ('completed', 'Завершено'),
         ('cancelled', 'Отменено'),
     ]
-    
+
     status = forms.ChoiceField(
         choices=STATUS_CHOICES,
         required=False,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    
+
     date_from = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={
@@ -112,7 +168,7 @@ class BookingFilterForm(forms.Form):
             'type': 'date'
         })
     )
-    
+
     date_to = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={
@@ -120,7 +176,7 @@ class BookingFilterForm(forms.Form):
             'type': 'date'
         })
     )
-    
+
     search = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={

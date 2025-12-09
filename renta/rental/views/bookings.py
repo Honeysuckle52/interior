@@ -1,7 +1,38 @@
 """
-ПРЕДСТАВЛЕНИЯ ДЛЯ БРОНИРОВАНИЙ
+====================================================================
+ПРЕДСТАВЛЕНИЯ ДЛЯ БРОНИРОВАНИЙ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит представления Django для всей функциональности,
+связанной с бронированиями помещений, включая создание, просмотр,
+подтверждение, отклонение, отмену бронирований и управление ими.
 
-Handles booking creation, viewing, and cancellation.
+Основные представления:
+- create_booking: Создание нового бронирования помещения
+- booking_detail: Просмотр деталей конкретного бронирования
+- confirm_booking: Подтверждение бронирования модератором
+- reject_booking: Отклонение бронирования модератором
+- manage_bookings: Панель управления бронированиями для администраторов
+- cancel_booking: Отмена бронирования пользователем
+- get_price_for_period: AJAX endpoint для получения цены за период
+
+Вспомогательные функции:
+- _get_available_periods: Получение доступных периодов для помещения
+- _get_or_create_status: Получение или создание статуса бронирования
+- _check_booking_overlap: Проверка пересечений с существующими бронированиями
+
+Константы:
+- HOURS_IN_DAY: Количество часов в сутках (для проверки отмены)
+- SECONDS_IN_HOUR: Количество секунд в часе
+- DEFAULT_*_SORT_ORDER: Порядок сортировки статусов по умолчанию
+- BOOKINGS_PER_PAGE: Количество бронирований на странице пагинации
+
+Особенности:
+- Защита представлений декораторами @login_required и @require_POST
+- Проверка прав доступа для разных типов пользователей
+- Обработка конфликтов бронирований по времени
+- Оптимизированные запросы к БД с использованием select_related и prefetch_related
+- Поддержка AJAX запросов для динамического расчета цены
+====================================================================
 """
 
 from __future__ import annotations
@@ -36,7 +67,15 @@ logger = logging.getLogger(__name__)
 
 
 def _get_available_periods(space: Space) -> Any:
-    """Get available pricing periods for a space."""
+    """
+    Получение доступных периодов ценообразования для помещения.
+
+    Args:
+        space (Space): Помещение для поиска периодов
+
+    Returns:
+        QuerySet[PricingPeriod]: Набор доступных периодов
+    """
     try:
         return PricingPeriod.objects.filter(
             space_prices__space=space,
@@ -48,7 +87,16 @@ def _get_available_periods(space: Space) -> Any:
 
 
 def _get_or_create_status(code: str, defaults: dict[str, Any]) -> BookingStatus:
-    """Get or create a booking status."""
+    """
+    Получение или создание статуса бронирования.
+
+    Args:
+        code (str): Код статуса
+        defaults (dict[str, Any]): Значения по умолчанию для создания
+
+    Returns:
+        BookingStatus: Объект статуса бронирования
+    """
     try:
         status, _ = BookingStatus.objects.get_or_create(code=code, defaults=defaults)
         return status
@@ -59,9 +107,17 @@ def _get_or_create_status(code: str, defaults: dict[str, Any]) -> BookingStatus:
 
 def _check_booking_overlap(space: Space, start_datetime: datetime, end_datetime: datetime, exclude_booking_id: Optional[int] = None) -> Optional[Booking]:
     """
-    Check if there's an overlapping booking for the space.
+    Проверка пересечения с существующими бронированиями помещения.
 
-    Returns the conflicting booking if exists, None otherwise.
+    Args:
+        space (Space): Помещение для проверки
+        start_datetime (datetime): Начало запрашиваемого периода
+        end_datetime (datetime): Конец запрашиваемого периода
+        exclude_booking_id (Optional[int]): ID бронирования для исключения
+            (используется при редактировании существующего бронирования)
+
+    Returns:
+        Optional[Booking]: Конфликтующее бронирование или None
     """
     overlapping = Booking.objects.filter(
         space=space,
@@ -80,14 +136,22 @@ def _check_booking_overlap(space: Space, start_datetime: datetime, end_datetime:
 @login_required
 def create_booking(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Create a new booking for a space.
+    Создание нового бронирования для помещения.
 
     Args:
-        request: HTTP request
-        pk: Space primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID помещения для бронирования
 
     Returns:
-        Rendered booking form or redirect on success
+        HttpResponse: Отрисовка формы бронирования или редирект при успехе
+
+    Template:
+        bookings/create.html
+
+    Context:
+        - space: Помещение для бронирования
+        - prices: Активные цены помещения
+        - form: Форма создания бронирования
     """
     try:
         space: Space = get_object_or_404(
@@ -203,14 +267,27 @@ def create_booking(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def booking_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Display booking details.
+    Просмотр деталей бронирования.
+
+    Администраторы и модераторы могут просматривать любые бронирования,
+    обычные пользователи - только свои.
 
     Args:
-        request: HTTP request
-        pk: Booking primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID бронирования
 
     Returns:
-        Rendered booking detail template
+        HttpResponse: Отрисовка страницы деталей бронирования
+
+    Template:
+        bookings/detail.html
+
+    Context:
+        - booking: Объект бронирования
+        - can_cancel: Может ли пользователь отменить бронирование
+        - can_manage: Может ли пользователь управлять бронированием (админ/модератор)
+        - is_owner: Является ли пользователь владельцем бронирования
+        - can_review: Может ли пользователь оставить отзыв для этого бронирования
     """
     try:
         user = request.user
@@ -261,14 +338,14 @@ def booking_detail(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def confirm_booking(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Confirm a pending booking (moderator/admin only).
+    Подтверждение ожидающего бронирования (только для модераторов/администраторов).
 
     Args:
-        request: HTTP request
-        pk: Booking primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID бронирования для подтверждения
 
     Returns:
-        Redirect to booking detail page
+        HttpResponse: Редирект на страницу деталей бронирования
     """
     try:
         user = request.user
@@ -310,14 +387,14 @@ def confirm_booking(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def reject_booking(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Reject a pending booking (moderator/admin only).
+    Отклонение ожидающего бронирования (только для модераторов/администраторов).
 
     Args:
-        request: HTTP request
-        pk: Booking primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID бронирования для отклонения
 
     Returns:
-        Redirect to booking detail page
+        HttpResponse: Редирект на страницу деталей бронирования
     """
     try:
         user = request.user
@@ -358,13 +435,25 @@ def reject_booking(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def manage_bookings(request: HttpRequest) -> HttpResponse:
     """
-    Display all bookings for moderators/admins to manage.
+    Панель управления бронированиями для администраторов и модераторов.
 
     Args:
-        request: HTTP request
+        request (HttpRequest): Объект HTTP запроса
 
     Returns:
-        Rendered manage bookings template
+        HttpResponse: Отрисовка страницы управления бронированиями
+
+    Template:
+        bookings/manage.html
+
+    Context:
+        - bookings: Пагинированный список бронирований
+        - status_filter: Текущий фильтр по статусу
+        - pending_only: Флаг отображения только ожидающих бронирований
+        - status_stats: Статистика бронирований по статусам
+        - pending_count: Количество ожидающих бронирований
+        - confirmed_count: Количество подтвержденных бронирований
+        - completed_count: Количество завершенных бронирований
     """
     try:
         user = request.user
@@ -428,14 +517,17 @@ def manage_bookings(request: HttpRequest) -> HttpResponse:
 @require_POST
 def cancel_booking(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Cancel a booking.
+    Отмена бронирования пользователем.
+
+    Проверяет возможность отмены и предупреждает о возможных санкциях
+    при поздней отмене (менее 24 часов до начала).
 
     Args:
-        request: HTTP request
-        pk: Booking primary key
+        request (HttpRequest): Объект HTTP запроса
+        pk (int): ID бронирования для отмены
 
     Returns:
-        Redirect to bookings list or detail page
+        HttpResponse: Редирект на список бронирований пользователя
     """
     try:
         booking: Booking = get_object_or_404(Booking, pk=pk, tenant=request.user)
@@ -481,15 +573,18 @@ def get_price_for_period(
     period_id: int
 ) -> JsonResponse:
     """
-    AJAX endpoint to get price for a specific period.
+    AJAX endpoint для получения цены за определенный период аренды.
+
+    Используется для динамического расчета стоимости при выборе периода
+    на странице создания бронирования.
 
     Args:
-        request: HTTP request
-        space_id: Space primary key
-        period_id: Period primary key
+        request (HttpRequest): Объект HTTP запроса
+        space_id (int): ID помещения
+        period_id (int): ID периода аренды
 
     Returns:
-        JSON response with price information
+        JsonResponse: JSON с информацией о цене или ошибкой
     """
     try:
         price: SpacePrice = SpacePrice.objects.select_related('period').get(

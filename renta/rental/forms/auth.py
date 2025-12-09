@@ -1,6 +1,22 @@
 """
-ФОРМЫ АУТЕНТИФИКАЦИИ
+====================================================================
+ФОРМЫ АУТЕНТИФИКАЦИИ ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит все Django формы, связанные с аутентификацией 
+и управлением пользователями, включая регистрацию, вход, сброс пароля
+и админ-формы.
+
+Основные формы:
+- CustomUserCreationForm: Регистрация новых пользователей
+- CustomAuthenticationForm: Вход в систему
+- PasswordResetRequestForm: Запрос сброса пароля
+- PasswordResetConfirmForm: Установка нового пароля
+- EmailVerificationCodeForm: Подтверждение email
+- AdminUserCreationForm: Создание пользователей в админке
+- AdminUserChangeForm: Редактирование пользователей в админке
+====================================================================
 """
+
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -15,7 +31,21 @@ from ..services.validators import validate_russian_phone, normalize_phone
 
 
 def validate_username(value: str) -> None:
-    """Валидация имени пользователя без использования regex"""
+    """
+    Валидация имени пользователя без использования regex
+
+    Args:
+        value (str): Имя пользователя для валидации
+
+    Raises:
+        forms.ValidationError: Если имя пользователя не соответствует требованиям
+
+    Требования к имени пользователя:
+    - Обязательное поле
+    - Минимум 3 символа
+    - Максимум 150 символов
+    - Разрешены только буквы, цифры и подчеркивание
+    """
     if not value:
         raise forms.ValidationError('Имя пользователя обязательно')
     if len(value) < 3:
@@ -30,6 +60,19 @@ def validate_username(value: str) -> None:
 class CustomUserCreationForm(forms.ModelForm):
     """
     Форма регистрации пользователя.
+
+    Содержит все поля для создания нового пользователя, включая валидацию
+    уникальности, проверку паролей и согласие с условиями использования.
+
+    Поля формы:
+    - username: Логин пользователя
+    - email: Email пользователя
+    - phone: Номер телефона (необязательно)
+    - first_name: Имя пользователя (необязательно)
+    - last_name: Фамилия пользователя (необязательно)
+    - password1: Основной пароль
+    - password2: Подтверждение пароля
+    - agree_terms: Согласие с условиями использования
     """
     username = forms.CharField(
         max_length=150,
@@ -117,21 +160,45 @@ class CustomUserCreationForm(forms.ModelForm):
         exclude = ('user_type',)
 
     def clean_email(self) -> str:
-        """Проверка уникальности email"""
+        """
+        Проверка уникальности email
+
+        Returns:
+            str: Валидный и уникальный email
+
+        Raises:
+            forms.ValidationError: Если email уже зарегистрирован
+        """
         email: str = self.cleaned_data.get('email', '')
         if CustomUser.objects.filter(email=email).exists():
             raise forms.ValidationError('Этот email уже зарегистрирован')
         return email
 
     def clean_username(self) -> str:
-        """Проверка уникальности username"""
+        """
+        Проверка уникальности username
+
+        Returns:
+            str: Валидное и уникальное имя пользователя
+
+        Raises:
+            forms.ValidationError: Если имя пользователя уже занято
+        """
         username: str = self.cleaned_data.get('username', '')
         if CustomUser.objects.filter(username=username).exists():
             raise forms.ValidationError('Это имя пользователя уже занято')
         return username
 
     def clean_phone(self) -> str:
-        """Валидация и нормализация номера телефона"""
+        """
+        Валидация и нормализация номера телефона
+
+        Returns:
+            str: Нормализованный номер телефона
+
+        Raises:
+            forms.ValidationError: Если номер телефона некорректен
+        """
         phone: str = self.cleaned_data.get('phone', '')
         if phone:
             # Валидируем
@@ -146,14 +213,30 @@ class CustomUserCreationForm(forms.ModelForm):
         return phone
 
     def clean_password1(self) -> str:
-        """Валидация пароля"""
+        """
+        Валидация пароля с использованием стандартных валидаторов Django
+
+        Returns:
+            str: Валидный пароль
+
+        Raises:
+            forms.ValidationError: Если пароль не проходит валидацию
+        """
         password1 = self.cleaned_data.get('password1', '')
         if password1:
             validate_password(password1)
         return password1
 
     def clean_password2(self) -> str:
-        """Проверка совпадения паролей"""
+        """
+        Проверка совпадения паролей
+
+        Returns:
+            str: Подтвержденный пароль
+
+        Raises:
+            forms.ValidationError: Если пароли не совпадают
+        """
         password1 = self.cleaned_data.get('password1', '')
         password2 = self.cleaned_data.get('password2', '')
         if password1 and password2 and password1 != password2:
@@ -161,6 +244,15 @@ class CustomUserCreationForm(forms.ModelForm):
         return password2
 
     def save(self, commit: bool = True) -> CustomUser:
+        """
+        Сохранение пользователя в базу данных
+
+        Args:
+            commit (bool): Флаг сохранения в базу данных
+
+        Returns:
+            CustomUser: Созданный пользователь
+        """
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password1'])
         user.email = self.cleaned_data['email']
@@ -176,7 +268,17 @@ class CustomUserCreationForm(forms.ModelForm):
 
 
 class CustomAuthenticationForm(AuthenticationForm):
-    """Форма входа с возможностью входа по email"""
+    """
+    Форма входа с возможностью входа по email
+
+    Расширяет стандартную форму аутентификации Django, добавляя
+    возможность входа по email и чекбокс "Запомнить меня"
+
+    Поля формы:
+    - username: Логин или Email
+    - password: Пароль
+    - remember_me: Запомнить меня
+    """
     username = forms.CharField(
         label='Логин или Email',
         widget=forms.TextInput(attrs={
@@ -205,7 +307,15 @@ class CustomAuthenticationForm(AuthenticationForm):
     )
 
     def clean(self) -> dict[str, Any]:
-        """Позволяет входить по email или username"""
+        """
+        Кастомная аутентификация с возможностью входа по email
+
+        Returns:
+            dict[str, Any]: Очищенные данные формы
+
+        Raises:
+            forms.ValidationError: Если аутентификация не удалась
+        """
         username: Optional[str] = self.cleaned_data.get('username')
         password: Optional[str] = self.cleaned_data.get('password')
 
@@ -238,7 +348,15 @@ class CustomAuthenticationForm(AuthenticationForm):
 
 
 class PasswordResetRequestForm(forms.Form):
-    """Форма запроса сброса пароля"""
+    """
+    Форма запроса сброса пароля
+
+    Позволяет пользователю запросить сброс пароля по email
+    с проверкой существования пользователя с таким email
+
+    Поля формы:
+    - email: Email для сброса пароля
+    """
     email = forms.EmailField(
         label='Email',
         widget=forms.EmailInput(attrs={
@@ -249,6 +367,15 @@ class PasswordResetRequestForm(forms.Form):
     )
 
     def clean_email(self) -> str:
+        """
+        Проверка существования пользователя с указанным email
+
+        Returns:
+            str: Валидный email существующего пользователя
+
+        Raises:
+            forms.ValidationError: Если пользователь не найден
+        """
         email = self.cleaned_data.get('email', '')
         if not CustomUser.objects.filter(email=email).exists():
             raise forms.ValidationError('Пользователь с таким email не найден')
@@ -256,7 +383,16 @@ class PasswordResetRequestForm(forms.Form):
 
 
 class PasswordResetConfirmForm(forms.Form):
-    """Форма установки нового пароля"""
+    """
+    Форма установки нового пароля
+
+    Используется после подтверждения сброса пароля
+    для установки нового пароля
+
+    Поля формы:
+    - new_password1: Новый пароль
+    - new_password2: Подтверждение нового пароля
+    """
     new_password1 = forms.CharField(
         label='Новый пароль',
         widget=forms.PasswordInput(attrs={
@@ -275,12 +411,30 @@ class PasswordResetConfirmForm(forms.Form):
     )
 
     def clean_new_password1(self) -> str:
+        """
+        Валидация нового пароля
+
+        Returns:
+            str: Валидный пароль
+
+        Raises:
+            forms.ValidationError: Если пароль не проходит валидацию
+        """
         password = self.cleaned_data.get('new_password1', '')
         if password:
             validate_password(password)
         return password
 
     def clean(self) -> dict[str, Any]:
+        """
+        Проверка совпадения паролей
+
+        Returns:
+            dict[str, Any]: Очищенные данные формы
+
+        Raises:
+            forms.ValidationError: Если пароли не совпадают
+        """
         cleaned_data = super().clean()
         password1 = cleaned_data.get('new_password1')
         password2 = cleaned_data.get('new_password2')
@@ -291,7 +445,15 @@ class PasswordResetConfirmForm(forms.Form):
 
 
 class EmailVerificationCodeForm(forms.Form):
-    """Форма ввода кода подтверждения email"""
+    """
+    Форма ввода кода подтверждения email
+
+    Используется для подтверждения email при регистрации
+    или смене email
+
+    Поля формы:
+    - code: 6-значный код подтверждения
+    """
     code = forms.CharField(
         max_length=6,
         min_length=6,
@@ -308,6 +470,15 @@ class EmailVerificationCodeForm(forms.Form):
     )
 
     def clean_code(self) -> str:
+        """
+        Валидация кода подтверждения
+
+        Returns:
+            str: Валидный 6-значный цифровой код
+
+        Raises:
+            forms.ValidationError: Если код содержит не только цифры
+        """
         code = self.cleaned_data.get('code', '')
         # Проверяем что код состоит только из цифр
         if not code.isdigit():
@@ -316,7 +487,16 @@ class EmailVerificationCodeForm(forms.Form):
 
 
 class AdminUserCreationForm(forms.ModelForm):
-    """Форма создания пользователя в админке"""
+    """
+    Форма создания пользователя в админке
+
+    Упрощенная форма для администраторов сайта
+
+    Поля формы:
+    - username: Имя пользователя
+    - password1: Пароль
+    - password2: Подтверждение пароля
+    """
     username = forms.CharField(
         max_length=150,
         label='Имя пользователя',
@@ -339,6 +519,15 @@ class AdminUserCreationForm(forms.ModelForm):
         fields = ('username', 'email', 'first_name', 'last_name', 'phone', 'user_type')
 
     def clean_password2(self) -> str:
+        """
+        Проверка совпадения паролей для админ-формы
+
+        Returns:
+            str: Подтвержденный пароль
+
+        Raises:
+            forms.ValidationError: Если пароли не совпадают
+        """
         password1 = self.cleaned_data.get('password1', '')
         password2 = self.cleaned_data.get('password2', '')
         if password1 and password2 and password1 != password2:
@@ -346,6 +535,15 @@ class AdminUserCreationForm(forms.ModelForm):
         return password2
 
     def save(self, commit: bool = True) -> CustomUser:
+        """
+        Сохранение пользователя в админке
+
+        Args:
+            commit (bool): Флаг сохранения в базу данных
+
+        Returns:
+            CustomUser: Созданный пользователь
+        """
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password1'])
         if commit:
@@ -354,7 +552,12 @@ class AdminUserCreationForm(forms.ModelForm):
 
 
 class AdminUserChangeForm(UserChangeForm):
-    """Форма редактирования пользователя в админке"""
+    """
+    Форма редактирования пользователя в админке
+
+    Расширяет стандартную форму UserChangeForm Django
+    для редактирования пользователей через админ-панель
+    """
 
     class Meta:
         model = CustomUser

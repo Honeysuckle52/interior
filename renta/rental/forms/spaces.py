@@ -1,6 +1,23 @@
 """
-ФОРМЫ ДЛЯ ПОМЕЩЕНИЙ
+====================================================================
+ФОРМЫ ДЛЯ ПОМЕЩЕНИЙ ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
+====================================================================
+Этот файл содержит все Django формы, связанные с помещениями для аренды,
+включая фильтрацию, создание/редактирование помещений и управление изображениями.
+
+Основные формы:
+- SpaceFilterForm: Фильтрация помещений в каталоге
+- SpaceForm: Создание и редактирование помещений владельцами
+- SpaceImageForm: Загрузка и управление изображениями помещений
+
+Функционал:
+- Расширенная фильтрация по параметрам (город, категория, площадь, цена и т.д.)
+- Создание и редактирование помещений с автоматической генерацией slug
+- Загрузка изображений с возможностью указания главного фото
+- Сортировка результатов поиска по различным критериям
+====================================================================
 """
+
 from __future__ import annotations  # для поддержки forward references
 
 from typing import Any, Optional  # добавлены type hints
@@ -15,8 +32,23 @@ from ..models import Space, SpaceImage, City, SpaceCategory
 
 class SpaceFilterForm(forms.Form):
     """
-    Форма фильтрации помещений на странице списка
+    Форма фильтрации помещений на странице списка.
+
+    Используется на странице каталога помещений для фильтрации
+    результатов по различным параметрам и сортировки.
+
+    Поля формы:
+    - search: Текстовый поиск по названию, адресу и описанию
+    - city: Фильтр по городу
+    - category: Фильтр по категории помещения
+    - min_area: Минимальная площадь
+    - max_area: Максимальная площадь
+    - min_price: Минимальная цена
+    - max_price: Максимальная цена
+    - min_capacity: Минимальная вместимость
+    - sort: Сортировка результатов
     """
+
     search = forms.CharField(
         required=False,
         label='Поиск',
@@ -110,7 +142,14 @@ class SpaceFilterForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # type hints
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Инициализация формы с динамическими queryset для полей.
+
+        Args:
+            *args: Позиционные аргументы
+            **kwargs: Именованные аргументы
+        """
         super().__init__(*args, **kwargs)
         # Загружаем актуальные данные для select'ов
         self.fields['city'].queryset = City.objects.filter(
@@ -123,8 +162,23 @@ class SpaceFilterForm(forms.Form):
 
 class SpaceForm(forms.ModelForm):
     """
-    Форма создания/редактирования помещения (для владельцев)
+    Форма создания/редактирования помещения (для владельцев).
+
+    Используется владельцами помещений для добавления новых помещений
+    или редактирования существующих с полным набором полей.
+
+    Поля формы:
+    - title: Название помещения
+    - category: Категория помещения
+    - city: Город расположения
+    - address: Полный адрес
+    - area_sqm: Площадь в квадратных метрах
+    - max_capacity: Максимальная вместимость
+    - description: Подробное описание
+    - is_active: Видимость в каталоге
+    - is_featured: Пометка "Рекомендуемое"
     """
+
     class Meta:
         model = Space
         fields = [
@@ -178,7 +232,14 @@ class SpaceForm(forms.ModelForm):
             'is_featured': 'Рекомендуемое',
         }
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # type hints
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Инициализация формы с динамическими queryset для полей.
+
+        Args:
+            *args: Позиционные аргументы
+            **kwargs: Именованные аргументы
+        """
         super().__init__(*args, **kwargs)
         self.fields['city'].queryset = City.objects.filter(
             is_active=True
@@ -187,7 +248,16 @@ class SpaceForm(forms.ModelForm):
             is_active=True
         ).order_by('name')
 
-    def save(self, commit: bool = True) -> Space:  # type hints
+    def save(self, commit: bool = True) -> Space:
+        """
+        Сохранение помещения с автоматической генерацией slug.
+
+        Args:
+            commit (bool): Флаг сохранения в базу данных
+
+        Returns:
+            Space: Созданное или обновленное помещение
+        """
         space = super().save(commit=False)
         # Генерируем slug из названия
         if not space.slug:
@@ -198,7 +268,7 @@ class SpaceForm(forms.ModelForm):
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             space.slug = slug
-        
+
         if commit:
             space.save()
         return space
@@ -206,8 +276,17 @@ class SpaceForm(forms.ModelForm):
 
 class SpaceImageForm(forms.ModelForm):
     """
-    Форма загрузки изображения помещения
+    Форма загрузки изображения помещения.
+
+    Используется для добавления фотографий к помещениям
+    с возможностью указания главного (основного) изображения.
+
+    Поля формы:
+    - image: Файл изображения
+    - alt_text: Alt текст для SEO
+    - is_primary: Флаг главного изображения
     """
+
     class Meta:
         model = SpaceImage
         fields = ['image', 'alt_text', 'is_primary']
