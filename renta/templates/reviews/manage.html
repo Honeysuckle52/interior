@@ -76,7 +76,7 @@
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-gold w-100">
-                    <i class="fas fa-filter me-1"></i> Фильтр
+                    </i> Фильтр
                 </button>
             </div>
         </form>
@@ -90,12 +90,12 @@
             <div class="review-manage-header">
                 <div class="review-manage-info">
                     <div class="review-manage-author">
-                        <i class="fas fa-user-circle me-2"></i>
+                        </i>
                         <strong>{{ review.author.get_full_name|default:review.author.username }}</strong>
                     </div>
                     <div class="review-manage-meta text-muted">
-                        <span><i class="fas fa-building me-1"></i>{{ review.space.title }}</span>
-                        <span><i class="fas fa-calendar me-1"></i>{{ review.created_at|date:"d.m.Y H:i" }}</span>
+                        <span></i>{{ review.space.title }}</span>
+                        <span></i>{{ review.created_at|date:"d.m.Y H:i" }}</span>
                     </div>
                 </div>
                 <div class="review-manage-status">
@@ -127,17 +127,17 @@
                 </form>
                 {% endif %}
                 <a href="{% url 'edit_review' review.pk %}" class="btn btn-outline-gold btn-sm">
-                    <i class="fas fa-edit me-1"></i>Редактировать
+                    </i>Редактировать
                 </a>
                 <form action="{% url 'admin_delete_review' review.pk %}" method="post" class="d-inline" 
                       onsubmit="return confirm('Удалить этот отзыв?');">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-danger btn-sm">
-                        <i class="fas fa-trash me-1"></i>Удалить
+                        </i>Удалить
                     </button>
                 </form>
                 <a href="{% url 'space_detail' review.space.pk %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-external-link-alt me-1"></i>Перейти
+                    </i>Перейти
                 </a>
             </div>
         </div>
