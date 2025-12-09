@@ -3,10 +3,6 @@
  * ГЛАВНЫЙ JAVASCRIPT ФАЙЛ
  * Сайт аренды помещений "ИНТЕРЬЕР"
  * =============================================================================
- * ИСПРАВЛЕННАЯ ВЕРСИЯ:
- * - Улучшена работа темы с замедленными анимациями
- * - Исправлена форма отзывов (rating)
- * - Добавлены анимации
  */
 
 /* =============================================================================
@@ -102,7 +98,6 @@ function initReviewForm() {
   const reviewForm = document.getElementById("reviewForm")
 
   if (starRating && ratingValue) {
-    // Обрабатываем клики по звездам
     const starInputs = starRating.querySelectorAll('input[type="radio"]')
     const starLabels = starRating.querySelectorAll("label")
 
@@ -112,7 +107,6 @@ function initReviewForm() {
       })
     })
 
-    // Также добавляем обработчик клика на лейблы для надежности
     starLabels.forEach((label) => {
       label.addEventListener("click", function () {
         const forAttr = this.getAttribute("for")
@@ -125,7 +119,6 @@ function initReviewForm() {
     })
   }
 
-  // Валидация формы перед отправкой
   if (reviewForm) {
     reviewForm.addEventListener("submit", (e) => {
       if (!ratingValue || !ratingValue.value) {
@@ -209,25 +202,35 @@ function initFormEnhancements() {
 }
 
 /* =============================================================================
-   6. ИЗБРАННОЕ (AJAX)
+   6. ИЗБРАННОЕ (AJAX) - Полностью переписана логика для исправления бага
    ============================================================================= */
 function initFavoriteButtons() {
-  const favoriteButtons = document.querySelectorAll(".space-favorite-btn, .favorite-inline-btn, .favorite-btn")
-
-  favoriteButtons.forEach((btn) => {
-    btn.addEventListener("click", handleFavoriteClick)
-  })
+  // Удаляем старый обработчик если есть
+  document.removeEventListener("click", handleFavoriteClickDelegate)
+  // Добавляем новый глобальный обработчик
+  document.addEventListener("click", handleFavoriteClickDelegate)
 }
 
-async function handleFavoriteClick(event) {
+function handleFavoriteClickDelegate(event) {
+  // Находим кнопку избранного среди целевых элементов клика
+  const btn = event.target.closest(".space-favorite-btn")
+  if (!btn) return
+
   event.preventDefault()
   event.stopPropagation()
 
-  const btn = event.currentTarget
-  const spaceId = btn.dataset.spaceId
-  const icon = btn.querySelector("i")
-  const textEl = btn.querySelector("span, .favorite-text")
+  handleFavoriteClick(btn)
+}
 
+async function handleFavoriteClick(btn) {
+  const spaceId = btn.dataset.spaceId
+
+  if (!spaceId) {
+    console.error("Не найден data-space-id на кнопке избранного")
+    return
+  }
+
+  const icon = btn.querySelector("i")
   const csrfToken = getCsrfToken()
 
   if (!csrfToken) {
@@ -235,6 +238,10 @@ async function handleFavoriteClick(event) {
     return
   }
 
+  // Блокируем кнопку на время запроса
+  btn.disabled = true
+
+  // Анимация нажатия
   btn.style.transform = "scale(0.85)"
   btn.style.transition = "transform 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55)"
 
@@ -244,23 +251,42 @@ async function handleFavoriteClick(event) {
       headers: {
         "X-CSRFToken": csrfToken,
         "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
       },
+      credentials: "same-origin",
     })
 
     if (!response.ok) {
       if (response.status === 403) {
         showNotification("Войдите в систему для добавления в избранное", "warning")
         btn.style.transform = "scale(1)"
+        btn.disabled = false
         return
       }
-      throw new Error("Ошибка сервера")
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
 
     const data = await response.json()
-    const isFavorite = data.is_favorite || data.status === "added"
+    const isFavorite = data.status === "added"
 
-    updateFavoriteButton(btn, icon, textEl, isFavorite)
+    // Обновляем состояние кнопки
+    btn.classList.toggle("active", isFavorite)
 
+    if (icon) {
+      icon.classList.remove("fas", "far")
+      icon.classList.add(isFavorite ? "fas" : "far")
+
+      if (isFavorite) {
+        icon.style.animation = "heartPulse 0.6s ease"
+        setTimeout(() => {
+          icon.style.animation = ""
+        }, 600)
+      }
+    }
+
+    btn.title = isFavorite ? "Удалить из избранного" : "Добавить в избранное"
+
+    // Анимация после успешного запроса
     setTimeout(() => {
       btn.style.transform = isFavorite ? "scale(1.2)" : "scale(1)"
       setTimeout(() => {
@@ -271,51 +297,29 @@ async function handleFavoriteClick(event) {
     const message = data.message || (isFavorite ? "Добавлено в избранное" : "Удалено из избранного")
     showNotification(message, "success")
 
-    if (!isFavorite && btn.closest(".col-lg-4, .col-md-6")) {
+    // Удаление карточки на странице избранного
+    if (!isFavorite && window.location.pathname.includes("favorites")) {
       const card = btn.closest(".col-lg-4, .col-md-6")
-      if (window.location.pathname.includes("favorites")) {
-        animateCardRemoval(card)
+      if (card) {
+        card.style.transition = "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
+        card.style.opacity = "0"
+        card.style.transform = "scale(0.8) translateY(20px)"
+
+        setTimeout(() => {
+          card.remove()
+          if (document.querySelectorAll(".space-card").length === 0) {
+            location.reload()
+          }
+        }, 400)
       }
     }
   } catch (error) {
     console.error("Ошибка при изменении избранного:", error)
     showNotification("Произошла ошибка. Попробуйте ещё раз.", "danger")
     btn.style.transform = "scale(1)"
+  } finally {
+    btn.disabled = false
   }
-}
-
-function updateFavoriteButton(btn, icon, textEl, isFavorite) {
-  btn.classList.toggle("active", isFavorite)
-
-  if (icon) {
-    icon.classList.remove("fas", "far")
-    icon.classList.add(isFavorite ? "fas" : "far")
-
-    if (isFavorite) {
-      icon.style.animation = "heartPulse 0.6s ease"
-      setTimeout(() => {
-        icon.style.animation = ""
-      }, 600)
-    }
-  }
-
-  if (textEl) {
-    textEl.textContent = isFavorite ? "В избранном" : "В избранное"
-  }
-}
-
-function animateCardRemoval(card) {
-  card.style.transition = "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
-  card.style.opacity = "0"
-  card.style.transform = "scale(0.8) translateY(20px)"
-
-  setTimeout(() => {
-    card.remove()
-
-    if (document.querySelectorAll(".space-card").length === 0) {
-      location.reload()
-    }
-  }, 400)
 }
 
 /* =============================================================================
@@ -415,11 +419,19 @@ function initSmoothScroll() {
    9. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
    ============================================================================= */
 function getCsrfToken() {
+  // Сначала пробуем из cookie
   const cookieToken = getCookie("csrftoken")
   if (cookieToken) return cookieToken
 
+  // Затем из скрытого поля формы
   const tokenInput = document.querySelector("[name=csrfmiddlewaretoken]")
-  return tokenInput ? tokenInput.value : null
+  if (tokenInput) return tokenInput.value
+
+  // Из meta тега
+  const metaToken = document.querySelector('meta[name="csrf-token"]')
+  if (metaToken) return metaToken.getAttribute("content")
+
+  return null
 }
 
 function getCookie(name) {

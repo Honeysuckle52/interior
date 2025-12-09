@@ -139,7 +139,11 @@ def _apply_filters(
             spaces = spaces.filter(city_id=filters['city_id'])
 
         if filters.get('category_ids'):
-            spaces = spaces.filter(category_id__in=filters['category_ids'])
+            category_ids = filters['category_ids']
+            if isinstance(category_ids, list):
+                spaces = spaces.filter(category_id__in=category_ids)
+            else:
+                spaces = spaces.filter(category_id=category_ids)
 
         if filters.get('min_area'):
             spaces = spaces.filter(area_sqm__gte=filters['min_area'])
@@ -218,8 +222,12 @@ def spaces_list(request: HttpRequest) -> HttpResponse:
         cities: QuerySet[City] = City.objects.filter(is_active=True).order_by('name')
         categories: QuerySet[SpaceCategory] = SpaceCategory.objects.filter(is_active=True).order_by('name')
 
-        category_ids = request.GET.getlist('category')
-        category_ids = [_parse_int(c) for c in category_ids if _parse_int(c)]
+        category_param = request.GET.get('category', '')
+        category_ids = []
+        if category_param:
+            parsed_id = _parse_int(category_param)
+            if parsed_id:
+                category_ids = [parsed_id]
 
         # Parse filter parameters
         filters: dict[str, Any] = {
@@ -309,8 +317,12 @@ def spaces_ajax(request: HttpRequest) -> JsonResponse:
             'images', 'prices', 'prices__period', 'reviews'
         )
 
-        category_ids = request.GET.getlist('category')
-        category_ids = [_parse_int(c) for c in category_ids if _parse_int(c)]
+        category_param = request.GET.get('category', '')
+        category_ids = []
+        if category_param:
+            parsed_id = _parse_int(category_param)
+            if parsed_id:
+                category_ids = [parsed_id]
 
         # Parse filter parameters
         filters: dict[str, Any] = {
@@ -596,20 +608,23 @@ def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
     space = get_object_or_404(Space, pk=pk)
     pricing_periods = PricingPeriod.objects.all().order_by('sort_order')
 
-    # Получаем текущие цены
-    current_prices = {sp.period_id: sp.price for sp in space.prices.all()}
+    # Текущие цены для заполнения формы
+    current_prices = {
+        price.period_id: price.price
+        for price in space.prices.filter(is_active=True)
+    }
 
     if request.method == 'POST':
         form = SpaceForm(request.POST, instance=space)
         if form.is_valid():
             space = form.save()
 
-            # Обновляем изображения если загружены новые
-            images = request.FILES.getlist('images')
-            if images:
+            # Обновляем изображения
+            new_images = request.FILES.getlist('images')
+            if new_images:
                 # Удаляем старые изображения
                 space.images.all().delete()
-                for i, image_file in enumerate(images):
+                for i, image_file in enumerate(new_images):
                     SpaceImage.objects.create(
                         space=space,
                         image=image_file,
@@ -618,14 +633,16 @@ def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
                     )
 
             # Обновляем цены
+            space.prices.all().delete()
             for period in pricing_periods:
                 price_value = request.POST.get(f'price_{period.id}')
                 if price_value:
                     try:
-                        SpacePrice.objects.update_or_create(
+                        SpacePrice.objects.create(
                             space=space,
                             period=period,
-                            defaults={'price': float(price_value), 'is_active': True}
+                            price=float(price_value),
+                            is_active=True
                         )
                     except (ValueError, TypeError):
                         pass
@@ -655,9 +672,8 @@ def delete_space(request: HttpRequest, pk: int) -> HttpResponse:
     space = get_object_or_404(Space, pk=pk)
 
     if request.method == 'POST':
-        title = space.title
+        space_title = space.title
         space.delete()
-        messages.success(request, f'Помещение "{title}" удалено')
-        return redirect('manage_spaces')
+        messages.success(request, f'Помещение "{space_title}" успешно удалено')
 
     return redirect('manage_spaces')

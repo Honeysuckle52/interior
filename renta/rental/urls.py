@@ -32,12 +32,19 @@ from .views.auth import (
     resend_verification_code,
 )
 from .views.users import users_ajax
-from .views.spaces import spaces_ajax, manage_spaces, add_space, edit_space, delete_space  # Добавлены новые views
+from .views.spaces import spaces_ajax, manage_spaces, add_space, edit_space, delete_space
+from .views.categories import (
+    manage_categories, add_category, edit_category, delete_category, toggle_category_status
+)
+from .views.admin_panel import admin_panel
 
 
 urlpatterns = [
     # ============== ГЛАВНАЯ ==============
     path('', home, name='home'),
+
+    # ============== ПАНЕЛЬ УПРАВЛЕНИЯ (Модератор/Админ) ==============
+    path('manage/', admin_panel, name='admin_panel'),
 
     # ============== ПОМЕЩЕНИЯ ==============
     path('spaces/', spaces_list, name='spaces_list'),
@@ -50,13 +57,20 @@ urlpatterns = [
     path('manage/spaces/<int:pk>/edit/', edit_space, name='edit_space'),
     path('manage/spaces/<int:pk>/delete/', delete_space, name='delete_space'),
 
+    # УПРАВЛЕНИЕ КАТЕГОРИЯМИ (Модератор/Админ)
+    path('manage/categories/', manage_categories, name='manage_categories'),
+    path('manage/categories/add/', add_category, name='add_category'),
+    path('manage/categories/<int:pk>/edit/', edit_category, name='edit_category'),
+    path('manage/categories/<int:pk>/delete/', delete_category, name='delete_category'),
+    path('manage/categories/<int:pk>/toggle-status/', toggle_category_status, name='toggle_category_status'),
+
     # ============== АУТЕНТИФИКАЦИЯ ==============
     path('login/', CustomLoginView.as_view(), name='login'),
     path('register/', register_view, name='register'),
     path('logout/', logout_view, name='logout'),
 
     path('verify-code/', verify_email_code, name='verify_email_code'),
-    path('resend-code/', resend_verification_code, name='resend_verification_code'),
+    path('resend-code/', resend_verification_code, name='resend_code'),
 
     path('verify-email/<str:token>/', verify_email, name='verify_email'),
     path('resend-verification/', resend_verification, name='resend_verification'),

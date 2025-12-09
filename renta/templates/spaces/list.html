@@ -41,7 +41,7 @@
             <div class="filter-grid">
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        </i>Город
+                        <i class="fas fa-map-marker-alt me-1 gold-text"></i>Город
                     </label>
                     <select name="city" id="cityFilter" class="filter-select-modern">
                         <option value="">Все города</option>
@@ -51,9 +51,26 @@
                     </select>
                 </div>
 
+                <!-- Заменили чипы категорий на выпадающий список -->
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        </i>Площадь, м²
+                        <i class="fas fa-folder me-1 gold-text"></i>Категория
+                    </label>
+                    <select name="category" id="categoryFilter" class="filter-select-modern">
+                        <option value="">Все категории</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}"
+                                {% if category.id|stringformat:'i' in selected_categories %}selected{% endif %}
+                                data-icon="{{ category.icon }}">
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label class="filter-label-modern">
+                        <i class="fas fa-ruler-combined me-1 gold-text"></i>Площадь, м²
                     </label>
                     <div class="filter-range">
                         <input type="number" name="min_area" id="minArea" class="filter-input-modern" placeholder="от" value="{{ min_area }}" min="0">
@@ -64,14 +81,14 @@
 
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        </i>Вместимость
+                        <i class="fas fa-users me-1 gold-text"></i>Вместимость
                     </label>
                     <input type="number" name="min_capacity" id="minCapacity" class="filter-input-modern" placeholder="от человек" value="{{ min_capacity }}" min="1">
                 </div>
 
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        </i>Цена, ₽
+                        <i class="fas fa-ruble-sign me-1 gold-text"></i>Цена, ₽
                     </label>
                     <div class="filter-range">
                         <input type="number" name="min_price" id="minPrice" class="filter-input-modern" placeholder="от" value="{{ min_price }}" min="0">
@@ -81,30 +98,11 @@
                 </div>
             </div>
 
-            <!-- Категории в виде чипов -->
-            <div class="filter-categories-section">
-                <label class="filter-label-modern mb-3">
-                    </i>Категории
-                </label>
-                <div class="category-chips">
-                    {% for category in categories %}
-                    <label class="category-chip {% if category.id|stringformat:'i' in selected_categories %}active{% endif %}">
-                        <input type="checkbox" name="category" value="{{ category.id }}"
-                               class="category-checkbox"
-                               {% if category.id|stringformat:'i' in selected_categories %}checked{% endif %}>
-                        <span class="chip-content">
-                            <i class="fas fa-tag me-2"></i>{{ category.name }}
-                        </span>
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
-
             <!-- Сортировка и кнопки -->
             <div class="filter-actions">
                 <div class="filter-sort">
                     <label class="filter-label-modern mb-0">
-                        </i>Сортировка:
+                        <i class="fas fa-sort me-1 gold-text"></i>Сортировка:
                     </label>
                     <select name="sort" id="sortFilter" class="filter-select-modern filter-select-sm">
                         <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Новые</option>
@@ -189,6 +187,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('spaceSearch');
     const cityFilter = document.getElementById('cityFilter');
+    const categoryFilter = document.getElementById('categoryFilter');
     const minArea = document.getElementById('minArea');
     const maxArea = document.getElementById('maxArea');
     const minCapacity = document.getElementById('minCapacity');
@@ -217,6 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (searchInput.value) params.append('search', searchInput.value);
         if (cityFilter.value) params.append('city', cityFilter.value);
+        if (categoryFilter.value) params.append('category', categoryFilter.value);
         if (minArea.value) params.append('min_area', minArea.value);
         if (maxArea.value) params.append('max_area', maxArea.value);
         if (minCapacity.value) params.append('min_capacity', minCapacity.value);
@@ -224,10 +224,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (maxPrice.value) params.append('max_price', maxPrice.value);
         if (sortFilter.value) params.append('sort', sortFilter.value);
         params.append('page', page);
-
-        document.querySelectorAll('.category-checkbox:checked').forEach(cb => {
-            params.append('category', cb.value);
-        });
 
         return params;
     }
@@ -369,6 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     searchInput.addEventListener('input', debouncedSearch);
     cityFilter.addEventListener('change', () => loadSpaces(1));
+    categoryFilter.addEventListener('change', () => loadSpaces(1));
     minArea.addEventListener('input', debouncedSearch);
     maxArea.addEventListener('input', debouncedSearch);
     minCapacity.addEventListener('input', debouncedSearch);
@@ -376,27 +373,16 @@ document.addEventListener('DOMContentLoaded', function() {
     maxPrice.addEventListener('input', debouncedSearch);
     sortFilter.addEventListener('change', () => loadSpaces(1));
 
-    document.querySelectorAll('.category-checkbox').forEach(cb => {
-        cb.addEventListener('change', function() {
-            this.closest('.category-chip').classList.toggle('active', this.checked);
-            loadSpaces(1);
-        });
-    });
-
     resetBtn.addEventListener('click', function() {
         searchInput.value = '';
         cityFilter.value = '';
+        categoryFilter.value = '';
         minArea.value = '';
         maxArea.value = '';
         minCapacity.value = '';
         minPrice.value = '';
         maxPrice.value = '';
         sortFilter.value = 'newest';
-
-        document.querySelectorAll('.category-checkbox').forEach(cb => {
-            cb.checked = false;
-            cb.closest('.category-chip').classList.remove('active');
-        });
 
         loadSpaces(1);
     });

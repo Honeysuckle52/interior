@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Редактировать категорию | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
+            <li class="breadcrumb-item">
+                <a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'dashboard' %}" class="breadcrumb-link fw-medium">Личный кабинет</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'manage_categories' %}" class="breadcrumb-link fw-medium">Управление категориями</a>
+            </li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page">Редактировать</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold mb-2 text-themed">Редактировать категорию</h1>
+            <p class="text-muted">Изменение категории "{{ category.name }}"</p>
+        </div>
+    </div>
+
+    <form method="post" id="categoryForm">
+        {% csrf_token %}
+        
+        <div class="row g-4">
+            <!-- Основная информация -->
+            <div class="col-lg-8">
+                <div class="space-form-card">
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-info-circle me-2 gold-text"></i>Основная информация
+                        </h5>
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Название категории *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="name" 
+                                   name="name" 
+                                   placeholder="Например: Офис, Лофт, Фотостудия..."
+                                   value="{{ form_data.name|default:'' }}"
+                                   maxlength="100"
+                                   required>
+                            <small class="text-muted">Текущий slug: <code>{{ category.slug }}</code> (обновится автоматически при изменении названия)</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="icon" class="form-label">Иконка FontAwesome *</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="iconPreview">
+                                    <i class="fas {{ form_data.icon|default:'fa-building' }}"></i>
+                                </span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="icon" 
+                                       name="icon" 
+                                       placeholder="fa-building"
+                                       value="{{ form_data.icon|default:'fa-building' }}"
+                                       required>
+                            </div>
+                            <small class="text-muted">
+                                Введите класс иконки без "fas". Примеры: fa-building, fa-home, fa-camera, fa-briefcase
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Описание</label>
+                            <textarea class="form-control" 
+                                      id="description" 
+                                      name="description" 
+                                      rows="3"
+                                      placeholder="Краткое описание категории...">{{ form_data.description|default:'' }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Популярные иконки -->
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-icons me-2 gold-text"></i>Популярные иконки
+                        </h5>
+                        <div class="icon-picker">
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-building' %}active{% endif %}" data-icon="fa-building" title="Офис">
+                                <i class="fas fa-building"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-home' %}active{% endif %}" data-icon="fa-home" title="Дом">
+                                <i class="fas fa-home"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-briefcase' %}active{% endif %}" data-icon="fa-briefcase" title="Бизнес">
+                                <i class="fas fa-briefcase"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-camera' %}active{% endif %}" data-icon="fa-camera" title="Фотостудия">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-warehouse' %}active{% endif %}" data-icon="fa-warehouse" title="Склад">
+                                <i class="fas fa-warehouse"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-store' %}active{% endif %}" data-icon="fa-store" title="Магазин">
+                                <i class="fas fa-store"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-couch' %}active{% endif %}" data-icon="fa-couch" title="Лофт">
+                                <i class="fas fa-couch"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-users' %}active{% endif %}" data-icon="fa-users" title="Конференц-зал">
+                                <i class="fas fa-users"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-chalkboard' %}active{% endif %}" data-icon="fa-chalkboard" title="Учебный класс">
+                                <i class="fas fa-chalkboard"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-desktop' %}active{% endif %}" data-icon="fa-desktop" title="Коворкинг">
+                                <i class="fas fa-desktop"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-industry' %}active{% endif %}" data-icon="fa-industry" title="Производство">
+                                <i class="fas fa-industry"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-hotel' %}active{% endif %}" data-icon="fa-hotel" title="Отель">
+                                <i class="fas fa-hotel"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-utensils' %}active{% endif %}" data-icon="fa-utensils" title="Ресторан">
+                                <i class="fas fa-utensils"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-dumbbell' %}active{% endif %}" data-icon="fa-dumbbell" title="Спортзал">
+                                <i class="fas fa-dumbbell"></i>
+                            </button>
+                            <button type="button" class="icon-picker-btn {% if form_data.icon == 'fa-theater-masks' %}active{% endif %}" data-icon="fa-theater-masks" title="Шоурум">
+                                <i class="fas fa-theater-masks"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Сайдбар -->
+            <div class="col-lg-4">
+                <div class="space-form-card sticky-top" style="top: 100px;">
+                    <h5 class="space-form-section-title">
+                        <i class="fas fa-cog me-2 gold-text"></i>Настройки
+                    </h5>
+                    
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="is_active" 
+                                   name="is_active"
+                                   {% if form_data.is_active %}checked{% endif %}>
+                            <label class="form-check-label text-themed" for="is_active">
+                                Активна (видна в фильтрах)
+                            </label>
+                        </div>
+                        <small class="text-muted">Неактивные категории не отображаются при поиске и создании помещений</small>
+                    </div>
+
+                    <!-- Информация о категории -->
+                    <div class="category-info-box mb-4">
+                        <h6 class="text-muted mb-2">Информация</h6>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Помещений:</span>
+                            <span class="text-themed fw-medium">{{ category.spaces.count }}</span>
+                        </div>
+                    </div>
+                    
+                    <hr style="border-color: var(--border-color);">
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-gold">
+                            <i class="fas fa-save me-2"></i>Сохранить изменения
+                        </button>
+                        <a href="{% url 'manage_categories' %}" class="btn btn-outline-themed">
+                            <i class="fas fa-times me-2"></i>Отмена
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const iconInput = document.getElementById('icon');
+    const iconPreview = document.getElementById('iconPreview');
+    
+    // Обновление превью иконки при вводе
+    iconInput.addEventListener('input', function() {
+        const iconClass = this.value.trim() || 'fa-building';
+        iconPreview.innerHTML = '<i class="fas ' + iconClass + '"></i>';
+    });
+    
+    // Выбор иконки из галереи
+    document.querySelectorAll('.icon-picker-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const icon = this.dataset.icon;
+            iconInput.value = icon;
+            iconPreview.innerHTML = '<i class="fas ' + icon + '"></i>';
+            
+            // Подсветка выбранной иконки
+            document.querySelectorAll('.icon-picker-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+</script>
+{% endblock %}

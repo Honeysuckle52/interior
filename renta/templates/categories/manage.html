@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Управление категориями | INTERIOR{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 100px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
+            <li class="breadcrumb-item">
+                <a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'dashboard' %}" class="breadcrumb-link fw-medium">Личный кабинет</a>
+            </li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page">Управление категориями</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h1 class="display-6 fw-bold mb-2 text-themed">Управление категориями</h1>
+                    <p class="text-muted">Добавление, редактирование и управление категориями помещений</p>
+                </div>
+                <a href="{% url 'add_category' %}" class="btn btn-gold">
+                    <i class="fas fa-plus me-2"></i>Добавить категорию
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold gold-text">{{ stats.total }}</div>
+                <small class="text-muted">Всего</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-success">{{ stats.active }}</div>
+                <small class="text-muted">Активных</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-warning">{{ stats.inactive }}</div>
+                <small class="text-muted">Неактивных</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dashboard-card text-center py-3">
+                <div class="fs-3 fw-bold text-info">{{ stats.with_spaces }}</div>
+                <small class="text-muted">С помещениями</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список категорий -->
+    <div class="dashboard-card">
+        <div class="table-responsive">
+            <table class="table table-themed align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">Иконка</th>
+                        <th>Название</th>
+                        <th>Slug</th>
+                        <th class="text-center">Помещений</th>
+                        <th class="text-center">Статус</th>
+                        <th class="text-end" style="width: 150px;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                    <tr>
+                        <td>
+                            <span class="category-icon-preview">
+                                <i class="fas {{ category.icon }}"></i>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-medium text-themed">{{ category.name }}</span>
+                            {% if category.description %}
+                            <br><small class="text-muted">{{ category.description|truncatewords:10 }}</small>
+                            {% endif %}
+                        </td>
+                        <td><code class="text-muted">{{ category.slug }}</code></td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary">
+                                {{ category.spaces_count }} / {{ category.total_spaces_count }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <button type="button" 
+                                    class="btn btn-sm status-toggle-btn {% if category.is_active %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                                    onclick="toggleCategoryStatus({{ category.pk }})"
+                                    title="{% if category.is_active %}Активна{% else %}Неактивна{% endif %}">
+                                <i class="fas {% if category.is_active %}fa-check{% else %}fa-times{% endif %}"></i>
+                            </button>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'edit_category' category.pk %}" 
+                                   class="btn btn-outline-gold" 
+                                   title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" 
+                                        class="btn btn-outline-danger" 
+                                        onclick="confirmDelete({{ category.pk }}, '{{ category.name }}', {{ category.total_spaces_count }})"
+                                        title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="fas fa-folder-open fa-3x text-muted mb-3 d-block"></i>
+                            <h5 class="text-themed">Категории не найдены</h5>
+                            <p class="text-muted mb-3">Добавьте первую категорию для начала работы</p>
+                            <a href="{% url 'add_category' %}" class="btn btn-gold">
+                                <i class="fas fa-plus me-2"></i>Добавить категорию
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Пагинация -->
+    {% if categories.has_other_pages %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination pagination-themed mb-0">
+                {% if categories.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ categories.previous_page_number }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for num in categories.paginator.page_range %}
+                    {% if categories.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > categories.number|add:'-3' and num < categories.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if categories.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ categories.next_page_number }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Модальное окно удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-color: var(--border-color);">
+                <h5 class="modal-title text-themed">Удаление категории</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-themed">Вы уверены, что хотите удалить категорию "<span id="deleteCategoryName"></span>"?</p>
+                <div id="deleteWarning" class="alert alert-warning d-none">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    К этой категории привязано <strong id="deleteSpacesCount"></strong> помещений. 
+                    Сначала переназначьте их в другую категорию.
+                </div>
+                <p class="text-muted" id="deleteConfirmText">Это действие нельзя отменить.</p>
+            </div>
+            <div class="modal-footer" style="border-color: var(--border-color);">
+                <button type="button" class="btn btn-outline-themed" data-bs-dismiss="modal">Отмена</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" id="deleteBtn">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(categoryId, categoryName, spacesCount) {
+    document.getElementById('deleteCategoryName').textContent = categoryName;
+    document.getElementById('deleteForm').action = '/manage/categories/' + categoryId + '/delete/';
+    
+    const warningEl = document.getElementById('deleteWarning');
+    const confirmTextEl = document.getElementById('deleteConfirmText');
+    const deleteBtnEl = document.getElementById('deleteBtn');
+    
+    if (spacesCount > 0) {
+        document.getElementById('deleteSpacesCount').textContent = spacesCount;
+        warningEl.classList.remove('d-none');
+        confirmTextEl.classList.add('d-none');
+        deleteBtnEl.disabled = true;
+    } else {
+        warningEl.classList.add('d-none');
+        confirmTextEl.classList.remove('d-none');
+        deleteBtnEl.disabled = false;
+    }
+    
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+async function toggleCategoryStatus(categoryId) {
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value 
+                        || document.querySelector('meta[name="csrf-token"]')?.content;
+        
+        const response = await fetch('/manage/categories/' + categoryId + '/toggle-status/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Перезагружаем страницу для обновления данных
+            location.reload();
+        } else {
+            alert(data.error || 'Произошла ошибка');
+        }
+    } catch (error) {
+        console.error('Error toggling status:', error);
+        alert('Произошла ошибка при изменении статуса');
+    }
+}
+</script>
+{% csrf_token %}
+{% endblock %}
