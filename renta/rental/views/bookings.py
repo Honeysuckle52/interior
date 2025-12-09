@@ -17,7 +17,6 @@
 
 Вспомогательные функции:
 - _get_available_periods: Получение доступных периодов для помещения
-- _get_or_create_status: Получение или создание статуса бронирования
 - _check_booking_overlap: Проверка пересечений с существующими бронированиями
 
 Константы:
@@ -39,7 +38,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from decimal import Decimal
 from typing import Any, Optional
 
 from django.contrib import messages
@@ -52,15 +50,15 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from ..forms import BookingForm
-from ..models import (
-    Space, SpacePrice, PricingPeriod, Booking, BookingStatus
-)
+from ..models import Space, SpacePrice, PricingPeriod, Booking, BookingStatus
+from ..services.status_service import StatusService, StatusCodes
+from ..core.pagination import paginate, DEFAULT_PAGE_SIZE
+from ..core.decorators import moderator_required, handle_view_errors
 
+
+# Константы
 HOURS_IN_DAY: int = 24
 SECONDS_IN_HOUR: int = 3600
-DEFAULT_PENDING_SORT_ORDER: int = 1
-DEFAULT_CONFIRMED_SORT_ORDER: int = 2
-DEFAULT_CANCELLED_SORT_ORDER: int = 4
 BOOKINGS_PER_PAGE: int = 10
 
 logger = logging.getLogger(__name__)
@@ -86,26 +84,12 @@ def _get_available_periods(space: Space) -> Any:
         return PricingPeriod.objects.none()
 
 
-def _get_or_create_status(code: str, defaults: dict[str, Any]) -> BookingStatus:
-    """
-    Получение или создание статуса бронирования.
-
-    Args:
-        code (str): Код статуса
-        defaults (dict[str, Any]): Значения по умолчанию для создания
-
-    Returns:
-        BookingStatus: Объект статуса бронирования
-    """
-    try:
-        status, _ = BookingStatus.objects.get_or_create(code=code, defaults=defaults)
-        return status
-    except Exception as e:
-        logger.error(f"Error getting/creating status '{code}': {e}", exc_info=True)
-        raise
-
-
-def _check_booking_overlap(space: Space, start_datetime: datetime, end_datetime: datetime, exclude_booking_id: Optional[int] = None) -> Optional[Booking]:
+def _check_booking_overlap(
+    space: Space,
+    start_datetime: datetime,
+    end_datetime: datetime,
+    exclude_booking_id: Optional[int] = None
+) -> Optional[Booking]:
     """
     Проверка пересечения с существующими бронированиями помещения.
 
@@ -121,7 +105,7 @@ def _check_booking_overlap(space: Space, start_datetime: datetime, end_datetime:
     """
     overlapping = Booking.objects.filter(
         space=space,
-        status__code__in=['pending', 'confirmed'],  # Только активные бронирования
+        status__code__in=[StatusCodes.PENDING, StatusCodes.CONFIRMED],
     ).filter(
         # Пересечение интервалов: start1 < end2 AND start2 < end1
         Q(start_datetime__lt=end_datetime) & Q(end_datetime__gt=start_datetime)
@@ -174,7 +158,6 @@ def create_booking(request: HttpRequest, pk: int) -> HttpResponse:
                     booking.space = space
                     booking.tenant = request.user
 
-                    # Get price for selected period
                     try:
                         price_obj: SpacePrice = SpacePrice.objects.get(
                             space=space,
@@ -186,21 +169,17 @@ def create_booking(request: HttpRequest, pk: int) -> HttpResponse:
                         messages.error(request, 'Выбранный период недоступен')
                         return redirect('space_detail', pk=pk)
 
-                    # Calculate total amount
                     booking.total_amount = booking.price_per_period * booking.periods_count
 
-                    # Set dates
                     start_date = form.cleaned_data['start_date']
                     start_time = form.cleaned_data['start_time']
                     booking.start_datetime = timezone.make_aware(
                         datetime.combine(start_date, start_time)
                     )
 
-                    # Calculate end datetime
                     total_hours: int = booking.period.hours_count * booking.periods_count
                     booking.end_datetime = booking.start_datetime + timedelta(hours=total_hours)
 
-                    # Validate start date is in future
                     if booking.start_datetime <= timezone.now():
                         messages.error(request, 'Дата начала должна быть в будущем')
                         return render(request, 'bookings/create.html', {
@@ -222,13 +201,7 @@ def create_booking(request: HttpRequest, pk: int) -> HttpResponse:
                             'space': space, 'prices': prices, 'form': form
                         })
 
-                    # Set pending status
-                    booking.status = _get_or_create_status('pending', {
-                        'name': 'Ожидание подтверждения',
-                        'color': 'warning',
-                        'sort_order': DEFAULT_PENDING_SORT_ORDER
-                    })
-
+                    booking.status = StatusService.get_pending_status()
                     booking.save()
 
                     messages.success(
@@ -310,7 +283,7 @@ def booking_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 tenant=user
             )
 
-        can_manage: bool = user.can_moderate and booking.status.code == 'pending'
+        can_manage: bool = user.can_moderate and booking.status.code == StatusCodes.PENDING
         is_owner: bool = booking.tenant == user
 
         context: dict[str, Any] = {
@@ -319,7 +292,7 @@ def booking_detail(request: HttpRequest, pk: int) -> HttpResponse:
             'can_manage': can_manage,
             'is_owner': is_owner,
             'can_review': (
-                booking.status.code == 'completed' and
+                booking.status.code == StatusCodes.COMPLETED and
                 not hasattr(booking, 'review') and
                 is_owner
             ),
@@ -356,7 +329,7 @@ def confirm_booking(request: HttpRequest, pk: int) -> HttpResponse:
 
         booking: Booking = get_object_or_404(Booking, pk=pk)
 
-        if booking.status.code != 'pending':
+        if booking.status.code != StatusCodes.PENDING:
             messages.error(request, 'Можно подтвердить только бронирования в статусе ожидания')
             return redirect('booking_detail', pk=pk)
 
@@ -364,12 +337,7 @@ def confirm_booking(request: HttpRequest, pk: int) -> HttpResponse:
         if moderator_comment:
             booking.moderator_comment = moderator_comment
 
-        # Update status to confirmed
-        booking.status = _get_or_create_status('confirmed', {
-            'name': 'Подтверждено',
-            'color': 'success',
-            'sort_order': DEFAULT_CONFIRMED_SORT_ORDER
-        })
+        booking.status = StatusService.get_confirmed_status()
         booking.save()
 
         messages.success(request, f'Бронирование #{booking.id} успешно подтверждено!')
@@ -405,7 +373,7 @@ def reject_booking(request: HttpRequest, pk: int) -> HttpResponse:
 
         booking: Booking = get_object_or_404(Booking, pk=pk)
 
-        if booking.status.code != 'pending':
+        if booking.status.code != StatusCodes.PENDING:
             messages.error(request, 'Можно отклонить только бронирования в статусе ожидания')
             return redirect('booking_detail', pk=pk)
 
@@ -413,12 +381,7 @@ def reject_booking(request: HttpRequest, pk: int) -> HttpResponse:
         if moderator_comment:
             booking.moderator_comment = moderator_comment
 
-        # Update status to cancelled
-        booking.status = _get_or_create_status('cancelled', {
-            'name': 'Отклонено',
-            'color': 'danger',
-            'sort_order': DEFAULT_CANCELLED_SORT_ORDER
-        })
+        booking.status = StatusService.get_cancelled_status()
         booking.save()
 
         messages.success(request, f'Бронирование #{booking.id} отклонено')
@@ -467,34 +430,24 @@ def manage_bookings(request: HttpRequest) -> HttpResponse:
             'status', 'period', 'tenant'
         ).prefetch_related('space__images').order_by('-created_at')
 
-        # Filter by status
         status_filter: str = request.GET.get('status', '')
         if status_filter:
             bookings = bookings.filter(status__code=status_filter)
 
-        # Filter pending only
         pending_only: bool = request.GET.get('pending') == '1'
         if pending_only:
-            bookings = bookings.filter(status__code='pending')
+            bookings = bookings.filter(status__code=StatusCodes.PENDING)
 
-        # Get status statistics
         from django.db.models import Count
         status_stats = Booking.objects.values(
             'status__code', 'status__name', 'status__color'
         ).annotate(count=Count('id'))
 
-        pending_count: int = Booking.objects.filter(status__code='pending').count()
-        confirmed_count: int = Booking.objects.filter(status__code='confirmed').count()
-        completed_count: int = Booking.objects.filter(status__code='completed').count()
+        pending_count: int = Booking.objects.filter(status__code=StatusCodes.PENDING).count()
+        confirmed_count: int = Booking.objects.filter(status__code=StatusCodes.CONFIRMED).count()
+        completed_count: int = Booking.objects.filter(status__code=StatusCodes.COMPLETED).count()
 
-        from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-        paginator = Paginator(bookings, BOOKINGS_PER_PAGE)
-        page_number = request.GET.get('page', 1)
-
-        try:
-            bookings_page = paginator.get_page(page_number)
-        except (EmptyPage, PageNotAnInteger):
-            bookings_page = paginator.get_page(1)
+        bookings_page, paginator = paginate(bookings, request, BOOKINGS_PER_PAGE)
 
         context: dict[str, Any] = {
             'bookings': bookings_page,
@@ -536,7 +489,6 @@ def cancel_booking(request: HttpRequest, pk: int) -> HttpResponse:
             messages.error(request, 'Это бронирование нельзя отменить')
             return redirect('booking_detail', pk=pk)
 
-        # Warning for late cancellation
         hours_until_start: float = (
             booking.start_datetime - timezone.now()
         ).total_seconds() / SECONDS_IN_HOUR
@@ -544,18 +496,14 @@ def cancel_booking(request: HttpRequest, pk: int) -> HttpResponse:
         if hours_until_start < HOURS_IN_DAY:
             messages.warning(
                 request,
-                'Отмена менее чем за 24 часа до начала аренды может быть платной'
+                'Внимание: отмена менее чем за 24 часа до начала '
+                'может повлечь штрафные санкции.'
             )
 
-        # Update status
-        booking.status = _get_or_create_status('cancelled', {
-            'name': 'Отменено',
-            'color': 'danger',
-            'sort_order': DEFAULT_CANCELLED_SORT_ORDER
-        })
+        booking.status = StatusService.get_cancelled_status()
         booking.save()
 
-        messages.success(request, f'Бронирование #{booking.id} успешно отменено')
+        messages.success(request, f'Бронирование #{booking.id} отменено')
         return redirect('my_bookings')
 
     except Http404:
@@ -567,45 +515,46 @@ def cancel_booking(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required
-def get_price_for_period(
-    request: HttpRequest,
-    space_id: int,
-    period_id: int
-) -> JsonResponse:
+def get_price_for_period(request: HttpRequest) -> JsonResponse:
     """
-    AJAX endpoint для получения цены за определенный период аренды.
-
-    Используется для динамического расчета стоимости при выборе периода
-    на странице создания бронирования.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        space_id (int): ID помещения
-        period_id (int): ID периода аренды
-
-    Returns:
-        JsonResponse: JSON с информацией о цене или ошибкой
+    AJAX endpoint для получения цены за период.
     """
     try:
-        price: SpacePrice = SpacePrice.objects.select_related('period').get(
-            space_id=space_id,
-            period_id=period_id,
-            is_active=True
-        )
-        return JsonResponse({
-            'success': True,
-            'price': float(price.price),
-            'period_hours': price.period.hours_count,
-            'period_name': price.period.description
-        })
-    except SpacePrice.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Цена не найдена'
-        }, status=404)
+        space_id = request.GET.get('space_id')
+        period_id = request.GET.get('period_id')
+        periods_count = request.GET.get('periods_count', 1)
+
+        if not space_id or not period_id:
+            return JsonResponse({'success': False, 'error': 'Не указаны параметры'})
+
+        try:
+            periods_count = int(periods_count)
+            if periods_count < 1:
+                periods_count = 1
+        except (ValueError, TypeError):
+            periods_count = 1
+
+        try:
+            price_obj = SpacePrice.objects.select_related('period').get(
+                space_id=space_id,
+                period_id=period_id,
+                is_active=True
+            )
+
+            total = price_obj.price * periods_count
+            total_hours = price_obj.period.hours_count * periods_count
+
+            return JsonResponse({
+                'success': True,
+                'price_per_period': float(price_obj.price),
+                'total': float(total),
+                'hours': total_hours,
+                'period_name': price_obj.period.description,
+            })
+
+        except SpacePrice.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Цена не найдена'})
+
     except Exception as e:
         logger.error(f"Error in get_price_for_period: {e}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'error': 'Произошла ошибка сервера'
-        }, status=500)
+        return JsonResponse({'success': False, 'error': 'Ошибка сервера'})

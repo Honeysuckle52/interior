@@ -26,7 +26,7 @@ from typing import Any
 from django import forms
 
 from ..models import CustomUser, UserProfile
-from ..services.validators import validate_russian_phone, normalize_phone
+from ..core.validators import validate_russian_phone, normalize_phone
 
 
 class UserProfileForm(forms.ModelForm):
@@ -206,7 +206,7 @@ class ChangePasswordForm(forms.Form):
     Поля формы:
     - current_password: Текущий пароль
     - new_password1: Новый пароль
-    - new_password2: Подтверждение нового пароля
+    - new_password2: Подтверждение пароля
     """
 
     current_password = forms.CharField(

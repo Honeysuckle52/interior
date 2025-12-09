@@ -36,19 +36,20 @@ from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
 from django.db import DatabaseError
-from django.db.models import Q, Avg, Count
+from django.db.models import Q, Avg
 from django.http import HttpRequest, HttpResponse, Http404
 from django.shortcuts import redirect, get_object_or_404, render
 from django.views.decorators.http import require_POST
 
 from ..forms.reviews import ReviewForm, ReviewCreateForm
 from ..models import Space, Review, Booking
+from ..core.pagination import paginate
+from ..services.status_service import StatusCodes
+
 
 # Константы
 REVIEWS_PER_PAGE: int = 10
-COMPLETED_BOOKING_STATUS: str = 'completed'
 
 logger = logging.getLogger(__name__)
 
@@ -92,11 +93,10 @@ def create_review(request: HttpRequest, pk: int) -> HttpResponse:
                     is_approved=False  # Always start as unapproved
                 )
 
-                # Link to completed booking if exists
                 completed_booking: Booking | None = Booking.objects.filter(
                     space=space,
                     tenant=request.user,
-                    status__code=COMPLETED_BOOKING_STATUS
+                    status__code=StatusCodes.COMPLETED
                 ).first()
                 if completed_booking:
                     review.booking = completed_booking
@@ -151,13 +151,7 @@ def my_reviews(request: HttpRequest) -> HttpResponse:
             'space__images'
         ).order_by('-created_at')
 
-        paginator = Paginator(reviews, REVIEWS_PER_PAGE)
-        page_number = request.GET.get('page', 1)
-
-        try:
-            reviews_page: Page = paginator.get_page(page_number)
-        except (EmptyPage, PageNotAnInteger):
-            reviews_page = paginator.get_page(1)
+        reviews_page, _ = paginate(reviews, request, REVIEWS_PER_PAGE)
 
         context: dict[str, Any] = {'reviews': reviews_page}
         return render(request, 'account/reviews.html', context)
@@ -389,21 +383,13 @@ def manage_reviews(request: HttpRequest) -> HttpResponse:
                 Q(comment__icontains=search_query)
             )
 
-        # Stats
         all_reviews = Review.objects.all()
         pending_count = all_reviews.filter(is_approved=False).count()
         approved_count = all_reviews.filter(is_approved=True).count()
         total_count = all_reviews.count()
         avg_rating = all_reviews.aggregate(avg=Avg('rating'))['avg'] or 0
 
-        # Pagination
-        paginator = Paginator(reviews, REVIEWS_PER_PAGE)
-        page_number = request.GET.get('page', 1)
-
-        try:
-            reviews_page: Page = paginator.get_page(page_number)
-        except (EmptyPage, PageNotAnInteger):
-            reviews_page = paginator.get_page(1)
+        reviews_page, _ = paginate(reviews, request, REVIEWS_PER_PAGE)
 
         context: dict[str, Any] = {
             'reviews': reviews_page,

@@ -39,7 +39,6 @@ from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator, Page, EmptyPage, PageNotAnInteger
 from django.db.models import Count, Sum, Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -47,48 +46,19 @@ from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 
 from ..models import CustomUser, Booking, Review, Favorite
+from ..core.pagination import paginate
+from ..core.decorators import moderator_required
+
 
 USERS_PER_PAGE: int = 20
 
 logger = logging.getLogger(__name__)
 
 
-def moderator_required(view_func):
-    """
-    Декоратор для проверки прав модератора или администратора.
-
-    Args:
-        view_func: Функция представления для обертывания
-
-    Returns:
-        Функция-обертка, проверяющая права доступа
-    """
-    def wrapper(request: HttpRequest, *args, **kwargs):
-        if not request.user.is_authenticated:
-            messages.error(request, 'Необходимо войти в систему')
-            return redirect('login')
-        if not request.user.can_moderate:
-            messages.error(request, 'У вас нет прав для доступа к этой странице')
-            return redirect('dashboard')
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-
 def _get_users_queryset(request: HttpRequest):
     """
     Общая логика получения и фильтрации пользователей.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-
-    Returns:
-        tuple: Кортеж из четырех элементов:
-            - users: Отфильтрованный queryset пользователей
-            - user_type_filter: Текущий фильтр по типу пользователя
-            - status_filter: Текущий фильтр по статусу
-            - search_query: Текущий поисковый запрос
     """
-    # Получаем всех пользователей кроме суперпользователей
     users = CustomUser.objects.filter(
         is_superuser=False
     ).annotate(
@@ -97,12 +67,10 @@ def _get_users_queryset(request: HttpRequest):
         total_spent=Sum('bookings__total_amount', filter=Q(bookings__status__code__in=['confirmed', 'completed']))
     ).order_by('-created_at')
 
-    # Фильтрация по типу
     user_type_filter = request.GET.get('type', '')
     if user_type_filter:
         users = users.filter(user_type=user_type_filter)
 
-    # Фильтрация по статусу
     status_filter = request.GET.get('status', '')
     if status_filter == 'active':
         users = users.filter(is_active=True, is_blocked=False)
@@ -111,7 +79,6 @@ def _get_users_queryset(request: HttpRequest):
     elif status_filter == 'inactive':
         users = users.filter(is_active=False)
 
-    # Поиск
     search_query = request.GET.get('search', '').strip()
     if search_query:
         users = users.filter(
@@ -130,27 +97,10 @@ def _get_users_queryset(request: HttpRequest):
 def manage_users(request: HttpRequest) -> HttpResponse:
     """
     Страница управления пользователями для модераторов и администраторов.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-
-    Returns:
-        HttpResponse: Отрисовка страницы управления пользователями
-
-    Template:
-        users/manage.html
-
-    Context:
-        - users: Пагинированный список пользователей
-        - stats: Статистика по пользователям
-        - user_type_filter: Текущий фильтр по типу пользователя
-        - status_filter: Текущий фильтр по статусу
-        - search_query: Текущий поисковый запрос
     """
     try:
         users, user_type_filter, status_filter, search_query = _get_users_queryset(request)
 
-        # Статистика
         stats = {
             'total': CustomUser.objects.filter(is_superuser=False).count(),
             'users': CustomUser.objects.filter(user_type='user', is_superuser=False).count(),
@@ -159,14 +109,7 @@ def manage_users(request: HttpRequest) -> HttpResponse:
             'verified': CustomUser.objects.filter(email_verified=True, is_superuser=False).count(),
         }
 
-        # Пагинация
-        paginator = Paginator(users, USERS_PER_PAGE)
-        page_number = request.GET.get('page', 1)
-
-        try:
-            users_page: Page = paginator.get_page(page_number)
-        except (EmptyPage, PageNotAnInteger):
-            users_page = paginator.get_page(1)
+        users_page, paginator = paginate(users, request, USERS_PER_PAGE)
 
         context: dict[str, Any] = {
             'users': users_page,
@@ -187,28 +130,11 @@ def manage_users(request: HttpRequest) -> HttpResponse:
 @moderator_required
 def users_ajax(request: HttpRequest) -> JsonResponse:
     """
-    AJAX endpoint для живой (динамической) фильтрации пользователей.
-
-    Используется для обновления таблицы пользователей без перезагрузки страницы.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-
-    Returns:
-        JsonResponse: JSON с HTML таблицы и обновленной статистикой
-
-    Response Format:
-        {
-            'success': bool,
-            'html': str (HTML таблицы пользователей),
-            'stats': dict (статистика пользователей),
-            'total_count': int (общее количество пользователей)
-        }
+    AJAX endpoint для живой фильтрации пользователей.
     """
     try:
         users, user_type_filter, status_filter, search_query = _get_users_queryset(request)
 
-        # Статистика
         stats = {
             'total': CustomUser.objects.filter(is_superuser=False).count(),
             'users': CustomUser.objects.filter(user_type='user', is_superuser=False).count(),
@@ -217,16 +143,8 @@ def users_ajax(request: HttpRequest) -> JsonResponse:
             'verified': CustomUser.objects.filter(email_verified=True, is_superuser=False).count(),
         }
 
-        # Пагинация
-        paginator = Paginator(users, USERS_PER_PAGE)
-        page_number = request.GET.get('page', 1)
+        users_page, paginator = paginate(users, request, USERS_PER_PAGE)
 
-        try:
-            users_page = paginator.get_page(page_number)
-        except (EmptyPage, PageNotAnInteger):
-            users_page = paginator.get_page(1)
-
-        # Рендерим только таблицу
         html = render_to_string('users/_users_table.html', {
             'users': users_page,
             'search_query': search_query,
@@ -251,25 +169,6 @@ def users_ajax(request: HttpRequest) -> JsonResponse:
 def user_detail(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Детальная страница пользователя для модератора.
-
-    Отображает полную информацию о пользователе, включая статистику
-    бронирований, отзывов и финансовую активность.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID пользователя
-
-    Returns:
-        HttpResponse: Отрисовка детальной страницы пользователя
-
-    Template:
-        users/detail.html
-
-    Context:
-        - profile_user: Объект пользователя, чья страница просматривается
-        - user_stats: Статистика пользователя (бронирования, траты и т.д.)
-        - recent_bookings: Последние бронирования пользователя
-        - recent_reviews: Последние отзывы пользователя
     """
     try:
         user = get_object_or_404(
@@ -277,12 +176,10 @@ def user_detail(request: HttpRequest, pk: int) -> HttpResponse:
             pk=pk
         )
 
-        # Нельзя просматривать суперпользователей
         if user.is_superuser and not request.user.is_superuser:
             messages.error(request, 'Нет доступа к этому пользователю')
             return redirect('manage_users')
 
-        # Статистика пользователя
         user_stats = {
             'total_bookings': Booking.objects.filter(tenant=user).count(),
             'confirmed_bookings': Booking.objects.filter(
@@ -301,14 +198,12 @@ def user_detail(request: HttpRequest, pk: int) -> HttpResponse:
             'favorites_count': Favorite.objects.filter(user=user).count(),
         }
 
-        # Последние бронирования
         recent_bookings = Booking.objects.filter(
             tenant=user
         ).select_related(
             'space', 'space__city', 'status', 'period'
         ).order_by('-created_at')[:10]
 
-        # Последние отзывы
         recent_reviews = Review.objects.filter(
             author=user
         ).select_related('space').order_by('-created_at')[:5]
@@ -333,25 +228,14 @@ def user_detail(request: HttpRequest, pk: int) -> HttpResponse:
 def block_user(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Блокировка пользователя.
-
-    Защищает от блокировки администраторов, модераторов и суперпользователей.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID пользователя для блокировки
-
-    Returns:
-        HttpResponse: Редирект на детальную страницу пользователя
     """
     try:
         user = get_object_or_404(CustomUser, pk=pk)
 
-        # Нельзя блокировать модераторов и администраторов
         if user.can_moderate:
             messages.error(request, 'Нельзя заблокировать модератора или администратора')
             return redirect('user_detail_mod', pk=pk)
 
-        # Нельзя блокировать суперпользователей
         if user.is_superuser:
             messages.error(request, 'Нельзя заблокировать суперпользователя')
             return redirect('user_detail_mod', pk=pk)
@@ -376,13 +260,6 @@ def block_user(request: HttpRequest, pk: int) -> HttpResponse:
 def unblock_user(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Разблокировка пользователя.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID пользователя для разблокировки
-
-    Returns:
-        HttpResponse: Редирект на детальную страницу пользователя
     """
     try:
         user = get_object_or_404(CustomUser, pk=pk)
@@ -407,16 +284,6 @@ def unblock_user(request: HttpRequest, pk: int) -> HttpResponse:
 def verify_user_email(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Ручное подтверждение email пользователя модератором.
-
-    Используется для подтверждения email пользователя без отправки
-    письма с кодом подтверждения.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID пользователя для подтверждения email
-
-    Returns:
-        HttpResponse: Редирект на детальную страницу пользователя
     """
     try:
         user = get_object_or_404(CustomUser, pk=pk)

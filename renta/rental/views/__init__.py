@@ -30,7 +30,10 @@ from .spaces import spaces_list, space_detail
 from .auth import CustomLoginView, register_view, logout_view
 from .account import dashboard, profile, my_bookings, my_favorites, view_user_profile
 from .favorites import toggle_favorite
-from .bookings import create_booking, booking_detail, cancel_booking
+from .bookings import (
+    create_booking, booking_detail, cancel_booking,
+    confirm_booking, reject_booking, manage_bookings, get_price_for_period
+)
 from .reviews import create_review, edit_review, admin_delete_review, approve_review, manage_reviews
 from .users import manage_users, user_detail, block_user, unblock_user, verify_user_email
 from .admin_panel import admin_panel
@@ -44,57 +47,61 @@ __all__ = [
     # -------------------------------------------------------------------------
     # ПОМЕЩЕНИЯ
     # -------------------------------------------------------------------------
-    'spaces_list',      # Каталог с фильтрацией
-    'space_detail',     # Детальная страница
+    'spaces_list',
+    'space_detail',
 
     # -------------------------------------------------------------------------
     # АУТЕНТИФИКАЦИЯ
     # -------------------------------------------------------------------------
-    'CustomLoginView',  # Вход (class-based view)
-    'register_view',    # Регистрация
-    'logout_view',      # Выход
+    'CustomLoginView',
+    'register_view',
+    'logout_view',
 
     # -------------------------------------------------------------------------
     # ЛИЧНЫЙ КАБИНЕТ
     # -------------------------------------------------------------------------
-    'dashboard',        # Главная страница ЛК
-    'profile',          # Редактирование профиля
-    'my_bookings',      # Мои бронирования
-    'my_favorites',     # Избранное
-    'view_user_profile', # Просмотр профиля другого пользователя
+    'dashboard',
+    'profile',
+    'my_bookings',
+    'my_favorites',
+    'view_user_profile',
 
     # -------------------------------------------------------------------------
     # ИЗБРАННОЕ (AJAX)
     # -------------------------------------------------------------------------
-    'toggle_favorite',  # Добавить/удалить из избранного
+    'toggle_favorite',
 
     # -------------------------------------------------------------------------
     # БРОНИРОВАНИЯ
     # -------------------------------------------------------------------------
-    'create_booking',   # Создание бронирования
-    'booking_detail',   # Детали бронирования
-    'cancel_booking',   # Отмена бронирования
+    'create_booking',
+    'booking_detail',
+    'cancel_booking',
+    'confirm_booking',
+    'reject_booking',
+    'manage_bookings',
+    'get_price_for_period',
 
     # -------------------------------------------------------------------------
     # ОТЗЫВЫ
     # -------------------------------------------------------------------------
-    'create_review',    # Создание отзыва
-    'edit_review',      # Редактирование (модератор)
-    'admin_delete_review',  # Удаление (модератор)
-    'approve_review',   # Одобрение (модератор)
-    'manage_reviews',   # Страница управления отзывами
+    'create_review',
+    'edit_review',
+    'admin_delete_review',
+    'approve_review',
+    'manage_reviews',
 
     # -------------------------------------------------------------------------
     # УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (МОДЕРАТОР)
     # -------------------------------------------------------------------------
-    'manage_users',     # Список пользователей
-    'user_detail',      # Профиль пользователя
-    'block_user',       # Блокировка
-    'unblock_user',     # Разблокировка
-    'verify_user_email', # Ручное подтверждение email
+    'manage_users',
+    'user_detail',
+    'block_user',
+    'unblock_user',
+    'verify_user_email',
 
     # -------------------------------------------------------------------------
     # ПАНЕЛЬ УПРАВЛЕНИЯ
     # -------------------------------------------------------------------------
-    'admin_panel',      # Главная страница панели модератора
+    'admin_panel',
 ]

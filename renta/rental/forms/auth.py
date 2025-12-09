@@ -27,7 +27,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
 from ..models import CustomUser, UserProfile
-from ..services.validators import validate_russian_phone, normalize_phone
+from ..core.validators import validate_russian_phone, normalize_phone
 
 
 def validate_username(value: str) -> None:

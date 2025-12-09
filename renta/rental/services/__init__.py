@@ -13,12 +13,12 @@
 #   BookingService - Создание, подтверждение, отмена бронирований
 #   SpaceService   - Фильтрация, поиск, избранное
 #   UserService    - Профиль, статистика пользователя
+#   StatusService  - Управление статусами бронирований
 #
 # ДОПОЛНИТЕЛЬНЫЕ МОДУЛИ:
 #   email_service   - Отправка email уведомлений
 #   logging_service - Логирование действий пользователей
-#   status_service  - Управление статусами бронирований
-#   validators      - Валидаторы (телефон и др.)
+#   validators      - Валидаторы (телефон и др.) [DEPRECATED: use core.validators]
 #
 # ПРОЕКТ: ООО "ИНТЕРЬЕР" - Сайт аренды помещений
 # =============================================================================
@@ -30,9 +30,13 @@
 from .booking_service import BookingService
 from .space_service import SpaceService
 from .user_service import UserService
+from .status_service import StatusService, StatusCodes, StatusDefaults
 
 __all__ = [
     'BookingService',
     'SpaceService',
     'UserService',
+    'StatusService',
+    'StatusCodes',
+    'StatusDefaults',
 ]

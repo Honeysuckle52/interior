@@ -34,20 +34,11 @@ from ..models import (
     Booking, BookingStatus, Space, SpacePrice,
     PricingPeriod, CustomUser
 )
+from .status_service import StatusService
+from ..core.exceptions import BookingError
 
 
 logger = logging.getLogger(__name__)
-
-
-class BookingError(Exception):
-    """
-    Кастомное исключение для ошибок бронирования.
-
-    Используется для обработки специфичных ошибок, связанных
-    с операциями бронирования, таких как недоступность помещения,
-    отсутствие цены или проблемы с базой данных.
-    """
-    pass
 
 
 class BookingService:
@@ -154,31 +145,6 @@ class BookingService:
             return False  # Fail safe - assume not available
 
     @staticmethod
-    def _get_or_create_status(code: str, defaults: dict[str, Any]) -> BookingStatus:
-        """
-        Получение или создание статуса бронирования.
-
-        Вспомогательный метод для безопасного получения статуса
-        с автоматическим созданием при необходимости.
-
-        Args:
-            code (str): Код статуса (например, 'pending', 'confirmed')
-            defaults (dict[str, Any]): Значения по умолчанию для создания
-
-        Returns:
-            BookingStatus: Объект статуса бронирования
-
-        Raises:
-            BookingError: При ошибке получения или создания статуса
-        """
-        try:
-            status, _ = BookingStatus.objects.get_or_create(code=code, defaults=defaults)
-            return status
-        except Exception as e:
-            logger.error(f"Error getting/creating status '{code}': {e}", exc_info=True)
-            raise BookingError(f'Ошибка при получении статуса: {code}')
-
-    @staticmethod
     @transaction.atomic
     def create_booking(
         space: Space,
@@ -228,12 +194,7 @@ class BookingService:
             if not BookingService.check_availability(space.id, start_datetime, end_datetime):
                 raise BookingError('Помещение занято в указанный период')
 
-            # Get pending status
-            pending_status = BookingService._get_or_create_status('pending', {
-                'name': 'Ожидание',
-                'color': 'warning',
-                'sort_order': 1
-            })
+            pending_status = StatusService.get_pending_status()
 
             # Create booking
             booking = Booking.objects.create(
@@ -285,12 +246,7 @@ class BookingService:
             if booking.status.code != 'pending':
                 raise BookingError('Можно подтвердить только ожидающее бронирование')
 
-            confirmed_status = BookingService._get_or_create_status('confirmed', {
-                'name': 'Подтверждено',
-                'color': 'success',
-                'sort_order': 2
-            })
-            booking.status = confirmed_status
+            booking.status = StatusService.get_confirmed_status()
             booking.save()
 
             return booking
@@ -336,12 +292,7 @@ class BookingService:
             if not booking.is_cancellable:
                 raise BookingError('Это бронирование нельзя отменить')
 
-            cancelled_status = BookingService._get_or_create_status('cancelled', {
-                'name': 'Отменено',
-                'color': 'danger',
-                'sort_order': 4
-            })
-            booking.status = cancelled_status
+            booking.status = StatusService.get_cancelled_status()
             booking.save()
 
             return booking
@@ -382,12 +333,7 @@ class BookingService:
             if booking.status.code != 'confirmed':
                 raise BookingError('Можно завершить только подтверждённое бронирование')
 
-            completed_status = BookingService._get_or_create_status('completed', {
-                'name': 'Завершено',
-                'color': 'info',
-                'sort_order': 3
-            })
-            booking.status = completed_status
+            booking.status = StatusService.get_completed_status()
             booking.save()
 
             return booking
