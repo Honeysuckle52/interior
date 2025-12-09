@@ -1,15 +1,32 @@
+# =============================================================================
+# ФАЙЛ: rental/forms/__init__.py
+# =============================================================================
+# НАЗНАЧЕНИЕ:
+#   Инициализационный файл для пакета форм.
+#   Экспортирует все формы для использования в представлениях.
+#
+# СТРУКТУРА ФОРМ:
+#   auth.py     - Формы аутентификации (регистрация, вход, сброс пароля)
+#   profile.py  - Формы профиля (редактирование, смена пароля)
+#   spaces.py   - Формы помещений (фильтры, создание/редактирование)
+#   bookings.py - Формы бронирований (создание, фильтры)
+#   reviews.py  - Формы отзывов
+#
+# ПРОЕКТ: ООО "ИНТЕРЬЕР" - Сайт аренды помещений
+# =============================================================================
+
 """
 ФОРМЫ - модульная структура
 """
 
 from .auth import (
-    CustomUserCreationForm,
-    CustomAuthenticationForm,
-    AdminUserCreationForm,
-    AdminUserChangeForm,
-    PasswordResetRequestForm,
-    PasswordResetConfirmForm,
-    EmailVerificationCodeForm,  # Добавлен экспорт
+    CustomUserCreationForm,      # Регистрация пользователя
+    CustomAuthenticationForm,    # Вход в систему
+    AdminUserCreationForm,       # Создание в админке
+    AdminUserChangeForm,         # Редактирование в админке
+    PasswordResetRequestForm,    # Запрос сброса пароля
+    PasswordResetConfirmForm,    # Установка нового пароля
+    EmailVerificationCodeForm,   # Ввод кода подтверждения
 )
 from .profile import UserProfileForm, UserProfileExtendedForm, ChangePasswordForm
 from .spaces import SpaceFilterForm, SpaceForm, SpaceImageForm
@@ -17,25 +34,39 @@ from .bookings import BookingForm, BookingFilterForm
 from .reviews import ReviewForm
 
 __all__ = [
-    # Аутентификация
-    'CustomUserCreationForm',
-    'CustomAuthenticationForm',
-    'AdminUserCreationForm',
-    'AdminUserChangeForm',
-    'PasswordResetRequestForm',
-    'PasswordResetConfirmForm',
-    'EmailVerificationCodeForm',  # Добавлен экспорт
-    # Профиль
-    'UserProfileForm',
-    'UserProfileExtendedForm',
-    'ChangePasswordForm',
-    # Помещения
-    'SpaceFilterForm',
-    'SpaceForm',
-    'SpaceImageForm',
-    # Бронирования
-    'BookingForm',
-    'BookingFilterForm',
-    # Отзывы
-    'ReviewForm',
+    # -------------------------------------------------------------------------
+    # АУТЕНТИФИКАЦИЯ
+    # -------------------------------------------------------------------------
+    'CustomUserCreationForm',     # Форма регистрации
+    'CustomAuthenticationForm',   # Форма входа
+    'AdminUserCreationForm',      # Создание пользователя в админке
+    'AdminUserChangeForm',        # Редактирование в админке
+    'PasswordResetRequestForm',   # Запрос сброса пароля
+    'PasswordResetConfirmForm',   # Установка нового пароля
+    'EmailVerificationCodeForm',  # Ввод 6-значного кода
+
+    # -------------------------------------------------------------------------
+    # ПРОФИЛЬ
+    # -------------------------------------------------------------------------
+    'UserProfileForm',            # Основные данные профиля
+    'UserProfileExtendedForm',    # Дополнительные данные (bio, соцсети)
+    'ChangePasswordForm',         # Смена пароля
+
+    # -------------------------------------------------------------------------
+    # ПОМЕЩЕНИЯ
+    # -------------------------------------------------------------------------
+    'SpaceFilterForm',            # Фильтрация в каталоге
+    'SpaceForm',                  # Создание/редактирование помещения
+    'SpaceImageForm',             # Загрузка изображений
+
+    # -------------------------------------------------------------------------
+    # БРОНИРОВАНИЯ
+    # -------------------------------------------------------------------------
+    'BookingForm',                # Создание бронирования
+    'BookingFilterForm',          # Фильтрация в админке
+
+    # -------------------------------------------------------------------------
+    # ОТЗЫВЫ
+    # -------------------------------------------------------------------------
+    'ReviewForm',                 # Создание/редактирование отзыва
 ]
