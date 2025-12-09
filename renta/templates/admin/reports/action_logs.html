@@ -3,124 +3,404 @@
 
 {% block title %}Журнал действий{% endblock %}
 
+{% block extrahead %}
+{{ block.super }}
+<style>
+    :root {
+        --gold: #d4af37;
+        --gold-light: #e5c666;
+        --gold-dark: #b8941f;
+        --bg-dark: #1a1a1a;
+        --bg-darker: #0a0a0a;
+        --text-primary: #fafafa;
+        --text-muted: #a1a1aa;
+        --border-color: #27272a;
+        --success: #22c55e;
+        --danger: #ef4444;
+        --info: #3b82f6;
+    }
+
+    body.light-mode {
+        --bg-dark: #ffffff;
+        --bg-darker: #f8f9fa;
+        --text-primary: #1a1a1a;
+        --text-muted: #6b7280;
+        --border-color: #e5e7eb;
+    }
+
+    .logs-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .logs-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid var(--gold);
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .logs-header h1 {
+        color: var(--gold);
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .back-link {
+        color: var(--gold);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+        gap: 12px;
+        color: var(--gold-light);
+    }
+
+    .filters-section {
+        background: linear-gradient(145deg, var(--bg-dark), var(--bg-darker));
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+    }
+
+    .filters-section h2 {
+        color: var(--text-primary);
+        font-size: 1.1rem;
+        margin: 0 0 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .filters-section h2 i {
+        color: var(--gold);
+    }
+
+    .filters-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 150px;
+    }
+
+    .filter-group label {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .filter-group input,
+    .filter-group select {
+        background: var(--bg-darker);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+        border-color: var(--gold);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+    }
+
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-filter {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-filter.primary {
+        background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+        border: none;
+        color: #000;
+    }
+
+    .btn-filter.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+    }
+
+    .btn-filter.secondary {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .btn-filter.secondary:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+    }
+
+    .logs-table-container {
+        background: linear-gradient(145deg, var(--bg-dark), var(--bg-darker));
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .logs-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .logs-table th {
+        background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+        color: #000;
+        padding: 14px 16px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .logs-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+
+    .logs-table tr:hover td {
+        background: rgba(212, 175, 55, 0.05);
+    }
+
+    .logs-table a {
+        color: var(--gold);
+        text-decoration: none;
+    }
+
+    .logs-table a:hover {
+        text-decoration: underline;
+    }
+
+    .action-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .action-badge.create { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+    .action-badge.update { background: rgba(59, 130, 246, 0.15); color: var(--info); }
+    .action-badge.delete { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .action-badge.login { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+    .action-badge.logout { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
+    .action-badge.other { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        padding: 20px;
+        flex-wrap: wrap;
+    }
+
+    .pagination-link {
+        padding: 8px 16px;
+        background: var(--bg-darker);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .pagination-link:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+    }
+
+    .pagination-current {
+        padding: 8px 16px;
+        background: var(--gold);
+        color: #000;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 60px 40px;
+        color: var(--text-muted);
+    }
+
+    .no-data i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Журнал действий</h1>
+<div class="logs-container">
+    <div class="logs-header">
+        <h1><i class="fas fa-history"></i> Журнал действий</h1>
+        <a href="{% url 'interior_admin:reports' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Назад к отчетам
+        </a>
+    </div>
 
-<div class="module" style="margin-bottom: 20px;">
-    <h2>Фильтры</h2>
-    <form method="get" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-        <div>
-            <label for="user">Пользователь:</label><br>
-            <select name="user" id="user" style="min-width: 150px;">
-                <option value="">Все</option>
-                {% for u in users %}
-                <option value="{{ u.id }}" {% if filters.user == u.id|stringformat:"s" %}selected{% endif %}>
-                    {{ u.username }}
-                </option>
+    <div class="filters-section">
+        <h2><i class="fas fa-filter"></i> Фильтры</h2>
+        <form method="get" class="filters-form">
+            <div class="filter-group">
+                <label for="user">Пользователь:</label>
+                <select name="user" id="user">
+                    <option value="">Все</option>
+                    {% for u in users %}
+                    <option value="{{ u.id }}" {% if filters.user == u.id|stringformat:"s" %}selected{% endif %}>
+                        {{ u.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="action_type">Тип действия:</label>
+                <select name="action_type" id="action_type">
+                    <option value="">Все</option>
+                    {% for code, label in action_types %}
+                    <option value="{{ code }}" {% if filters.action_type == code %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="model">Модель:</label>
+                <input type="text" name="model" id="model" value="{{ filters.model|default:'' }}" placeholder="Название модели">
+            </div>
+            <div class="filter-group">
+                <label for="date_from">С даты:</label>
+                <input type="date" name="date_from" id="date_from" value="{{ filters.date_from|default:'' }}">
+            </div>
+            <div class="filter-group">
+                <label for="date_to">По дату:</label>
+                <input type="date" name="date_to" id="date_to" value="{{ filters.date_to|default:'' }}">
+            </div>
+            <div class="filter-buttons">
+                <button type="submit" class="btn-filter primary">
+                    <i class="fas fa-search"></i> Применить
+                </button>
+                <a href="{% url 'interior_admin:action_logs' %}" class="btn-filter secondary">
+                    <i class="fas fa-times"></i> Сбросить
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="logs-table-container">
+        {% if logs %}
+        <table class="logs-table">
+            <thead>
+                <tr>
+                    <th>Дата/Время</th>
+                    <th>Пользователь</th>
+                    <th>Действие</th>
+                    <th>Модель</th>
+                    <th>ID</th>
+                    <th>Объект</th>
+                    <th>IP адрес</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td style="white-space: nowrap;">{{ log.created_at|date:"d.m.Y H:i:s" }}</td>
+                    <td>
+                        {% if log.user %}
+                            <a href="{% url 'interior_admin:rental_customuser_change' log.user.pk %}">
+                                {{ log.user.username }}
+                            </a>
+                        {% else %}
+                            <span style="color: var(--text-muted);">Аноним</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="action-badge {{ log.action_type }}">
+                            {{ log.get_action_type_display }}
+                        </span>
+                    </td>
+                    <td>{{ log.model_name }}</td>
+                    <td>{{ log.object_id|default:"-" }}</td>
+                    <td title="{{ log.object_repr }}">{{ log.object_repr|truncatechars:40 }}</td>
+                    <td>{{ log.ip_address|default:"-" }}</td>
+                </tr>
                 {% endfor %}
-            </select>
+            </tbody>
+        </table>
+
+        {% if logs.has_other_pages %}
+        <div class="pagination-container">
+            {% if logs.has_previous %}
+                <a href="?page=1{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="pagination-link">
+                    <i class="fas fa-angle-double-left"></i> Первая
+                </a>
+                <a href="?page={{ logs.previous_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="pagination-link">
+                    <i class="fas fa-angle-left"></i> Пред.
+                </a>
+            {% endif %}
+
+            <span class="pagination-current">
+                {{ logs.number }} / {{ logs.paginator.num_pages }}
+            </span>
+
+            {% if logs.has_next %}
+                <a href="?page={{ logs.next_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="pagination-link">
+                    След. <i class="fas fa-angle-right"></i>
+                </a>
+                <a href="?page={{ logs.paginator.num_pages }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="pagination-link">
+                    Последняя <i class="fas fa-angle-double-right"></i>
+                </a>
+            {% endif %}
         </div>
-        <div>
-            <label for="action_type">Тип действия:</label><br>
-            <select name="action_type" id="action_type" style="min-width: 150px;">
-                <option value="">Все</option>
-                {% for code, label in action_types %}
-                <option value="{{ code }}" {% if filters.action_type == code %}selected{% endif %}>
-                    {{ label }}
-                </option>
-                {% endfor %}
-            </select>
+        {% endif %}
+
+        {% else %}
+        <div class="no-data">
+            <i class="fas fa-inbox"></i>
+            <p>Записи не найдены</p>
         </div>
-        <div>
-            <label for="model">Модель:</label><br>
-            <input type="text" name="model" id="model" value="{{ filters.model }}" placeholder="Название модели">
-        </div>
-        <div>
-            <label for="date_from">С даты:</label><br>
-            <input type="date" name="date_from" id="date_from" value="{{ filters.date_from }}">
-        </div>
-        <div>
-            <label for="date_to">По дату:</label><br>
-            <input type="date" name="date_to" id="date_to" value="{{ filters.date_to }}">
-        </div>
-        <div>
-            <button type="submit" class="button">Применить</button>
-            <a href="{% url 'interior_admin:action_logs' %}" class="button">Сбросить</a>
-        </div>
-    </form>
+        {% endif %}
+    </div>
 </div>
-
-<div class="module">
-    <table>
-        <thead>
-            <tr>
-                <th>Дата/Время</th>
-                <th>Пользователь</th>
-                <th>Действие</th>
-                <th>Модель</th>
-                <th>ID</th>
-                <th>Объект</th>
-                <th>IP адрес</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in logs %}
-            <tr>
-                <td style="white-space: nowrap;">{{ log.created_at|date:"d.m.Y H:i:s" }}</td>
-                <td>
-                    {% if log.user %}
-                        <a href="{% url 'interior_admin:rental_customuser_change' log.user.pk %}">
-                            {{ log.user.username }}
-                        </a>
-                    {% else %}
-                        <em>Аноним</em>
-                    {% endif %}
-                </td>
-                <td>
-                    <span style="
-                        background:{% if log.action_type == 'create' %}#28a745{% elif log.action_type == 'update' %}#007bff{% elif log.action_type == 'delete' %}#dc3545{% elif log.action_type == 'login' %}#28a745{% elif log.action_type == 'logout' %}#6c757d{% else %}#ffc107{% endif %};
-                        color: white;
-                        padding: 2px 8px;
-                        border-radius: 4px;
-                        font-size: 11px;
-                    ">
-                        {{ log.get_action_type_display }}
-                    </span>
-                </td>
-                <td>{{ log.model_name }}</td>
-                <td>{{ log.object_id|default:"-" }}</td>
-                <td title="{{ log.object_repr }}">{{ log.object_repr|truncatechars:40 }}</td>
-                <td>{{ log.ip_address|default:"-" }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7">Записи не найдены</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<!-- Пагинация -->
-{% if logs.has_other_pages %}
-<div style="margin-top: 20px; text-align: center;">
-    {% if logs.has_previous %}
-        <a href="?page=1{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo; Первая</a>
-        <a href="?page={{ logs.previous_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Предыдущая</a>
-    {% endif %}
-
-    <span style="margin: 0 15px;">
-        Страница {{ logs.number }} из {{ logs.paginator.num_pages }}
-    </span>
-
-    {% if logs.has_next %}
-        <a href="?page={{ logs.next_page_number }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Следующая</a>
-        <a href="?page={{ logs.paginator.num_pages }}{% for key, value in filters.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Последняя &raquo;</a>
-    {% endif %}
-</div>
-{% endif %}
-
-<p style="margin-top: 20px;">
-    <a href="{% url 'interior_admin:reports' %}">&larr; Назад к отчетам</a>
-</p>
 {% endblock %}

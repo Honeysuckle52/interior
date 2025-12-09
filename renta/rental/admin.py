@@ -1,16 +1,14 @@
 """
 НАСТРОЙКА АДМИН-ПАНЕЛИ ДЛЯ САЙТА АРЕНДЫ ООО "ИНТЕРЬЕР"
-С системой отчетности, логирования и бэкапа БД
+С системой отчетности, логирования, PDF экспортом и бэкапом БД
 """
 
 from __future__ import annotations
 
-import csv
 import json
 import os
-import subprocess
 from datetime import datetime, timedelta
-from io import BytesIO
+from io import BytesIO, StringIO
 from typing import Any, Optional
 
 from django.contrib import admin, messages
@@ -35,10 +33,38 @@ from .models import (
 from .forms import AdminUserCreationForm, AdminUserChangeForm
 
 
-# ============== КАСТОМНЫЙ ADMIN SITE С ОТЧЕТАМИ И БЭКАПОМ ==============
+# ============== LOGGING MIXIN ДЛЯ АВТОМАТИЧЕСКОГО ЛОГИРОВАНИЯ ==============
+
+class LoggingAdminMixin:
+    """Миксин для автоматического логирования действий в админке."""
+
+    def save_model(self, request: HttpRequest, obj: Any, form: Any, change: bool) -> None:
+        super().save_model(request, obj, form, change)
+        ActionLog.objects.create(
+            user=request.user,
+            action_type=ActionLog.ActionType.UPDATE if change else ActionLog.ActionType.CREATE,
+            model_name=obj.__class__.__name__,
+            object_id=obj.pk,
+            object_repr=str(obj)[:200],
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+    def delete_model(self, request: HttpRequest, obj: Any) -> None:
+        ActionLog.objects.create(
+            user=request.user,
+            action_type=ActionLog.ActionType.DELETE,
+            model_name=obj.__class__.__name__,
+            object_id=obj.pk,
+            object_repr=str(obj)[:200],
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        super().delete_model(request, obj)
+
+
+# ============== КАСТОМНЫЙ ADMIN SITE С ОТЧЕТАМИ, PDF И БЭКАПОМ ==============
 
 class InteriorAdminSite(AdminSite):
-    """Кастомный AdminSite с дополнительными страницами отчетов и бэкапом."""
+    """Кастомный AdminSite с дополнительными страницами отчетов, PDF экспортом и бэкапом."""
 
     site_header = 'ООО "ИНТЕРЬЕР" - Администрирование'
     site_title = 'ИНТЕРЬЕР Admin'
@@ -50,11 +76,13 @@ class InteriorAdminSite(AdminSite):
             path('reports/', self.admin_view(self.reports_view), name='reports'),
             path('reports/actions/', self.admin_view(self.action_logs_view), name='action_logs'),
             path('reports/export/json/', self.admin_view(self.export_json_view), name='export_json'),
-            path('reports/export/csv/', self.admin_view(self.export_csv_view), name='export_csv'),
+            path('reports/export/pdf/', self.admin_view(self.export_pdf_view), name='export_pdf'),
             path('reports/dashboard/', self.admin_view(self.dashboard_view), name='reports_dashboard'),
             path('backup/', self.admin_view(self.backup_view), name='backup'),
             path('backup/create/', self.admin_view(self.create_backup), name='create_backup'),
             path('backup/download/<str:filename>/', self.admin_view(self.download_backup), name='download_backup'),
+            path('backup/schedule/', self.admin_view(self.schedule_backup_view), name='schedule_backup'),
+            path('backup/delete/<str:filename>/', self.admin_view(self.delete_backup), name='delete_backup'),
         ]
         return custom_urls + urls
 
@@ -63,7 +91,6 @@ class InteriorAdminSite(AdminSite):
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
         os.makedirs(backup_dir, exist_ok=True)
 
-        # Получаем список бэкапов
         backups = []
         if os.path.exists(backup_dir):
             for filename in sorted(os.listdir(backup_dir), reverse=True):
@@ -80,24 +107,20 @@ class InteriorAdminSite(AdminSite):
         context = {
             **self.each_context(request),
             'title': 'Резервное копирование',
-            'backups': backups[:20],  # Последние 20 бэкапов
+            'backups': backups[:20],
         }
         return TemplateResponse(request, 'admin/backup/index.html', context)
 
     def create_backup(self, request: HttpRequest) -> HttpResponse:
-        """Создание бэкапа базы данных."""
+        """Создание бэкапа базы данных с прямой отдачей файла в браузер."""
         if request.method != 'POST':
             return redirect('interior_admin:backup')
 
-        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
-        os.makedirs(backup_dir, exist_ok=True)
-
+        download_direct = request.POST.get('download_direct', 'true') == 'true'
         timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
 
         try:
-            # Используем Django dumpdata для JSON бэкапа
             from django.core.management import call_command
-            from io import StringIO
 
             output = StringIO()
             call_command(
@@ -109,15 +132,9 @@ class InteriorAdminSite(AdminSite):
                 exclude=['contenttypes', 'auth.permission', 'sessions']
             )
 
+            backup_content = output.getvalue()
             filename = f'backup_{timestamp}.json'
-            filepath = os.path.join(backup_dir, filename)
 
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(output.getvalue())
-
-            messages.success(request, f'Бэкап успешно создан: {filename}')
-
-            # Логируем действие
             ActionLog.objects.create(
                 user=request.user,
                 action_type=ActionLog.ActionType.OTHER,
@@ -126,17 +143,34 @@ class InteriorAdminSite(AdminSite):
                 ip_address=request.META.get('REMOTE_ADDR')
             )
 
+            if download_direct:
+                response = HttpResponse(
+                    backup_content,
+                    content_type='application/json'
+                )
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                response['Content-Length'] = len(backup_content.encode('utf-8'))
+                return response
+            else:
+                backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+                os.makedirs(backup_dir, exist_ok=True)
+                filepath = os.path.join(backup_dir, filename)
+
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(backup_content)
+
+                messages.success(request, f'Бэкап успешно создан и сохранён: {filename}')
+                return redirect('interior_admin:backup')
+
         except Exception as e:
             messages.error(request, f'Ошибка создания бэкапа: {e}')
-
-        return redirect('interior_admin:backup')
+            return redirect('interior_admin:backup')
 
     def download_backup(self, request: HttpRequest, filename: str) -> HttpResponse:
-        """Скачивание файла бэкапа."""
+        """Скачивание файла бэкапа напрямую в браузер."""
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
         filepath = os.path.join(backup_dir, filename)
 
-        # Защита от path traversal
         if not os.path.abspath(filepath).startswith(os.path.abspath(backup_dir)):
             messages.error(request, 'Недопустимый путь к файлу')
             return redirect('interior_admin:backup')
@@ -146,12 +180,363 @@ class InteriorAdminSite(AdminSite):
             return redirect('interior_admin:backup')
 
         with open(filepath, 'rb') as f:
-            response = HttpResponse(f.read(), content_type='application/octet-stream')
+            content = f.read()
+
+        content_type = 'application/json' if filename.endswith('.json') else 'application/sql'
+
+        response = HttpResponse(content, content_type=content_type)
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Length'] = len(content)
+
+        ActionLog.objects.create(
+            user=request.user,
+            action_type=ActionLog.ActionType.OTHER,
+            model_name='backup',
+            object_repr=f'Скачан бэкап: {filename}',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+        return response
+
+    def delete_backup(self, request: HttpRequest, filename: str) -> HttpResponse:
+        """Удаление файла бэкапа."""
+        if request.method != 'POST':
+            return redirect('interior_admin:backup')
+
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        filepath = os.path.join(backup_dir, filename)
+
+        if not os.path.abspath(filepath).startswith(os.path.abspath(backup_dir)):
+            messages.error(request, 'Недопустимый путь к файлу')
+            return redirect('interior_admin:backup')
+
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            messages.success(request, f'Бэкап {filename} удалён')
+
+            ActionLog.objects.create(
+                user=request.user,
+                action_type=ActionLog.ActionType.DELETE,
+                model_name='backup',
+                object_repr=f'Удалён бэкап: {filename}',
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+        else:
+            messages.error(request, 'Файл не найден')
+
+        return redirect('interior_admin:backup')
+
+    def schedule_backup_view(self, request: HttpRequest) -> HttpResponse:
+        """Создание бэкапа по расписанию (выбор времени)."""
+        if request.method == 'POST':
+            backup_time = request.POST.get('backup_time', 'now')
+
+            if backup_time == 'now':
+                return self.create_backup(request)
+            else:
+                messages.info(request, f'Бэкап будет создан в {backup_time}. '
+                             f'Для автоматизации настройте Celery Beat или cron.')
+                return redirect('interior_admin:backup')
+
+        return redirect('interior_admin:backup')
+
+    def export_pdf_view(self, request: HttpRequest) -> HttpResponse:
+        """Экспорт отчета в PDF с поддержкой русского языка (DejaVuSans)."""
+        report_type = request.GET.get('type', 'actions')
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4, landscape
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import cm, mm
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+
+            font_registered = False
+            font_paths = [
+                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+                '/usr/share/fonts/TTF/DejaVuSans.ttf',
+                'C:/Windows/Fonts/DejaVuSans.ttf',
+                '/Library/Fonts/DejaVuSans.ttf',
+                '/System/Library/Fonts/Supplemental/DejaVuSans.ttf',
+                os.path.join(settings.BASE_DIR, 'static', 'fonts', 'DejaVuSans.ttf'),
+                os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf'),
+            ]
+
+            for font_path in font_paths:
+                if os.path.exists(font_path):
+                    try:
+                        pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+                        bold_path = font_path.replace('DejaVuSans.ttf', 'DejaVuSans-Bold.ttf')
+                        if os.path.exists(bold_path):
+                            pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', bold_path))
+                        font_registered = True
+                        break
+                    except Exception:
+                        continue
+
+            font_name = 'DejaVuSans' if font_registered else 'Helvetica'
+
+            buffer = BytesIO()
+
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                rightMargin=1*cm,
+                leftMargin=1*cm,
+                topMargin=1.5*cm,
+                bottomMargin=1*cm
+            )
+
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                fontName=font_name,
+                fontSize=18,
+                spaceAfter=20,
+                alignment=1,
+                textColor=colors.HexColor('#1a1a1a')
+            )
+
+            subtitle_style = ParagraphStyle(
+                'CustomSubtitle',
+                fontName=font_name,
+                fontSize=10,
+                spaceAfter=15,
+                alignment=1,
+                textColor=colors.HexColor('#666666')
+            )
+
+            normal_style = ParagraphStyle(
+                'CustomNormal',
+                fontName=font_name,
+                fontSize=9,
+            )
+
+            elements = []
+
+            title_text = {
+                'actions': 'Отчёт по действиям пользователей',
+                'bookings': 'Отчёт по бронированиям',
+                'revenue': 'Отчёт по доходам',
+                'users': 'Отчёт по пользователям',
+                'logins': 'Отчёт по подключениям'
+            }.get(report_type, 'Отчёт')
+
+            elements.append(Paragraph(title_text, title_style))
+            elements.append(Paragraph(
+                f"ООО ИНТЕРЬЕР | Сгенерировано: {timezone.now().strftime('%d.%m.%Y %H:%M')}",
+                subtitle_style
+            ))
+            elements.append(Spacer(1, 15))
+
+            if report_type == 'actions':
+                data = self._get_pdf_actions_data(date_from, date_to)
+                headers = ['Дата', 'Пользователь', 'Действие', 'Модель', 'Объект', 'IP']
+            elif report_type == 'bookings':
+                data = self._get_pdf_bookings_data(date_from, date_to)
+                headers = ['ID', 'Помещение', 'Клиент', 'Статус', 'Сумма', 'Дата']
+            elif report_type == 'revenue':
+                data = self._get_pdf_revenue_data(date_from, date_to)
+                headers = ['Период', 'Бронирований', 'Сумма']
+            elif report_type == 'users':
+                data = self._get_pdf_users_data(date_from, date_to)
+                headers = ['Пользователь', 'Email', 'Тип', 'Регистрация', 'Бронирований']
+            elif report_type == 'logins':
+                data = self._get_pdf_logins_data(date_from, date_to)
+                headers = ['Дата', 'Пользователь', 'IP адрес', 'Браузер']
+            else:
+                data = []
+                headers = []
+
+            if data:
+                table_data = [headers] + data
+
+                col_widths = None
+                if report_type == 'actions':
+                    col_widths = [3*cm, 3*cm, 2.5*cm, 2.5*cm, 8*cm, 3*cm]
+                elif report_type == 'bookings':
+                    col_widths = [1.5*cm, 7*cm, 4*cm, 3*cm, 3*cm, 3*cm]
+
+                table = Table(table_data, repeatRows=1, colWidths=col_widths)
+
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4af37')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1a1a1a')),
+                    ('FONTNAME', (0, 0), (-1, 0), font_name),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                    ('TOPPADDING', (0, 0), (-1, 0), 10),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1a1a1a')),
+                    ('FONTNAME', (0, 1), (-1, -1), font_name),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')]),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d4af37')),
+                    ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#b8941f')),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+
+                elements.append(table)
+            else:
+                elements.append(Paragraph("Нет данных для отображения", normal_style))
+
+            doc.build(elements)
+
+            buffer.seek(0)
+            filename = f'report_{report_type}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+
+            response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            ActionLog.objects.create(
+                user=request.user,
+                action_type=ActionLog.ActionType.OTHER,
+                model_name='report',
+                object_repr=f'Скачан PDF отчёт: {report_type}',
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
             return response
 
+        except ImportError:
+            messages.warning(request, 'Для генерации PDF установите: pip install reportlab')
+            return redirect('interior_admin:reports')
+        except Exception as e:
+            messages.error(request, f'Ошибка генерации PDF: {e}')
+            return redirect('interior_admin:reports')
+
+    def _get_pdf_actions_data(self, date_from: Optional[str], date_to: Optional[str]) -> list:
+        logs = self._get_actions_queryset(date_from, date_to)[:500]
+        return [
+            [
+                log.created_at.strftime('%d.%m.%Y %H:%M'),
+                log.user.username if log.user else 'Аноним',
+                log.get_action_type_display(),
+                log.model_name or '-',
+                (log.object_repr or '-')[:40],
+                log.ip_address or '-'
+            ]
+            for log in logs
+        ]
+
+    def _get_pdf_bookings_data(self, date_from: Optional[str], date_to: Optional[str]) -> list:
+        bookings = self._get_bookings_queryset(date_from, date_to)[:500]
+        return [
+            [
+                str(b.id),
+                (b.space.title[:30] if b.space else '-'),
+                (b.tenant.username[:20] if b.tenant else '-'),
+                (b.status.name if b.status else '-'),
+                f'{int(b.total_amount)} руб.',
+                b.created_at.strftime('%d.%m.%Y')
+            ]
+            for b in bookings
+        ]
+
+    def _get_pdf_revenue_data(self, date_from: Optional[str], date_to: Optional[str]) -> list:
+        bookings = self._get_bookings_queryset(date_from, date_to).filter(
+            status__code__in=['confirmed', 'completed']
+        )
+
+        from django.db.models.functions import TruncDate
+        daily = bookings.annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            count=Count('id'),
+            total=Sum('total_amount')
+        ).order_by('-date')[:30]
+
+        return [
+            [
+                d['date'].strftime('%d.%m.%Y') if d['date'] else '-',
+                str(d['count']),
+                f"{int(d['total'] or 0)} руб."
+            ]
+            for d in daily
+        ]
+
+    def _get_pdf_users_data(self, date_from: Optional[str], date_to: Optional[str]) -> list:
+        users = CustomUser.objects.annotate(
+            bookings_count=Count('bookings')
+        ).order_by('-created_at')
+
+        if date_from:
+            try:
+                dt = datetime.strptime(date_from, '%Y-%m-%d')
+                users = users.filter(created_at__date__gte=dt.date())
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                dt = datetime.strptime(date_to, '%Y-%m-%d')
+                users = users.filter(created_at__date__lte=dt.date())
+            except ValueError:
+                pass
+
+        return [
+            [
+                u.username[:20],
+                (u.email[:25] if u.email else '-'),
+                u.get_user_type_display(),
+                u.created_at.strftime('%d.%m.%Y'),
+                str(u.bookings_count)
+            ]
+            for u in users[:200]
+        ]
+
+    def _get_pdf_logins_data(self, date_from: Optional[str], date_to: Optional[str]) -> list:
+        logs = ActionLog.objects.filter(
+            action_type__in=[ActionLog.ActionType.LOGIN, ActionLog.ActionType.LOGOUT]
+        ).select_related('user').order_by('-created_at')
+
+        if date_from:
+            try:
+                dt = datetime.strptime(date_from, '%Y-%m-%d')
+                logs = logs.filter(created_at__date__gte=dt.date())
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                dt = datetime.strptime(date_to, '%Y-%m-%d')
+                logs = logs.filter(created_at__date__lte=dt.date())
+            except ValueError:
+                pass
+
+        return [
+            [
+                log.created_at.strftime('%d.%m.%Y %H:%M'),
+                log.user.username if log.user else 'Аноним',
+                log.ip_address or '-',
+                self._parse_browser(log.user_agent)[:30]
+            ]
+            for log in logs[:500]
+        ]
+
+    def _parse_browser(self, user_agent: Optional[str]) -> str:
+        if not user_agent:
+            return '-'
+        ua = user_agent
+        if 'Chrome' in ua and 'Edg' not in ua:
+            return 'Chrome'
+        elif 'Firefox' in ua:
+            return 'Firefox'
+        elif 'Safari' in ua and 'Chrome' not in ua:
+            return 'Safari'
+        elif 'Edg' in ua:
+            return 'Edge'
+        elif 'Opera' in ua or 'OPR' in ua:
+            return 'Opera'
+        return ua[:20]
+
     def reports_view(self, request: HttpRequest) -> TemplateResponse:
-        """Главная страница отчетов."""
         thirty_days_ago = timezone.now() - timedelta(days=30)
 
         context = {
@@ -174,13 +559,20 @@ class InteriorAdminSite(AdminSite):
                 ).aggregate(total=Sum('total_amount'))['total'] or 0,
                 'total_reviews': Review.objects.count(),
                 'pending_reviews': Review.objects.filter(is_approved=False).count(),
+                'logins_month': ActionLog.objects.filter(
+                    action_type=ActionLog.ActionType.LOGIN,
+                    created_at__gte=thirty_days_ago
+                ).count(),
+                'active_moderators': CustomUser.objects.filter(
+                    user_type__in=['moderator', 'admin'],
+                    is_active=True
+                ).count(),
             },
             'recent_actions': ActionLog.objects.select_related('user')[:20],
         }
         return TemplateResponse(request, 'admin/reports/index.html', context)
 
     def action_logs_view(self, request: HttpRequest) -> TemplateResponse:
-        """Страница журнала действий с фильтрацией."""
         user_id = request.GET.get('user')
         action_type = request.GET.get('action_type')
         model_name = request.GET.get('model')
@@ -230,7 +622,6 @@ class InteriorAdminSite(AdminSite):
         return TemplateResponse(request, 'admin/reports/action_logs.html', context)
 
     def export_json_view(self, request: HttpRequest) -> HttpResponse:
-        """Экспорт отчета в JSON."""
         report_type = request.GET.get('type', 'actions')
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
@@ -241,6 +632,10 @@ class InteriorAdminSite(AdminSite):
             data = self._get_bookings_export_data(date_from, date_to)
         elif report_type == 'revenue':
             data = self._get_revenue_export_data(date_from, date_to)
+        elif report_type == 'users':
+            data = self._get_users_export_data(date_from, date_to)
+        elif report_type == 'logins':
+            data = self._get_logins_export_data(date_from, date_to)
         else:
             data = {'error': 'Unknown report type'}
 
@@ -252,48 +647,7 @@ class InteriorAdminSite(AdminSite):
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
-    def export_csv_view(self, request: HttpRequest) -> HttpResponse:
-        """Экспорт отчета в CSV."""
-        report_type = request.GET.get('type', 'actions')
-        date_from = request.GET.get('date_from')
-        date_to = request.GET.get('date_to')
-
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response.write('\ufeff')
-        filename = f'report_{report_type}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv'
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
-        writer = csv.writer(response)
-
-        if report_type == 'actions':
-            writer.writerow(['Дата', 'Пользователь', 'Действие', 'Модель', 'Объект', 'IP'])
-            logs = self._get_actions_queryset(date_from, date_to)
-            for log in logs:
-                writer.writerow([
-                    log.created_at.strftime('%d.%m.%Y %H:%M'),
-                    log.user.username if log.user else 'Аноним',
-                    log.get_action_type_display(),
-                    log.model_name,
-                    log.object_repr,
-                    log.ip_address or '-'
-                ])
-        elif report_type == 'bookings':
-            writer.writerow(['ID', 'Помещение', 'Клиент', 'Статус', 'Сумма', 'Дата'])
-            bookings = self._get_bookings_queryset(date_from, date_to)
-            for b in bookings:
-                writer.writerow([
-                    b.id,
-                    b.space.title,
-                    b.tenant.username,
-                    b.status.name,
-                    float(b.total_amount),
-                    b.created_at.strftime('%d.%m.%Y %H:%M')
-                ])
-
-        return response
-
     def dashboard_view(self, request: HttpRequest) -> TemplateResponse:
-        """Дашборд с графиками и аналитикой."""
         today = timezone.now().date()
         thirty_days_ago = today - timedelta(days=30)
 
@@ -354,9 +708,7 @@ class InteriorAdminSite(AdminSite):
         return logs
 
     def _get_bookings_queryset(self, date_from: Optional[str], date_to: Optional[str]) -> QuerySet:
-        bookings = Booking.objects.select_related(
-            'space', 'tenant', 'status'
-        ).order_by('-created_at')
+        bookings = Booking.objects.select_related('space', 'tenant', 'status').order_by('-created_at')
         if date_from:
             try:
                 dt = datetime.strptime(date_from, '%Y-%m-%d')
@@ -376,302 +728,147 @@ class InteriorAdminSite(AdminSite):
         return {
             'report_type': 'actions',
             'generated_at': timezone.now().isoformat(),
-            'total_count': logs.count(),
+            'count': logs.count(),
             'data': [
                 {
-                    'id': log.id,
+                    'datetime': log.created_at.isoformat(),
                     'user': log.user.username if log.user else None,
-                    'action_type': log.action_type,
-                    'model_name': log.model_name,
+                    'action': log.action_type,
+                    'model': log.model_name,
                     'object_id': log.object_id,
-                    'object_repr': log.object_repr,
-                    'changes': log.changes,
-                    'ip_address': log.ip_address,
-                    'created_at': log.created_at.isoformat(),
+                    'object': log.object_repr,
+                    'ip': log.ip_address
                 }
                 for log in logs
             ]
         }
 
     def _get_bookings_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
-        bookings = self._get_bookings_queryset(date_from, date_to)
+        bookings = self._get_bookings_queryset(date_from, date_to)[:1000]
         return {
             'report_type': 'bookings',
             'generated_at': timezone.now().isoformat(),
-            'total_count': bookings.count(),
+            'count': bookings.count(),
             'data': [
                 {
                     'id': b.id,
-                    'space': b.space.title,
-                    'tenant': b.tenant.username,
-                    'status': b.status.name,
-                    'start_datetime': b.start_datetime.isoformat(),
-                    'end_datetime': b.end_datetime.isoformat(),
+                    'space': b.space.title if b.space else None,
+                    'tenant': b.tenant.username if b.tenant else None,
+                    'status': b.status.name if b.status else None,
                     'total_amount': float(b.total_amount),
-                    'created_at': b.created_at.isoformat(),
+                    'created_at': b.created_at.isoformat()
                 }
                 for b in bookings
             ]
         }
 
     def _get_revenue_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
-        bookings = self._get_bookings_queryset(date_from, date_to).filter(
-            status__code__in=['confirmed', 'completed']
-        )
-
-        total = bookings.aggregate(
-            total_amount=Sum('total_amount'),
-            count=Count('id')
-        )
-
-        by_status = bookings.values('status__name').annotate(
-            total=Sum('total_amount'),
-            count=Count('id')
-        )
-
-        by_space = bookings.values('space__title').annotate(
-            total=Sum('total_amount'),
-            count=Count('id')
-        ).order_by('-total')[:10]
-
+        data = self._get_pdf_revenue_data(date_from, date_to)
         return {
             'report_type': 'revenue',
             'generated_at': timezone.now().isoformat(),
-            'summary': {
-                'total_revenue': float(total['total_amount'] or 0),
-                'bookings_count': total['count'] or 0,
-            },
-            'by_status': list(by_status),
-            'top_spaces': list(by_space),
+            'data': [
+                {'date': d[0], 'count': d[1], 'amount': d[2]}
+                for d in data
+            ]
+        }
+
+    def _get_users_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
+        data = self._get_pdf_users_data(date_from, date_to)
+        return {
+            'report_type': 'users',
+            'generated_at': timezone.now().isoformat(),
+            'data': [
+                {'username': d[0], 'email': d[1], 'type': d[2], 'registered': d[3], 'bookings': d[4]}
+                for d in data
+            ]
+        }
+
+    def _get_logins_export_data(self, date_from: Optional[str], date_to: Optional[str]) -> dict:
+        data = self._get_pdf_logins_data(date_from, date_to)
+        return {
+            'report_type': 'logins',
+            'generated_at': timezone.now().isoformat(),
+            'data': [
+                {'datetime': d[0], 'user': d[1], 'ip': d[2], 'browser': d[3]}
+                for d in data
+            ]
         }
 
 
-# Создаем экземпляр кастомного AdminSite
-admin_site = InteriorAdminSite(name='interior_admin')
+# Создаём экземпляр кастомного AdminSite
+interior_admin_site = InteriorAdminSite(name='interior_admin')
 
 
-# ============== МИКСИН ДЛЯ ЛОГИРОВАНИЯ ДЕЙСТВИЙ В АДМИНКЕ ==============
+# ============== ADMIN CLASSES FOR MODELS ==============
 
-class LoggingAdminMixin:
-    """Миксин для автоматического логирования действий в админке."""
-
-    def save_model(self, request: HttpRequest, obj: Any, form: Any, change: bool) -> None:
-        super().save_model(request, obj, form, change)
-
-        from .middleware import log_action
-
-        action_type = ActionLog.ActionType.UPDATE if change else ActionLog.ActionType.CREATE
-        changes = {}
-
-        if change and form.changed_data:
-            for field in form.changed_data:
-                old_value = form.initial.get(field)
-                new_value = form.cleaned_data.get(field)
-                changes[field] = {
-                    'old': str(old_value) if old_value else None,
-                    'new': str(new_value) if new_value else None,
-                }
-
-        log_action(
-            user=request.user,
-            action_type=action_type,
-            model_name=obj.__class__.__name__,
-            object_id=obj.pk,
-            object_repr=str(obj),
-            changes=changes,
-            request=request
-        )
-
-    def delete_model(self, request: HttpRequest, obj: Any) -> None:
-        from .middleware import log_action
-
-        log_action(
-            user=request.user,
-            action_type=ActionLog.ActionType.DELETE,
-            model_name=obj.__class__.__name__,
-            object_id=obj.pk,
-            object_repr=str(obj),
-            request=request
-        )
-
-        super().delete_model(request, obj)
-
-    def delete_queryset(self, request: HttpRequest, queryset: QuerySet) -> None:
-        from .middleware import log_action
-
-        for obj in queryset:
-            log_action(
-                user=request.user,
-                action_type=ActionLog.ActionType.DELETE,
-                model_name=obj.__class__.__name__,
-                object_id=obj.pk,
-                object_repr=str(obj),
-                request=request
-            )
-
-        super().delete_queryset(request, queryset)
-
-
-# ============== ПОЛЬЗОВАТЕЛИ ==============
-
-class UserProfileInline(admin.StackedInline):
-    model = UserProfile
-    can_delete = False
-    verbose_name = 'Дополнительная информация'
-    verbose_name_plural = 'Дополнительная информация'
-    fk_name = 'user'
-
-
-class BookingInline(admin.TabularInline):
-    model = Booking
-    fk_name = 'tenant'
-    extra = 0
-    readonly_fields = ['space', 'status', 'start_datetime', 'total_amount', 'created_at']
-    fields = ['space', 'status', 'start_datetime', 'total_amount', 'created_at']
-    can_delete = False
-    max_num = 5
-    verbose_name = 'Последнее бронирование'
-    verbose_name_plural = 'Последние бронирования'
-
-    def has_add_permission(self, request: HttpRequest, obj: Any = None) -> bool:
-        return False
-
-
-@admin.register(CustomUser, site=admin_site)
+@admin.register(CustomUser, site=interior_admin_site)
 class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
+    """Админ-класс для модели CustomUser."""
+
     add_form = AdminUserCreationForm
     form = AdminUserChangeForm
+    model = CustomUser
 
-    list_display = [
-        'username', 'email', 'get_full_name_display', 'user_type',
-        'email_verified_badge', 'phone', 'is_active', 'get_bookings_count', 'created_at'
-    ]
-    list_filter = ['user_type', 'is_active', 'email_verified', 'is_staff', 'created_at']
-    search_fields = ['username', 'email', 'phone', 'first_name', 'last_name', 'company']
-    ordering = ['-created_at']
-    date_hierarchy = 'created_at'
-
-    inlines = [UserProfileInline, BookingInline]
+    list_display = ('username', 'email', 'user_type', 'is_active', 'is_staff', 'created_at')
+    list_filter = ('user_type', 'is_active', 'is_staff', 'created_at')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    ordering = ('-created_at',)
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Личная информация', {'fields': ('first_name', 'last_name', 'email')}),
-        ('Информация о клиенте', {
-            'fields': ('user_type', 'phone', 'company', 'avatar', 'email_verified'),
-            'classes': ('wide',)
-        }),
-        ('Права доступа', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-            'classes': ('collapse',)
-        }),
-        ('Важные даты', {'fields': ('last_login', 'date_joined')}),
+        ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'phone', 'avatar')}),
+        ('Права доступа', {'fields': ('user_type', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Даты', {'fields': ('last_login', 'created_at', 'updated_at')}),
     )
 
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'password1', 'password2'),
-        }),
-        ('Дополнительно', {
-            'fields': ('user_type', 'phone'),
-            'classes': ('wide',)
+            'fields': ('username', 'email', 'password1', 'password2', 'user_type'),
         }),
     )
 
-    actions = ['make_moderator', 'make_user', 'deactivate_users', 'verify_emails']
-
-    @admin.display(description='ФИО')
-    def get_full_name_display(self, obj: CustomUser) -> str:
-        return obj.get_full_name() or '-'
-
-    @admin.display(description='Бронирований')
-    def get_bookings_count(self, obj: CustomUser) -> str:
-        count = obj.bookings.count()
-        return format_html('<b>{}</b>', count) if count > 0 else '0'
-
-    @admin.display(description='Email')
-    def email_verified_badge(self, obj: CustomUser) -> str:
-        if obj.email_verified:
-            return format_html(
-                '<span style="color: #28a745;"><i class="fas fa-check-circle"></i> Подтверждён</span>'
-            )
-        return format_html(
-            '<span style="color: #dc3545;"><i class="fas fa-times-circle"></i> Не подтверждён</span>'
-        )
-
-    @admin.action(description='Сделать модераторами')
-    def make_moderator(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(user_type=CustomUser.UserType.MODERATOR, is_staff=True)
-        self.message_user(request, f'{updated} пользователей стали модераторами')
-
-    @admin.action(description='Сделать пользователями')
-    def make_user(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(user_type=CustomUser.UserType.USER, is_staff=False)
-        self.message_user(request, f'{updated} пользователей стали обычными пользователями')
-
-    @admin.action(description='Деактивировать')
-    def deactivate_users(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(is_active=False)
-        self.message_user(request, f'{updated} пользователей деактивировано')
-
-    @admin.action(description='Подтвердить email')
-    def verify_emails(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(email_verified=True)
-        self.message_user(request, f'{updated} пользователей подтверждено')
+    readonly_fields = ('created_at', 'updated_at', 'last_login')
 
 
-# ============== СПРАВОЧНИКИ ==============
+@admin.register(UserProfile, site=interior_admin_site)
+class UserProfileAdmin(LoggingAdminMixin, admin.ModelAdmin):
+    list_display = ('user', 'bio_short', 'website', 'social_telegram')
+    search_fields = ('user__username', 'bio', 'website')
 
-@admin.register(Region, site=admin_site)
+    @admin.display(description='О себе')
+    def bio_short(self, obj):
+        return (obj.bio[:50] + '...') if obj.bio and len(obj.bio) > 50 else (obj.bio or '-')
+
+
+@admin.register(Region, site=interior_admin_site)
 class RegionAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['name', 'code', 'get_cities_count']
-    search_fields = ['name', 'code']
-    ordering = ['name']
-
-    @admin.display(description='Городов')
-    def get_cities_count(self, obj: Region) -> int:
-        return obj.cities.count()
+    list_display = ('name', 'code')
+    search_fields = ('name', 'code')
 
 
-@admin.register(City, site=admin_site)
+@admin.register(City, site=interior_admin_site)
 class CityAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['name', 'region', 'is_active', 'get_spaces_count']
-    list_filter = ['region', 'is_active']
-    search_fields = ['name', 'region__name']
-    list_editable = ['is_active']
-    ordering = ['name']
-
-    @admin.display(description='Помещений')
-    def get_spaces_count(self, obj: City) -> str:
-        count = obj.spaces.filter(is_active=True).count()
-        return format_html('<b>{}</b>', count) if count > 0 else '0'
+    list_display = ('name', 'region', 'is_active')
+    list_filter = ('region', 'is_active')
+    search_fields = ('name', 'region__name')
 
 
-@admin.register(SpaceCategory, site=admin_site)
+@admin.register(SpaceCategory, site=interior_admin_site)
 class SpaceCategoryAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['name', 'slug', 'icon_preview', 'is_active', 'get_spaces_count']
+    list_display = ('name', 'slug', 'icon', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'description')
     prepopulated_fields = {'slug': ('name',)}
-    list_filter = ['is_active']
-    list_editable = ['is_active']
-    search_fields = ['name']
-
-    @admin.display(description='Иконка')
-    def icon_preview(self, obj: SpaceCategory) -> str:
-        return format_html('<i class="fas {}"></i> {}', obj.icon, obj.icon)
-
-    @admin.display(description='Помещений')
-    def get_spaces_count(self, obj: SpaceCategory) -> int:
-        return obj.spaces.filter(is_active=True).count()
 
 
-@admin.register(PricingPeriod, site=admin_site)
+@admin.register(PricingPeriod, site=interior_admin_site)
 class PricingPeriodAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['name', 'description', 'hours_count', 'sort_order']
-    list_editable = ['sort_order']
-    ordering = ['sort_order']
+    list_display = ('name', 'description', 'hours_count', 'sort_order')
+    search_fields = ('name', 'description')
+    ordering = ('sort_order', 'hours_count')
 
-
-# ============== ПОМЕЩЕНИЯ ==============
 
 class SpaceImageInline(admin.TabularInline):
     model = SpaceImage
@@ -697,348 +894,95 @@ class SpacePriceInline(admin.TabularInline):
     ordering = ['period__sort_order']
 
 
-class ReviewInline(admin.TabularInline):
-    model = Review
-    extra = 0
-    readonly_fields = ['author', 'rating', 'comment', 'is_approved', 'created_at']
-    fields = ['author', 'rating', 'comment', 'is_approved', 'created_at']
-    can_delete = True
-    max_num = 10
-
-
-@admin.register(Space, site=admin_site)
+@admin.register(Space, site=interior_admin_site)
 class SpaceAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = [
-        'title', 'city', 'category', 'area_sqm', 'max_capacity',
-        'get_min_price_display', 'is_active', 'is_featured',
-        'views_count', 'get_bookings_count', 'created_at'
-    ]
-    list_filter = ['city__region', 'city', 'category', 'is_active', 'is_featured', 'created_at']
-    search_fields = ['title', 'address', 'description', 'owner__username']
+    list_display = ('title', 'owner', 'city', 'category', 'is_active', 'is_featured', 'created_at')
+    list_filter = ('is_active', 'is_featured', 'category', 'city__region')
+    search_fields = ('title', 'description', 'owner__username')
     prepopulated_fields = {'slug': ('title',)}
-    list_editable = ['is_active', 'is_featured']
-    date_hierarchy = 'created_at'
-    ordering = ['-created_at']
-
-    inlines = [SpaceImageInline, SpacePriceInline, ReviewInline]
-    readonly_fields = ['views_count', 'created_at', 'updated_at', 'get_stats']
-
-    fieldsets = (
-        ('Основная информация', {
-            'fields': ('title', 'slug', 'category', 'owner')
-        }),
-        ('Местоположение', {
-            'fields': ('city', 'address')
-        }),
-        ('Характеристики', {
-            'fields': ('area_sqm', 'max_capacity', 'description')
-        }),
-        ('Настройки', {
-            'fields': ('is_active', 'is_featured'),
-            'classes': ('wide',)
-        }),
-        ('Статистика', {
-            'fields': ('views_count', 'get_stats', 'created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-
-    actions = ['make_featured', 'remove_featured', 'activate_spaces', 'deactivate_spaces']
-
-    @admin.display(description='Цена')
-    def get_min_price_display(self, obj: Space) -> str:
-        price = obj.get_min_price()
-        if price:
-            return format_html('от <b>{} ₽</b>/{}', int(price.price), price.period.name)
-        return '-'
-
-    @admin.display(description='Брони')
-    def get_bookings_count(self, obj: Space) -> int:
-        return obj.bookings.count()
-
-    @admin.display(description='Статистика')
-    def get_stats(self, obj: Space) -> str:
-        stats = obj.reviews.filter(is_approved=True).aggregate(
-            avg_rating=Avg('rating'),
-            count=Count('id')
-        )
-        revenue = obj.bookings.filter(
-            status__code='completed'
-        ).aggregate(total=Sum('total_amount'))['total'] or 0
-
-        return format_html(
-            '<div>Отзывов: {} | Рейтинг: {} | Доход: {} ₽</div>',
-            stats['count'] or 0,
-            round(stats['avg_rating'] or 0, 1),
-            int(revenue)
-        )
-
-    @admin.action(description='Сделать рекомендуемыми')
-    def make_featured(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(is_featured=True)
-        self.message_user(request, f'{updated} помещений добавлено в рекомендуемые')
-
-    @admin.action(description='Убрать из рекомендуемых')
-    def remove_featured(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(is_featured=False)
-        self.message_user(request, f'{updated} помещений убрано из рекомендуемых')
-
-    @admin.action(description='Активировать')
-    def activate_spaces(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(is_active=True)
-        self.message_user(request, f'{updated} помещений активировано')
-
-    @admin.action(description='Деактивировать')
-    def deactivate_spaces(self, request: HttpRequest, queryset: QuerySet) -> None:
-        updated = queryset.update(is_active=False)
-        self.message_user(request, f'{updated} помещений деактивировано')
+    inlines = [SpaceImageInline, SpacePriceInline]
 
 
-# ============== БРОНИРОВАНИЯ ==============
+@admin.register(SpaceImage, site=interior_admin_site)
+class SpaceImageAdmin(LoggingAdminMixin, admin.ModelAdmin):
+    list_display = ('space', 'is_primary', 'sort_order')
+    list_filter = ('is_primary',)
+    search_fields = ('space__title',)
 
-@admin.register(BookingStatus, site=admin_site)
+
+@admin.register(SpacePrice, site=interior_admin_site)
+class SpacePriceAdmin(LoggingAdminMixin, admin.ModelAdmin):
+    list_display = ('space', 'period', 'price', 'is_active')
+    list_filter = ('period', 'is_active')
+    search_fields = ('space__title',)
+
+
+@admin.register(BookingStatus, site=interior_admin_site)
 class BookingStatusAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['code', 'name', 'color_preview', 'sort_order']
-    list_editable = ['sort_order']
-    ordering = ['sort_order']
-
-    @admin.display(description='Вид')
-    def color_preview(self, obj: BookingStatus) -> str:
-        return format_html(
-            '<span class="badge bg-{}">{}</span>',
-            obj.color, obj.name
-        )
+    list_display = ('name', 'code', 'color', 'sort_order')
+    search_fields = ('name', 'code')
+    ordering = ('sort_order',)
 
 
-class TransactionInline(admin.TabularInline):
-    model = Transaction
-    extra = 0
-    readonly_fields = ['status', 'amount', 'payment_method', 'external_id', 'created_at']
-    can_delete = False
-
-
-@admin.register(Booking, site=admin_site)
+@admin.register(Booking, site=interior_admin_site)
 class BookingAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = [
-        'id', 'space', 'tenant', 'status_badge', 'period',
-        'start_datetime', 'end_datetime', 'total_amount_display', 'created_at'
-    ]
-    list_filter = ['status', 'period', 'created_at', 'space__city']
-    search_fields = ['space__title', 'tenant__username', 'tenant__email', 'id']
+    list_display = ('id', 'space', 'tenant', 'status', 'start_datetime', 'end_datetime', 'total_amount', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('space__title', 'tenant__username')
     date_hierarchy = 'created_at'
-    ordering = ['-created_at']
-    readonly_fields = ['created_at', 'updated_at']
-
-    inlines = [TransactionInline]
-
-    fieldsets = (
-        ('Бронирование', {
-            'fields': ('space', 'tenant', 'status')
-        }),
-        ('Период аренды', {
-            'fields': ('period', 'periods_count', 'start_datetime', 'end_datetime')
-        }),
-        ('Стоимость', {
-            'fields': ('price_per_period', 'total_amount')
-        }),
-        ('Дополнительно', {
-            'fields': ('comment', 'created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-
-    actions = ['confirm_bookings', 'cancel_bookings', 'complete_bookings']
-
-    @admin.display(description='Статус')
-    def status_badge(self, obj: Booking) -> str:
-        return format_html(
-            '<span class="badge bg-{}">{}</span>',
-            obj.status.color, obj.status.name
-        )
-
-    @admin.display(description='Сумма')
-    def total_amount_display(self, obj: Booking) -> str:
-        return format_html('<b>{} ₽</b>', int(obj.total_amount))
-
-    @admin.action(description='Подтвердить бронирования')
-    def confirm_bookings(self, request: HttpRequest, queryset: QuerySet) -> None:
-        confirmed_status = BookingStatus.objects.filter(code='confirmed').first()
-        if confirmed_status:
-            updated = queryset.filter(status__code='pending').update(status=confirmed_status)
-            self.message_user(request, f'{updated} бронирований подтверждено')
-        else:
-            self.message_user(request, 'Статус "Подтверждено" не найден', level=messages.ERROR)
-
-    @admin.action(description='Отменить бронирования')
-    def cancel_bookings(self, request: HttpRequest, queryset: QuerySet) -> None:
-        cancelled_status = BookingStatus.objects.filter(code='cancelled').first()
-        if cancelled_status:
-            updated = queryset.exclude(status__code__in=['cancelled', 'completed']).update(status=cancelled_status)
-            self.message_user(request, f'{updated} бронирований отменено')
-        else:
-            self.message_user(request, 'Статус "Отменено" не найден', level=messages.ERROR)
-
-    @admin.action(description='Завершить бронирования')
-    def complete_bookings(self, request: HttpRequest, queryset: QuerySet) -> None:
-        completed_status = BookingStatus.objects.filter(code='completed').first()
-        if completed_status:
-            updated = queryset.filter(status__code='confirmed').update(status=completed_status)
-            self.message_user(request, f'{updated} бронирований завершено')
-        else:
-            self.message_user(request, 'Статус "Завершено" не найден', level=messages.ERROR)
 
 
-# ============== ТРАНЗАКЦИИ ==============
-
-@admin.register(TransactionStatus, site=admin_site)
+@admin.register(TransactionStatus, site=interior_admin_site)
 class TransactionStatusAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['code', 'name']
+    list_display = ('name', 'code')
+    search_fields = ('name', 'code')
 
 
-@admin.register(Transaction, site=admin_site)
+@admin.register(Transaction, site=interior_admin_site)
 class TransactionAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['id', 'booking', 'status', 'amount_display', 'payment_method', 'created_at']
-    list_filter = ['status', 'payment_method', 'created_at']
-    search_fields = ['booking__id', 'external_id']
+    list_display = ('id', 'booking', 'amount', 'status', 'payment_method', 'created_at')
+    list_filter = ('status', 'payment_method', 'created_at')
+    search_fields = ('booking__id',)
     date_hierarchy = 'created_at'
-    readonly_fields = ['created_at']
-
-    @admin.display(description='Сумма')
-    def amount_display(self, obj: Transaction) -> str:
-        return format_html('<b>{} ₽</b>', int(obj.amount))
 
 
-# ============== ОТЗЫВЫ И ИЗБРАННОЕ ==============
-
-@admin.register(Review, site=admin_site)
+@admin.register(Review, site=interior_admin_site)
 class ReviewAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['space', 'author', 'rating_display', 'comment_short', 'is_approved', 'created_at']
-    list_filter = ['rating', 'is_approved', 'created_at']
-    search_fields = ['space__title', 'author__username', 'comment']
-    list_editable = ['is_approved']
-    date_hierarchy = 'created_at'
-    ordering = ['-created_at']
-
+    list_display = ('space', 'author', 'rating', 'is_approved', 'created_at')
+    list_filter = ('is_approved', 'rating', 'created_at')
+    search_fields = ('space__title', 'author__username', 'comment')
     actions = ['approve_reviews', 'reject_reviews']
 
-    @admin.display(description='Рейтинг')
-    def rating_display(self, obj: Review) -> str:
-        stars = '★' * obj.rating + '☆' * (5 - obj.rating)
-        return format_html('<span style="color: #ffc107;">{}</span>', stars)
-
-    @admin.display(description='Комментарий')
-    def comment_short(self, obj: Review) -> str:
-        return obj.comment[:50] + '...' if len(obj.comment) > 50 else obj.comment
-
     @admin.action(description='Одобрить выбранные отзывы')
-    def approve_reviews(self, request: HttpRequest, queryset: QuerySet) -> None:
+    def approve_reviews(self, request, queryset):
         updated = queryset.update(is_approved=True)
         self.message_user(request, f'Одобрено {updated} отзывов')
 
     @admin.action(description='Отклонить выбранные отзывы')
-    def reject_reviews(self, request: HttpRequest, queryset: QuerySet) -> None:
+    def reject_reviews(self, request, queryset):
         updated = queryset.update(is_approved=False)
         self.message_user(request, f'Отклонено {updated} отзывов')
 
 
-@admin.register(Favorite, site=admin_site)
+@admin.register(Favorite, site=interior_admin_site)
 class FavoriteAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ['user', 'space', 'created_at']
-    list_filter = ['created_at']
-    search_fields = ['user__username', 'space__title']
-    date_hierarchy = 'created_at'
-    ordering = ['-created_at']
+    list_display = ('user', 'space', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('user__username', 'space__title')
 
 
-# ============== ЖУРНАЛ ДЕЙСТВИЙ ==============
-
-@admin.register(ActionLog, site=admin_site)
+@admin.register(ActionLog, site=interior_admin_site)
 class ActionLogAdmin(admin.ModelAdmin):
-    """Администрирование журнала действий - по образцу пользователя."""
-    list_display = ['created_at_formatted', 'user_link', 'action_type', 'object_repr', 'ip_address', 'browser_short']
-    list_filter = [
-        ('created_at', admin.DateFieldListFilter),
-        'action_type',
-    ]
-    search_fields = ['user__username', 'object_repr', 'ip_address']
+    list_display = ('created_at', 'user', 'action_type', 'model_name', 'object_repr', 'ip_address')
+    list_filter = ('action_type', 'model_name', 'created_at')
+    search_fields = ('user__username', 'object_repr', 'ip_address')
     date_hierarchy = 'created_at'
-    ordering = ['-created_at']
-    list_per_page = 50
-    readonly_fields = [
-        'user', 'action_type', 'model_name', 'object_id', 'object_repr',
-        'changes_display', 'ip_address', 'user_agent', 'created_at'
-    ]
+    readonly_fields = ('user', 'action_type', 'model_name', 'object_id', 'object_repr', 'changes', 'ip_address', 'user_agent', 'created_at')
 
-    # Запрещаем добавление/удаление - только просмотр
     def has_add_permission(self, request):
         return False
 
-    def has_delete_permission(self, request, obj=None):
-        return request.user.is_superuser
+    def has_change_permission(self, request, obj=None):
+        return False
 
-    @admin.display(description='Время действия', ordering='created_at')
-    def created_at_formatted(self, obj):
-        """Форматированная дата и время."""
-        return obj.created_at.strftime('%d %B %Y г. %H:%M') if obj.created_at else '-'
-
-    @admin.display(description='Пользователь')
-    def user_link(self, obj):
-        """Ссылка на пользователя."""
-        if obj.user:
-            url = reverse('interior_admin:rental_customuser_change', args=[obj.user.pk])
-            return format_html('<a href="{}">{}</a>', url, obj.user.username)
-        return 'Аноним'
-
-    @admin.display(description='Браузер')
-    def browser_short(self, obj):
-        """Короткое название браузера."""
-        ua = obj.user_agent or ''
-        if 'Chrome' in ua:
-            # Извлекаем версию Chrome
-            import re
-            match = re.search(r'Chrome/(\d+)', ua)
-            version = match.group(1) if match else ''
-            return f'Chrome {version}'
-        elif 'Firefox' in ua:
-            import re
-            match = re.search(r'Firefox/(\d+)', ua)
-            version = match.group(1) if match else ''
-            return f'Firefox {version}'
-        elif 'Safari' in ua and 'Chrome' not in ua:
-            return 'Safari'
-        elif 'Edge' in ua:
-            return 'Edge'
-        elif 'Opera' in ua or 'OPR' in ua:
-            import re
-            match = re.search(r'(?:Opera|OPR)/(\d+)', ua)
-            version = match.group(1) if match else ''
-            return f'Opera {version}'
-        elif 'MSIE' in ua or 'Trident' in ua:
-            return 'IE'
-        return ua[:30] + '...' if len(ua) > 30 else ua or '-'
-
-    @admin.display(description='Изменения')
-    def changes_display(self, obj):
-        """Отображение изменений в формате JSON."""
-        if obj.changes:
-            import json
-            formatted = json.dumps(obj.changes, ensure_ascii=False, indent=2)
-            return format_html('<pre style="margin:0; white-space:pre-wrap;">{}</pre>', formatted)
-        return '-'
-
-    fieldsets = (
-        ('Информация о действии', {
-            'fields': ('user', 'action_type', 'created_at')
-        }),
-        ('Объект', {
-            'fields': ('model_name', 'object_id', 'object_repr')
-        }),
-        ('Изменения', {
-            'fields': ('changes_display',),
-            'classes': ('collapse',)
-        }),
-        ('Техническая информация', {
-            'fields': ('ip_address', 'user_agent'),
-            'classes': ('collapse',)
-        }),
-    )
+admin_site = interior_admin_site

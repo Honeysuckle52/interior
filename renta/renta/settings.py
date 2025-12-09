@@ -16,8 +16,113 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+JAZZMIN_SETTINGS = {
+    "site_title": "ИНТЕРЬЕР Admin",
+    "site_header": "ИНТЕРЬЕР",
+    "site_brand": "ООО ИНТЕРЬЕР",
+    "site_logo": None,
+    "login_logo": None,
+    "site_logo_classes": "img-circle",
+    "site_icon": None,
+    "welcome_sign": "Добро пожаловать в панель управления",
+    "copyright": "ООО ИНТЕРЬЕР",
+    "user_avatar": "avatar",
+
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+
+    "order_with_respect_to": ["rental", "auth"],
+
+    "topmenu_links": [
+        {"name": "Главная", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Сайт", "url": "/", "new_window": True},
+        {"name": "Отчеты", "url": "interior_admin:reports"},
+        {"name": "Backup", "url": "interior_admin:backup"},
+    ],
+
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "rental.CustomUser": "fas fa-user-circle",
+        "rental.UserProfile": "fas fa-id-card",
+        "rental.Region": "fas fa-globe-europe",
+        "rental.City": "fas fa-city",
+        "rental.SpaceCategory": "fas fa-th-large",
+        "rental.PricingPeriod": "fas fa-clock",
+        "rental.Space": "fas fa-building",
+        "rental.SpaceImage": "fas fa-images",
+        "rental.SpacePrice": "fas fa-ruble-sign",
+        "rental.BookingStatus": "fas fa-info-circle",
+        "rental.Booking": "fas fa-calendar-check",
+        "rental.TransactionStatus": "fas fa-exchange-alt",
+        "rental.Transaction": "fas fa-credit-card",
+        "rental.Review": "fas fa-star",
+        "rental.Favorite": "fas fa-heart",
+        "rental.ActionLog": "fas fa-history",
+    },
+
+    "default_icon_parents": "fas fa-folder",
+    "default_icon_children": "fas fa-circle",
+
+    "related_modal_active": True,
+    "use_google_fonts_cdn": True,
+    "show_ui_builder": False,
+
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {
+        "rental.space": "collapsible",
+        "rental.customuser": "horizontal_tabs",
+    },
+
+    "custom_css": "css/admin_custom.css",
+    "custom_js": "js/admin_custom.js",
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "darkly",
+    "dark_mode_theme": "darkly",
+
+    "navbar": "navbar-dark",
+    "no_navbar_border": True,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-warning",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+
+    "footer_fixed": False,
+    "footer_small_text": True,
+
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-warning",
+    "accent": "accent-warning",
+    "navbar_small_text": False,
+
+    "button_classes": {
+        "primary": "btn-warning",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    },
+
+    "actions_sticky_top": True,
+}
+
 # Application definition
 INSTALLED_APPS = [
+    'jazzmin',  # Должен быть ПЕРЕД django.contrib.admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -70,7 +175,6 @@ DATABASES = {
     }
 }
 
-# Custom user model
 AUTH_USER_MODEL = 'rental.CustomUser'
 
 AUTH_PASSWORD_VALIDATORS = [

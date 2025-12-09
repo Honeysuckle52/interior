@@ -1,0 +1,422 @@
+/*
+ * Кастомные стили для Django Jazzmin Admin Panel
+ * ООО "ИНТЕРЬЕР" - Золотая тема с поддержкой светлой/тёмной темы
+ */
+
+:root {
+  /* Основные цвета */
+  --gold: #d4af37;
+  --gold-light: #e5c666;
+  --gold-dark: #b8941f;
+  --gold-rgb: 212, 175, 55;
+
+  /* Тёмная тема (по умолчанию) */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #0a0a0a;
+  --bg-card: #222222;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --border-color: #333333;
+
+  /* Статусы */
+  --success: #22c55e;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --warning: #f59e0b;
+}
+
+/* Светлая тема */
+[data-theme="light"],
+body.light-mode {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+}
+
+/* ========== ОБЩИЕ СТИЛИ ========== */
+
+/* Бренд в сайдбаре */
+.brand-link {
+  border-bottom: 1px solid var(--gold) !important;
+}
+
+.brand-link .brand-text {
+  color: var(--gold) !important;
+  font-weight: 700 !important;
+}
+
+/* Навбар */
+.main-header.navbar {
+  background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary)) !important;
+  border-bottom: 2px solid var(--gold) !important;
+}
+
+/* Сайдбар */
+.main-sidebar {
+  background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary)) !important;
+}
+
+.nav-sidebar .nav-item > .nav-link {
+  color: var(--text-secondary) !important;
+  transition: all 0.3s ease;
+}
+
+.nav-sidebar .nav-item > .nav-link:hover {
+  color: var(--gold) !important;
+  background: rgba(var(--gold-rgb), 0.1) !important;
+}
+
+.nav-sidebar .nav-item > .nav-link.active {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+  color: #000 !important;
+  font-weight: 600;
+}
+
+.nav-sidebar .nav-header {
+  color: var(--gold) !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ========== КОНТЕНТ ========== */
+
+.content-wrapper {
+  background: var(--bg-secondary) !important;
+}
+
+.content-header h1 {
+  color: var(--text-primary);
+}
+
+/* Карточки */
+.card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+.card-header {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+  color: #000 !important;
+  border-bottom: none !important;
+  font-weight: 600;
+}
+
+.card-title {
+  color: #000 !important;
+}
+
+/* ========== ТАБЛИЦЫ ========== */
+
+.table {
+  color: var(--text-primary) !important;
+}
+
+.table thead th {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+  color: #000 !important;
+  border: none !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background: rgba(var(--gold-rgb), 0.05) !important;
+}
+
+.table tbody td {
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ========== КНОПКИ ========== */
+
+.btn-primary,
+.btn-warning {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+  border-color: var(--gold) !important;
+  color: #000 !important;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover,
+.btn-warning:hover {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold)) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(var(--gold-rgb), 0.4) !important;
+}
+
+.btn-outline-secondary {
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.btn-outline-secondary:hover {
+  background: rgba(var(--gold-rgb), 0.1) !important;
+  border-color: var(--gold) !important;
+  color: var(--gold) !important;
+}
+
+/* ========== ФОРМЫ ========== */
+
+.form-control,
+.custom-select,
+select.form-control {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.form-control:focus,
+.custom-select:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(var(--gold-rgb), 0.2) !important;
+}
+
+/* ========== ПАГИНАЦИЯ ========== */
+
+.pagination .page-link {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.pagination .page-item.active .page-link {
+  background: var(--gold) !important;
+  border-color: var(--gold) !important;
+  color: #000 !important;
+}
+
+.pagination .page-link:hover {
+  background: rgba(var(--gold-rgb), 0.1) !important;
+  color: var(--gold) !important;
+}
+
+/* ========== АЛЕРТЫ ========== */
+
+.alert-success {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: var(--success) !important;
+  color: var(--success) !important;
+}
+
+.alert-danger {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+
+.alert-warning {
+  background: rgba(var(--gold-rgb), 0.15) !important;
+  border-color: var(--gold) !important;
+  color: var(--gold) !important;
+}
+
+.alert-info {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: var(--info) !important;
+  color: var(--info) !important;
+}
+
+/* ========== ССЫЛКИ ========== */
+
+a {
+  color: var(--gold);
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--gold-light);
+}
+
+/* ========== БЕЙДЖИ ========== */
+
+.badge-warning {
+  background: var(--gold) !important;
+  color: #000 !important;
+}
+
+/* ========== FOOTER ========== */
+
+.main-footer {
+  background: var(--bg-primary) !important;
+  border-top: 1px solid var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* ========== МОДАЛЬНЫЕ ОКНА ========== */
+
+.modal-content {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+  color: #000 !important;
+  border-bottom: none !important;
+}
+
+.modal-title {
+  color: #000 !important;
+}
+
+.close {
+  color: #000 !important;
+}
+
+/* ========== ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ ========== */
+
+.theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(var(--gold-rgb), 0.4);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(var(--gold-rgb), 0.5);
+}
+
+/* ========== BREADCRUMBS ========== */
+
+.breadcrumb {
+  background: transparent !important;
+}
+
+.breadcrumb-item a {
+  color: var(--gold) !important;
+}
+
+.breadcrumb-item.active {
+  color: var(--text-secondary) !important;
+}
+
+/* ========== DASHBOARD WIDGETS ========== */
+
+.small-box {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.small-box .icon {
+  color: rgba(0, 0, 0, 0.2) !important;
+}
+
+.small-box.bg-warning,
+.small-box.bg-primary {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+}
+
+.small-box.bg-warning .inner h3,
+.small-box.bg-warning .inner p,
+.small-box.bg-primary .inner h3,
+.small-box.bg-primary .inner p {
+  color: #000 !important;
+}
+
+/* ========== INFO BOX ========== */
+
+.info-box {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+}
+
+.info-box .info-box-icon {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+  color: #000 !important;
+}
+
+.info-box-text {
+  color: var(--text-secondary) !important;
+}
+
+.info-box-number {
+  color: var(--text-primary) !important;
+}
+
+/* ========== DROPDOWN ========== */
+
+.dropdown-menu {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dropdown-item {
+  color: var(--text-primary) !important;
+}
+
+.dropdown-item:hover {
+  background: rgba(var(--gold-rgb), 0.1) !important;
+  color: var(--gold) !important;
+}
+
+/* ========== SCROLLBAR ========== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gold-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
+/* ========== ПЕРЕХОДЫ ========== */
+
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* ========== RESPONSIVE ========== */
+
+@media (max-width: 768px) {
+  .theme-toggle {
+    bottom: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+}
