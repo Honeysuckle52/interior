@@ -14,6 +14,7 @@
 #   SpaceService   - Фильтрация, поиск, избранное
 #   UserService    - Профиль, статистика пользователя
 #   StatusService  - Управление статусами бронирований
+#   ProfanityFilter - Фильтрация матерных слов
 #
 # ДОПОЛНИТЕЛЬНЫЕ МОДУЛИ:
 #   email_service   - Отправка email уведомлений
@@ -31,6 +32,12 @@ from .booking_service import BookingService
 from .space_service import SpaceService
 from .user_service import UserService
 from .status_service import StatusService, StatusCodes, StatusDefaults
+from .profanity_filter import (
+    contains_profanity,
+    validate_comment,
+    censor_text,
+    normalize_text,
+)
 
 __all__ = [
     'BookingService',
@@ -39,4 +46,9 @@ __all__ = [
     'StatusService',
     'StatusCodes',
     'StatusDefaults',
+    # Функции фильтрации мата
+    'contains_profanity',
+    'validate_comment',
+    'censor_text',
+    'normalize_text',
 ]

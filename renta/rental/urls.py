@@ -22,7 +22,7 @@ from .views import (
 )
 from .views.favorites import check_favorite
 from .views.bookings import get_price_for_period, confirm_booking, reject_booking, manage_bookings
-from .views.reviews import my_reviews, delete_review
+from .views.reviews import my_reviews, delete_review, user_edit_review
 from .views.auth import (
     verify_email,
     resend_verification,
@@ -109,6 +109,7 @@ urlpatterns = [
     # ============== ОТЗЫВЫ ==============
     path('spaces/<int:pk>/review/', create_review, name='create_review'),
     path('reviews/<int:pk>/delete/', delete_review, name='delete_review'),
+    path('reviews/<int:pk>/user-edit/', user_edit_review, name='user_edit_review'),
     path('reviews/<int:pk>/edit/', edit_review, name='edit_review'),
     path('reviews/<int:pk>/admin-delete/', admin_delete_review, name='admin_delete_review'),
     path('reviews/<int:pk>/approve/', approve_review, name='approve_review'),

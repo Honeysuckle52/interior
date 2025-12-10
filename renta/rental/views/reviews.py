@@ -2,31 +2,6 @@
 ====================================================================
 ПРЕДСТАВЛЕНИЯ ДЛЯ ОТЗЫВОВ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
 ====================================================================
-Этот файл содержит представления Django для всей функциональности,
-связанной с отзывами на помещения, включая создание, просмотр,
-редактирование, удаление и модерацию отзывов.
-
-Основные представления:
-- create_review: Создание нового отзыва на помещение
-- my_reviews: Просмотр всех отзывов текущего пользователя
-- delete_review: Удаление собственного отзыва
-- edit_review: Редактирование отзыва (только для администраторов/модераторов)
-- admin_delete_review: Удаление любого отзыва (админ/модератор)
-- approve_review: Одобрение отзыва для публикации (админ/модератор)
-- manage_reviews: Панель управления отзывами для модерации
-
-Константы:
-- REVIEWS_PER_PAGE: Количество отзывов на странице пагинации
-- COMPLETED_BOOKING_STATUS: Статус завершенного бронирования для связывания
-
-Особенности:
-- Проверка, что пользователь не оставлял отзыв на то же помещение ранее
-- Связывание отзывов с завершенными бронированиями (при наличии)
-- Модерация: все отзывы создаются в статусе неодобренных (is_approved=False)
-- Разделение прав: пользователи могут удалять только свои отзывы
-- Фильтрация и поиск в панели управления отзывами
-- Статистика отзывов для администраторов
-====================================================================
 """
 
 from __future__ import annotations
@@ -42,10 +17,11 @@ from django.http import HttpRequest, HttpResponse, Http404
 from django.shortcuts import redirect, get_object_or_404, render
 from django.views.decorators.http import require_POST
 
-from ..forms.reviews import ReviewForm, ReviewCreateForm
+from ..forms.reviews import ReviewForm, ReviewCreateForm, ReviewEditForm
 from ..models import Space, Review, Booking
 from ..core.pagination import paginate
 from ..services.status_service import StatusCodes
+from ..services.profanity_filter import validate_comment
 
 
 # Константы
@@ -59,24 +35,10 @@ logger = logging.getLogger(__name__)
 def create_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Создание нового отзыва на помещение.
-
-    Проверяет, что пользователь не оставлял отзыв на это помещение ранее,
-    и связывает отзыв с завершенным бронированием (если есть).
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID помещения для отзыва
-
-    Returns:
-        HttpResponse: Редирект на страницу помещения
-
-    Note:
-        Все новые отзывы создаются с is_approved=False и требуют модерации
     """
     try:
         space: Space = get_object_or_404(Space, pk=pk, is_active=True)
 
-        # Check if user already reviewed this space
         if Review.objects.filter(space=space, author=request.user).exists():
             messages.error(request, 'Вы уже оставили отзыв на это помещение')
             return redirect('space_detail', pk=pk)
@@ -84,13 +46,12 @@ def create_review(request: HttpRequest, pk: int) -> HttpResponse:
         form = ReviewCreateForm(request.POST)
         if form.is_valid():
             try:
-                # Create review manually from form data
                 review = Review(
                     space=space,
                     author=request.user,
                     rating=form.cleaned_data['rating'],
                     comment=form.cleaned_data['comment'],
-                    is_approved=False  # Always start as unapproved
+                    is_approved=False
                 )
 
                 completed_booking: Booking | None = Booking.objects.filter(
@@ -111,8 +72,8 @@ def create_review(request: HttpRequest, pk: int) -> HttpResponse:
                 messages.error(request, 'Ошибка при сохранении отзыва. Попробуйте снова.')
         else:
             logger.error(f"Form validation errors: {form.errors}")
-            error_msg = '; '.join([f"{k}: {v[0]}" for k, v in form.errors.items()])
-            messages.error(request, f'Ошибка при отправке отзыва: {error_msg}')
+            error_msg = '; '.join([f"{v[0]}" for k, v in form.errors.items()])
+            messages.error(request, f'Ошибка: {error_msg}')
 
         return redirect('space_detail', pk=pk)
 
@@ -128,19 +89,6 @@ def create_review(request: HttpRequest, pk: int) -> HttpResponse:
 def my_reviews(request: HttpRequest) -> HttpResponse:
     """
     Просмотр всех отзывов текущего пользователя.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-
-    Returns:
-        HttpResponse: Отрисовка страницы со списком отзывов
-
-    Template:
-        account/reviews.html
-
-    Context:
-        - reviews: Пагинированный список отзывов пользователя
-        - error: Сообщение об ошибке (при наличии)
     """
     try:
         reviews = Review.objects.filter(
@@ -169,13 +117,6 @@ def my_reviews(request: HttpRequest) -> HttpResponse:
 def delete_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Удаление собственного отзыва пользователя.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID отзыва для удаления
-
-    Returns:
-        HttpResponse: Редирект на страницу помещения или список отзывов
     """
     try:
         review: Review = get_object_or_404(Review, pk=pk, author=request.user)
@@ -193,23 +134,63 @@ def delete_review(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required
+def user_edit_review(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    Редактирование собственного отзыва пользователем.
+
+    После редактирования отзыв отправляется на повторную модерацию.
+    """
+    try:
+        # Получаем отзыв, проверяя что пользователь - автор
+        review: Review = get_object_or_404(
+            Review.objects.select_related('space', 'space__city'),
+            pk=pk,
+            author=request.user
+        )
+
+        if request.method == 'POST':
+            form = ReviewEditForm(request.POST, instance=review)
+            if form.is_valid():
+                try:
+                    edited_review = form.save(commit=False)
+                    # После редактирования отзыв снова отправляется на модерацию
+                    edited_review.is_approved = False
+                    edited_review.save()
+
+                    messages.success(
+                        request,
+                        'Отзыв обновлён и отправлен на повторную модерацию.'
+                    )
+                    return redirect('my_reviews')
+                except DatabaseError as e:
+                    logger.error(f"Database error editing review: {e}", exc_info=True)
+                    messages.error(request, 'Ошибка при сохранении отзыва.')
+            else:
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, error)
+        else:
+            form = ReviewEditForm(instance=review)
+
+        context: dict[str, Any] = {
+            'form': form,
+            'review': review,
+        }
+        return render(request, 'account/edit_review.html', context)
+
+    except Http404:
+        messages.error(request, 'Отзыв не найден или вы не являетесь его автором')
+        return redirect('my_reviews')
+    except Exception as e:
+        logger.error(f"Error in user_edit_review view for pk={pk}: {e}", exc_info=True)
+        messages.error(request, 'Ошибка при редактировании отзыва')
+        return redirect('my_reviews')
+
+
+@login_required
 def edit_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Редактирование отзыва (только для администраторов и модераторов).
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID отзыва для редактирования
-
-    Returns:
-        HttpResponse: Отрисовка формы редактирования или редирект
-
-    Template:
-        reviews/edit.html
-
-    Context:
-        - form: Форма редактирования отзыва
-        - review: Объект отзыва для редактирования
     """
     try:
         user = request.user
@@ -251,13 +232,6 @@ def edit_review(request: HttpRequest, pk: int) -> HttpResponse:
 def admin_delete_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Удаление любого отзыва (только для администраторов и модераторов).
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID отзыва для удаления
-
-    Returns:
-        HttpResponse: Редирект на страницу помещения
     """
     try:
         user = request.user
@@ -285,13 +259,6 @@ def admin_delete_review(request: HttpRequest, pk: int) -> HttpResponse:
 def approve_review(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Одобрение отзыва для публикации (только для администраторов и модераторов).
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID отзыва для одобрения
-
-    Returns:
-        HttpResponse: Редирект на предыдущую страницу или страницу помещения
     """
     try:
         user = request.user
@@ -305,7 +272,6 @@ def approve_review(request: HttpRequest, pk: int) -> HttpResponse:
         review.save()
         messages.success(request, 'Отзыв одобрен и опубликован')
 
-        # Redirect back to referring page or space detail
         referer = request.META.get('HTTP_REFERER')
         if referer:
             return redirect(referer)
@@ -323,28 +289,6 @@ def approve_review(request: HttpRequest, pk: int) -> HttpResponse:
 def manage_reviews(request: HttpRequest) -> HttpResponse:
     """
     Панель управления отзывами для модерации (администраторы и модераторы).
-
-    Предоставляет фильтрацию по статусу, рейтингу и поиск по отзывам,
-    а также статистику и возможность массовой модерации.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-
-    Returns:
-        HttpResponse: Отрисовка страницы управления отзывами
-
-    Template:
-        reviews/manage.html
-
-    Context:
-        - reviews: Пагинированный список отзывов
-        - selected_status: Текущий фильтр по статусу
-        - selected_rating: Текущий фильтр по рейтингу
-        - search_query: Текущий поисковый запрос
-        - pending_count: Количество отзывов на модерации
-        - approved_count: Количество одобренных отзывов
-        - total_count: Общее количество отзывов
-        - avg_rating: Средний рейтинг всех отзывов
     """
     try:
         user = request.user
@@ -353,12 +297,10 @@ def manage_reviews(request: HttpRequest) -> HttpResponse:
             messages.error(request, 'У вас нет прав для управления отзывами')
             return redirect('home')
 
-        # Base queryset
         reviews = Review.objects.select_related(
             'space', 'space__city', 'author', 'author__profile'
         ).order_by('-created_at')
 
-        # Apply filters
         selected_status = request.GET.get('status', '')
         selected_rating = request.GET.get('rating', '')
         search_query = request.GET.get('search', '')

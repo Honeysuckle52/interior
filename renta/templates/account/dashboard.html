@@ -1,6 +1,219 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Личный кабинет | INTERIOR{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Табы навигации */
+    .dashboard-tabs {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 2rem;
+        padding-bottom: 0;
+        flex-wrap: wrap;
+    }
+
+    .dashboard-tab {
+        padding: 0.75rem 1.25rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        margin-bottom: -1px;
+    }
+
+    .dashboard-tab:hover {
+        color: var(--color-gold);
+    }
+
+    .dashboard-tab.active {
+        color: var(--color-gold);
+        border-bottom-color: var(--color-gold);
+    }
+
+    .dashboard-tab i {
+        margin-right: 0.5rem;
+    }
+
+    /* Контент табов */
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Карточка профиля в шапке */
+    .profile-header-card {
+        background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .profile-avatar-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 3px solid var(--color-gold);
+        object-fit: cover;
+    }
+
+    .profile-avatar-placeholder {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 3px solid var(--color-gold);
+        background: var(--bg-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 2.5rem;
+    }
+
+    /* Статистика в виде мини-карточек */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+    }
+
+    .stat-mini-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .stat-mini-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--color-gold);
+    }
+
+    .stat-mini-card .number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--color-gold);
+        line-height: 1;
+    }
+
+    .stat-mini-card .label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    /* Секции формы профиля */
+    .profile-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .profile-section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .profile-section-title i {
+        color: var(--color-gold);
+        margin-right: 0.5rem;
+    }
+
+    /* Аватар в форме */
+    .avatar-upload-area {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1rem;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        border: 1px dashed var(--border-color);
+    }
+
+    .avatar-preview {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 2px solid var(--color-gold);
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .avatar-placeholder-form {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 2px solid var(--color-gold);
+        background: var(--bg-card);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+
+    /* Быстрые действия */
+    .quick-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: all 0.2s ease;
+        width: 100%;
+    }
+
+    .quick-action-btn:hover {
+        border-color: var(--color-gold);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        transform: translateX(4px);
+    }
+
+    .quick-action-btn i {
+        color: var(--color-gold);
+        font-size: 1.1rem;
+        width: 24px;
+        text-align: center;
+    }
+
+    /* Таблица бронирований */
+    .booking-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    .booking-row:hover {
+        background-color: var(--bg-secondary);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container" style="padding-top: 100px;">
     <!-- Breadcrumb -->
@@ -12,109 +225,460 @@
             <li class="breadcrumb-item active fw-bold" aria-current="page">Личный кабинет</li>
         </ol>
     </nav>
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="display-6 fw-bold mb-2 text-themed">Личный кабинет</h1>
-            <p class="text-muted">Добро пожаловать, {{ user.username }}!</p>
-        </div>
-    </div>
-    <!-- Статистика -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="dashboard-card dashboard-stat text-center">
-                <div class="number">{{ stats.bookings_total }}</div>
-                <div class="label">Бронирований</div>
-                {% if stats.bookings_active > 0 %}
-                <div class="small text-muted mt-2">Активных: {{ stats.bookings_active }}</div>
-                {% endif %}
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="dashboard-card dashboard-stat text-center">
-                <div class="number">{{ stats.favorites_count }}</div>
-                <div class="label">В избранном</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="dashboard-card dashboard-stat text-center">
-                <div class="number">{{ stats.reviews_count }}</div>
-                <div class="label">Отзывов</div>
-            </div>
-        </div>
-    </div>
-    <div class="row g-4">
-        <!-- Последние бронирования -->
-        <div class="col-lg-8">
-            <div class="dashboard-card">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0 text-themed">Последние бронирования</h5>
-                    <a href="{% url 'my_bookings' %}" class="btn btn-gold btn-sm">Все брони</a>
-                </div>
-                {% if recent_bookings %}
-                <div class="table-responsive">
-                    <table class="table table-themed">
-                        <thead>
-                            <tr>
-                                <th>Помещение</th>
-                                <th>Дата</th>
-                                <th>Статус</th>
-                                <th>Сумма</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for booking in recent_bookings %}
-                            <tr style="cursor: pointer;" onclick="window.location='{% url 'booking_detail' booking.id %}'">
-                                <td class="text-themed">{{ booking.space.title|truncatewords:3 }}</td>
-                                <td class="text-themed">{{ booking.start_datetime|date:"d.m.Y" }}</td>
-                                <td><span class="badge bg-{{ booking.status.color }}">{{ booking.status.name }}</span></td>
-                                <td class="gold-text fw-bold">{{ booking.total_amount|floatformat:0 }} ₽</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+
+    <!-- Шапка профиля -->
+    <div class="profile-header-card">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="profile-avatar-large">
                 {% else %}
-                <p class="text-muted text-center py-4">У вас пока нет бронирований</p>
+                    <div class="profile-avatar-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
                 {% endif %}
             </div>
-        </div>
-        <!-- Быстрые действия -->
-        <div class="col-lg-4">
-            <div class="dashboard-card">
-                <h5 class="fw-bold mb-4 text-themed">Быстрые действия</h5>
-                <div class="d-grid gap-2">
-                    <a href="{% url 'spaces_list' %}" class="btn btn-outline-themed">
-                        <i class="fas fa-search me-2"></i>Найти помещение
-                    </a>
-                    <a href="{% url 'my_favorites' %}" class="btn btn-outline-themed">
-                        <i class="fas fa-heart me-2"></i>Избранное
-                    </a>
-                    <a href="{% url 'profile' %}" class="btn btn-outline-themed">
-                        <i class="fas fa-user-edit me-2"></i>Редактировать профиль
-                    </a>
-                    <a href="{% url 'my_reviews' %}" class="btn btn-outline-themed">
-                        <i class="fas fa-star me-2"></i>Мои отзывы
-                    </a>
+            <div class="col">
+                <h1 class="h3 fw-bold mb-1 text-themed">{{ user.get_full_name_or_username }}</h1>
+                <p class="text-muted mb-2">{{ user.email }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                        {{ user.get_user_type_display }}
+                    </span>
                     {% if user.email_verified %}
-                        <span class="badge bg-success mt-2 py-2"><i class="fas fa-check-circle me-1"></i>Email подтверждён</span>
+                        <span class="badge bg-success px-3 py-2">
+                            <i class="fas fa-check-circle me-1"></i>Email подтверждён
+                        </span>
                     {% else %}
-                        <div class="mt-2">
-                            <span class="badge bg-warning text-dark py-2">Email не подтверждён</span>
-                            <br>
-                            <a href="{% url 'resend_verification' %}" class="btn btn-sm btn-outline-warning mt-2">
-                                Отправить повторно
+                        <span class="badge bg-warning text-dark px-3 py-2">
+                            <i class="fas fa-exclamation-circle me-1"></i>Email не подтверждён
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-12 col-lg-auto mt-3 mt-lg-0">
+                <div class="stats-grid">
+                    <div class="stat-mini-card">
+                        <div class="number">{{ stats.bookings_total }}</div>
+                        <div class="label">Бронирований</div>
+                    </div>
+                    <div class="stat-mini-card">
+                        <div class="number">{{ stats.favorites_count }}</div>
+                        <div class="label">В избранном</div>
+                    </div>
+                    <div class="stat-mini-card">
+                        <div class="number">{{ stats.reviews_count }}</div>
+                        <div class="label">Отзывов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Навигация по вкладкам -->
+    <div class="dashboard-tabs">
+        <a href="#overview" class="dashboard-tab {% if active_tab == 'overview' %}active{% endif %}" data-tab="overview">
+            <i class="fas fa-home"></i>Обзор
+        </a>
+        <a href="#profile" class="dashboard-tab {% if active_tab == 'profile' %}active{% endif %}" data-tab="profile">
+            <i class="fas fa-user-edit"></i>Профиль
+        </a>
+    </div>
+
+    <!-- Вкладка: Обзор -->
+    <div id="overview" class="tab-content {% if active_tab == 'overview' %}active{% endif %}">
+        <div class="row g-4">
+            <!-- Последние бронирования -->
+            <div class="col-lg-8">
+                <div class="dashboard-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0 text-themed">
+                            <i class="fas fa-calendar-check me-2 gold-text"></i>Последние бронирования
+                        </h5>
+                        <a href="{% url 'my_bookings' %}" class="btn btn-outline-gold btn-sm">
+                            Все бронирования
+                        </a>
+                    </div>
+                    {% if recent_bookings %}
+                    <div class="table-responsive">
+                        <table class="table table-themed mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Помещение</th>
+                                    <th>Дата</th>
+                                    <th>Статус</th>
+                                    <th class="text-end">Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in recent_bookings %}
+                                <tr class="booking-row" onclick="window.location='{% url 'booking_detail' booking.id %}'">
+                                    <td>
+                                        <span class="text-themed fw-medium">{{ booking.space.title|truncatewords:4 }}</span>
+                                    </td>
+                                    <td class="text-muted">{{ booking.start_datetime|date:"d.m.Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ booking.status.color }}">{{ booking.status.name }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="gold-text fw-bold">{{ booking.total_amount|floatformat:0 }} ₽</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-3">У вас пока нет бронирований</p>
+                        <a href="{% url 'spaces_list' %}" class="btn btn-gold btn-sm">
+                            <i class="fas fa-search me-2"></i>Найти помещение
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Последнее избранное -->
+                {% if recent_favorites %}
+                <div class="dashboard-card mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0 text-themed">
+                            <i class="fas fa-heart me-2 gold-text"></i>Избранные помещения
+                        </h5>
+                        <a href="{% url 'my_favorites' %}" class="btn btn-outline-gold btn-sm">
+                            Все избранные
+                        </a>
+                    </div>
+                    <div class="row g-3">
+                        {% for fav in recent_favorites %}
+                        <div class="col-6">
+                            <a href="{% url 'space_detail' fav.space.pk %}" class="text-decoration-none">
+                                <div class="d-flex align-items-center gap-3 p-2 rounded" style="background: var(--bg-secondary); border: 1px solid var(--border-color); transition: border-color 0.2s;">
+                                    {% if fav.space.images.first %}
+                                        <img src="{{ fav.space.images.first.image.url }}"
+                                             alt="{{ fav.space.title }}"
+                                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                                    {% else %}
+                                        <div style="width: 60px; height: 60px; background: var(--bg-card); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-building text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div class="flex-grow-1 min-width-0">
+                                        <h6 class="mb-1 text-themed text-truncate">{{ fav.space.title }}</h6>
+                                        <small class="text-muted">{{ fav.space.city.name }}</small>
+                                    </div>
+                                </div>
                             </a>
                         </div>
-                    {% endif %}
-                    {% if user.can_moderate %}
-                    <hr class="my-2" style="border-color: var(--border-color);">
-                    <a href="{% url 'admin_panel' %}" class="btn btn-gold">
-                        <i class="fas fa-shield-alt me-2"></i>Панель управления
-                    </a>
-                    {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Быстрые действия -->
+            <div class="col-lg-4">
+                <div class="dashboard-card">
+                    <h5 class="fw-bold mb-4 text-themed">
+                        <i class="fas fa-bolt me-2 gold-text"></i>Быстрые действия
+                    </h5>
+                    <div class="d-flex flex-column gap-2">
+                        <a href="{% url 'spaces_list' %}" class="quick-action-btn">
+                            <i class="fas fa-search"></i>
+                            <span>Найти помещение</span>
+                        </a>
+                        <a href="{% url 'my_favorites' %}" class="quick-action-btn">
+                            <i class="fas fa-heart"></i>
+                            <span>Избранное</span>
+                        </a>
+                        <a href="{% url 'my_bookings' %}" class="quick-action-btn">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Мои бронирования</span>
+                        </a>
+                        <a href="{% url 'my_reviews' %}" class="quick-action-btn">
+                            <i class="fas fa-star"></i>
+                            <span>Мои отзывы</span>
+                        </a>
+                        <a href="#profile" class="quick-action-btn" data-tab-link="profile">
+                            <i class="fas fa-user-edit"></i>
+                            <span>Редактировать профиль</span>
+                        </a>
+
+                        {% if not user.email_verified %}
+                        <hr class="my-2" style="border-color: var(--border-color);">
+                        <a href="{% url 'resend_verification' %}" class="quick-action-btn" style="border-color: var(--bs-warning);">
+                            <i class="fas fa-envelope" style="color: var(--bs-warning);"></i>
+                            <span>Подтвердить Email</span>
+                        </a>
+                        {% endif %}
+
+                        {% if user.can_moderate %}
+                        <hr class="my-2" style="border-color: var(--border-color);">
+                        <a href="{% url 'admin_panel' %}" class="quick-action-btn">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Панель управления</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Информация об аккаунте -->
+                <div class="dashboard-card mt-4">
+                    <h5 class="fw-bold mb-4 text-themed">
+                        <i class="fas fa-info-circle me-2 gold-text"></i>Информация
+                    </h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                            <span class="text-muted">Дата регистрации</span>
+                            <span class="text-themed">{{ user.created_at|date:"d.m.Y" }}</span>
+                        </li>
+                        <li class="d-flex justify-content-between py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                            <span class="text-muted">Активных броней</span>
+                            <span class="text-themed">{{ stats.bookings_active }}</span>
+                        </li>
+                        <li class="d-flex justify-content-between py-2">
+                            <span class="text-muted">Потрачено</span>
+                            <span class="gold-text fw-bold">{{ stats.total_spent|floatformat:0 }} ₽</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Вкладка: Профиль -->
+    <div id="profile" class="tab-content {% if active_tab == 'profile' %}active{% endif %}">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <!-- Аватар -->
+                    <div class="profile-section">
+                        <h6 class="profile-section-title">
+                            <i class="fas fa-camera"></i>Фото профиля
+                        </h6>
+                        <div class="avatar-upload-area">
+                            {% if user.avatar %}
+                                <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="avatar-preview" id="avatarPreview">
+                            {% else %}
+                                <div class="avatar-placeholder-form" id="avatarPlaceholder">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <img src="/placeholder.svg" alt="" class="avatar-preview" id="avatarPreview" style="display: none;">
+                            {% endif %}
+                            <div>
+                                <label class="btn btn-outline-gold btn-sm mb-2" style="cursor: pointer;">
+                                    <i class="fas fa-upload me-2"></i>Загрузить фото
+                                    <input type="file" name="avatar" accept="image/*" id="avatarInput" style="display: none;">
+                                </label>
+                                <p class="text-muted small mb-0">JPG, PNG или GIF. Максимум 5MB.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Основная информация -->
+                    <div class="profile-section">
+                        <h6 class="profile-section-title">
+                            <i class="fas fa-user"></i>Основная информация
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Имя</label>
+                                {{ user_form.first_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Фамилия</label>
+                                {{ user_form.last_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                {{ user_form.email }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Телефон</label>
+                                {{ user_form.phone }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Компания</label>
+                                {{ user_form.company }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Дополнительная информация -->
+                    <div class="profile-section">
+                        <h6 class="profile-section-title">
+                            <i class="fas fa-id-card"></i>Дополнительно
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">О себе</label>
+                                {{ profile_form.bio }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Веб-сайт</label>
+                                {{ profile_form.website }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Telegram</label>
+                                {{ profile_form.social_telegram }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кнопка сохранения -->
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-gold">
+                            <i class="fas fa-save me-2"></i>Сохранить изменения
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                            Отмена
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Боковая панель -->
+                <div class="col-lg-4">
+                    <!-- Статус аккаунта -->
+                    <div class="dashboard-card">
+                        <h6 class="fw-bold mb-3 text-themed">
+                            <i class="fas fa-shield-alt me-2 gold-text"></i>Статус аккаунта
+                        </h6>
+                        <div class="d-flex flex-column gap-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="text-muted">Тип аккаунта</span>
+                                <span class="badge bg-dark bg-opacity-75 px-3 py-2">
+                                    {{ user.get_user_type_display }}
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="text-muted">Email</span>
+                                {% if user.email_verified %}
+                                    <span class="badge bg-success px-3 py-2">
+                                        <i class="fas fa-check me-1"></i>Подтверждён
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark px-3 py-2">
+                                        Не подтверждён
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="text-muted">Аккаунт</span>
+                                {% if user.is_blocked %}
+                                    <span class="badge bg-danger px-3 py-2">Заблокирован</span>
+                                {% else %}
+                                    <span class="badge bg-success px-3 py-2">Активен</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if not user.email_verified %}
+                        <hr class="my-3" style="border-color: var(--border-color);">
+                        <a href="{% url 'resend_verification' %}" class="btn btn-outline-warning btn-sm w-100">
+                            <i class="fas fa-envelope me-2"></i>Подтвердить Email
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Подсказки -->
+                    <div class="dashboard-card mt-4">
+                        <h6 class="fw-bold mb-3 text-themed">
+                            <i class="fas fa-lightbulb me-2 gold-text"></i>Подсказки
+                        </h6>
+                        <ul class="list-unstyled mb-0 small">
+                            <li class="mb-2 d-flex">
+                                <i class="fas fa-check-circle gold-text me-2 mt-1"></i>
+                                <span class="text-muted">Заполните профиль полностью для удобства</span>
+                            </li>
+                            <li class="mb-2 d-flex">
+                                <i class="fas fa-check-circle gold-text me-2 mt-1"></i>
+                                <span class="text-muted">Подтвердите email для получения уведомлений</span>
+                            </li>
+                            <li class="d-flex">
+                                <i class="fas fa-check-circle gold-text me-2 mt-1"></i>
+                                <span class="text-muted">Добавьте аватар для персонализации</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Переключение табов
+    const tabs = document.querySelectorAll('.dashboard-tab[data-tab]');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    function switchTab(tabId) {
+        // Обновляем активный таб
+        tabs.forEach(t => t.classList.remove('active'));
+        const activeTab = document.querySelector(`.dashboard-tab[data-tab="${tabId}"]`);
+        if (activeTab) activeTab.classList.add('active');
+
+        // Показываем контент
+        tabContents.forEach(c => c.classList.remove('active'));
+        const activeContent = document.getElementById(tabId);
+        if (activeContent) activeContent.classList.add('active');
+
+        // Обновляем URL без перезагрузки
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabId);
+        window.history.replaceState({}, '', url);
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tabId = this.getAttribute('data-tab');
+            switchTab(tabId);
+        });
+    });
+
+    // Ссылки на вкладки внутри страницы
+    document.querySelectorAll('[data-tab-link]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tabId = this.getAttribute('data-tab-link');
+            switchTab(tabId);
+        });
+    });
+
+    // Загрузка аватара
+    const avatarInput = document.getElementById('avatarInput');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Файл слишком большой. Максимальный размер: 5MB');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (avatarPreview) {
+                        avatarPreview.src = e.target.result;
+                        avatarPreview.style.display = 'block';
+                    }
+                    if (avatarPlaceholder) {
+                        avatarPlaceholder.style.display = 'none';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

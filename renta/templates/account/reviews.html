@@ -71,13 +71,21 @@
                                             <i class="fas fa-clock me-1"></i>На модерации
                                         </span>
                                     {% endif %}
-                                    <form method="post" action="{% url 'delete_review' pk=review.pk %}"
-                                          onsubmit="return confirm('Вы уверены, что хотите удалить этот отзыв?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                                            <i class="fas fa-trash me-1"></i>Удалить
-                                        </button>
-                                    </form>
+
+                                    <!-- Добавлены кнопки редактирования -->
+                                    <div class="d-flex flex-column gap-2">
+                                        <a href="{% url 'user_edit_review' pk=review.pk %}"
+                                           class="btn btn-outline-gold btn-sm">
+                                            <i class="fas fa-edit me-1"></i>Редактировать
+                                        </a>
+                                        <form method="post" action="{% url 'delete_review' pk=review.pk %}"
+                                              onsubmit="return confirm('Вы уверены, что хотите удалить этот отзыв?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                                <i class="fas fa-trash me-1"></i>Удалить
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -85,7 +93,7 @@
                     {% endfor %}
                 </div>
 
-                <!-- Пагинация с вашим кастомным стилем -->
+                <!-- Пагинация -->
                 {% if reviews.has_other_pages %}
                 <nav aria-label="Страницы" class="mt-4">
                     <ul class="pagination-themed justify-content-center">

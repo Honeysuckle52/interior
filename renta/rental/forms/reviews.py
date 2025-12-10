@@ -2,20 +2,6 @@
 ====================================================================
 ФОРМЫ ОТЗЫВОВ ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ "ИНТЕРЬЕР"
 ====================================================================
-Этот файл содержит все Django формы, связанные с отзывами на сайте,
-включая создание новых отзывов пользователями и их редактирование
-администраторами.
-
-Основные формы:
-- ReviewCreateForm: Упрощенная форма для создания отзывов пользователями
-- ReviewForm: Полная форма для редактирования отзывов администраторами
-
-Функционал:
-- Создание отзывов с оценкой и комментарием
-- Редактирование отзывов с одобрением/отклонением
-- Валидация минимальной длины комментария
-- Контроль рейтинга (1-5 звезд)
-====================================================================
 """
 
 from __future__ import annotations
@@ -26,18 +12,12 @@ from django import forms
 from django.core.validators import MinLengthValidator
 
 from ..models import Review
+from ..services.profanity_filter import validate_comment, contains_profanity
 
 
 class ReviewCreateForm(forms.Form):
     """
     Упрощенная форма для создания отзывов пользователями.
-
-    Используется клиентами для оставления отзывов о помещении
-    после завершения аренды. Содержит минимальный набор полей.
-
-    Поля формы:
-    - rating: Оценка от 1 до 5 (скрытое поле для JS-виджета)
-    - comment: Текст отзыва (минимум 10 символов)
     """
 
     rating = forms.IntegerField(
@@ -49,26 +29,87 @@ class ReviewCreateForm(forms.Form):
     comment = forms.CharField(
         label='Ваш комментарий',
         min_length=10,
+        max_length=2000,
         widget=forms.Textarea(attrs={
             'class': 'form-control',
             'rows': 3,
             'placeholder': 'Расскажите о вашем опыте аренды...',
-            'minlength': 10
+            'minlength': 10,
+            'maxlength': 2000
         })
     )
+
+    def clean_comment(self) -> str:
+        """Валидация комментария с проверкой на мат."""
+        comment = self.cleaned_data.get('comment', '')
+
+        is_valid, error_message = validate_comment(comment)
+        if not is_valid:
+            raise forms.ValidationError(error_message)
+
+        return comment
+
+
+class ReviewEditForm(forms.ModelForm):
+    """
+    Форма для редактирования отзывов пользователями.
+
+    Позволяет пользователям редактировать только свои отзывы.
+    Включает проверку на нецензурную лексику.
+    """
+
+    RATING_CHOICES = [
+        (5, '5 звёзд - Отлично'),
+        (4, '4 звезды - Хорошо'),
+        (3, '3 звезды - Нормально'),
+        (2, '2 звезды - Плохо'),
+        (1, '1 звезда - Ужасно'),
+    ]
+
+    rating = forms.ChoiceField(
+        choices=RATING_CHOICES,
+        label='Оценка',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+
+    comment = forms.CharField(
+        label='Комментарий',
+        min_length=10,
+        max_length=2000,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Расскажите о вашем опыте аренды...',
+            'minlength': 10,
+            'maxlength': 2000
+        })
+    )
+
+    class Meta:
+        model = Review
+        fields = ['rating', 'comment']
+
+    def clean_comment(self) -> str:
+        """Валидация комментария с проверкой на мат."""
+        comment = self.cleaned_data.get('comment', '')
+
+        is_valid, error_message = validate_comment(comment)
+        if not is_valid:
+            raise forms.ValidationError(error_message)
+
+        return comment
+
+    def clean_rating(self) -> int:
+        """Конвертация рейтинга в целое число."""
+        rating = self.cleaned_data.get('rating')
+        return int(rating)
 
 
 class ReviewForm(forms.ModelForm):
     """
     Полная форма для редактирования отзывов администраторами.
-
-    Используется администраторами и модераторами для управления
-    отзывами: редактирования, одобрения и модерации.
-
-    Поля формы:
-    - rating: Оценка от 1 до 5 с человекочитаемыми подписями
-    - comment: Текст отзыва с валидацией минимальной длины
-    - is_approved: Флаг одобрения отзыва для публикации
     """
 
     RATING_CHOICES = [
@@ -111,14 +152,6 @@ class ReviewForm(forms.ModelForm):
         fields = ['rating', 'comment', 'is_approved']
 
     def clean_rating(self) -> int:
-        """
-        Конвертация рейтинга в целое число.
-
-        Args:
-            rating: Рейтинг в формате строки
-
-        Returns:
-            int: Рейтинг в формате целого числа
-        """
+        """Конвертация рейтинга в целое число."""
         rating = self.cleaned_data.get('rating')
         return int(rating)
