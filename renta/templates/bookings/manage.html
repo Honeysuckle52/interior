@@ -37,7 +37,7 @@
     <!-- Фильтры -->
     <div class="filter-card mb-4">
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label text-muted small">Статус</label>
                 <select name="status" class="form-select">
                     <option value="">Все статусы</option>
@@ -48,7 +48,16 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-4">
+            <!-- Добавлен фильтр по оплате предоплаты -->
+            <div class="col-md-3">
+                <label class="form-label text-muted small">Предоплата</label>
+                <select name="prepayment" class="form-select">
+                    <option value="">Все</option>
+                    <option value="paid" {% if request.GET.prepayment == 'paid' %}selected{% endif %}>Оплачена</option>
+                    <option value="unpaid" {% if request.GET.prepayment == 'unpaid' %}selected{% endif %}>Не оплачена</option>
+                </select>
+            </div>
+            <div class="col-md-3">
                 <div class="form-check">
                     <input type="checkbox" name="pending" value="1" class="form-check-input"
                            id="pendingOnly" {% if pending_only %}checked{% endif %}>
@@ -57,7 +66,7 @@
                     </label>
                 </div>
             </div>
-            <div class="col-md-4 text-end">
+            <div class="col-md-3 text-end">
                 <button type="submit" class="btn btn-gold">
                     <i class="fas fa-filter me-1"></i> Применить
                 </button>
@@ -77,18 +86,27 @@
                 <div class="row align-items-center">
                     <div class="col-md-1 text-center">
                         <span class="fs-5 fw-bold text-muted">#{{ booking.id }}</span>
+                        <!-- Индикатор оплаты -->
+                        {% if booking.prepayment_paid %}
+                        <span class="badge bg-success mt-1 d-block" title="Предоплата внесена">
+                            <i class="fas fa-ruble-sign"></i>
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary mt-1 d-block" title="Ожидает оплаты">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                        {% endif %}
                     </div>
                     <div class="col-md-4">
-                        <!-- Added null check for booking.space -->
                         {% if booking.space %}
                         <h5 class="fw-bold mb-1">{{ booking.space.title }}</h5>
                         <p class="text-muted small mb-1">
-                            </i>{{ booking.space.city.name }}
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ booking.space.city.name }}
                         </p>
                         {% else %}
                         <h5 class="fw-bold mb-1 text-muted">Помещение удалено</h5>
                         <p class="text-muted small mb-1">
-                            </i>Н/Д
+                            <i class="fas fa-map-marker-alt me-1"></i>Н/Д
                         </p>
                         {% endif %}
                         <p class="text-muted small mb-0">
@@ -100,7 +118,7 @@
                     </div>
                     <div class="col-md-3">
                         <p class="text-muted mb-0">
-                            </i>
+                            <i class="fas fa-calendar me-1"></i>
                             {{ booking.start_datetime|date:"d.m.Y H:i" }}
                         </p>
                         <p class="text-muted small mb-0">
@@ -112,10 +130,16 @@
                             {{ booking.status.name }}
                         </span>
                         <div class="price-tag mt-2">{{ booking.total_amount|floatformat:0 }} ₽</div>
+                        <!-- Показываем сумму предоплаты -->
+                        {% if booking.prepayment_paid %}
+                        <small class="text-success d-block">
+                            <i class="fas fa-check me-1"></i>{{ booking.prepayment_amount|floatformat:0 }} ₽
+                        </small>
+                        {% endif %}
                     </div>
                     <div class="col-md-2 text-end">
                         <a href="{% url 'booking_detail' booking.id %}" class="btn btn-outline-light btn-sm mb-2 w-100">
-                            </i>Подробнее
+                            <i class="fas fa-eye me-1"></i>Подробнее
                         </a>
                         {% if booking.status.code == 'pending' %}
                         <div class="btn-group w-100">
@@ -147,7 +171,7 @@
         <ul class="pagination justify-content-center">
             {% if bookings.has_previous %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ bookings.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if pending_only %}&pending=1{% endif %}">
+                <a class="page-link" href="?page={{ bookings.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if pending_only %}&pending=1{% endif %}{% if request.GET.prepayment %}&prepayment={{ request.GET.prepayment }}{% endif %}">
                     <i class="fas fa-chevron-left"></i>
                 </a>
             </li>
@@ -158,14 +182,14 @@
             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
             {% elif num > bookings.number|add:'-3' and num < bookings.number|add:'3' %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if pending_only %}&pending=1{% endif %}">{{ num }}</a>
+                <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if pending_only %}&pending=1{% endif %}{% if request.GET.prepayment %}&prepayment={{ request.GET.prepayment }}{% endif %}">{{ num }}</a>
             </li>
             {% endif %}
             {% endfor %}
 
             {% if bookings.has_next %}
             <li class="page-item">
-                <a class="page-link" href="?page={{ bookings.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if pending_only %}&pending=1{% endif %}">
+                <a class="page-link" href="?page={{ bookings.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if pending_only %}&pending=1{% endif %}{% if request.GET.prepayment %}&prepayment={{ request.GET.prepayment }}{% endif %}">
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </li>

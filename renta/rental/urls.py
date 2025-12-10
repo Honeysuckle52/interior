@@ -37,6 +37,7 @@ from .views.categories import (
     manage_categories, add_category, edit_category, delete_category, toggle_category_status
 )
 from .views.admin_panel import admin_panel
+from .views.payments import initiate_payment, payment_return, payment_webhook, payment_status, check_cancellation_penalty
 
 
 urlpatterns = [
@@ -105,6 +106,12 @@ urlpatterns = [
     path('bookings/<int:pk>/confirm/', confirm_booking, name='confirm_booking'),
     path('bookings/<int:pk>/reject/', reject_booking, name='reject_booking'),
     path('manage/bookings/', manage_bookings, name='manage_bookings'),
+
+    path('payments/<int:pk>/pay/', initiate_payment, name='initiate_payment'),
+    path('payments/<int:pk>/return/', payment_return, name='payment_return'),
+    path('payments/<int:pk>/status/', payment_status, name='payment_status'),
+    path('payments/<int:pk>/cancellation-penalty/', check_cancellation_penalty, name='check_cancellation_penalty'),
+    path('payments/webhook/', payment_webhook, name='payment_webhook'),
 
     # ============== ОТЗЫВЫ ==============
     path('spaces/<int:pk>/review/', create_review, name='create_review'),

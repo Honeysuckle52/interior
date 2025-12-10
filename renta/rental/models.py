@@ -643,6 +643,10 @@ class Booking(models.Model):
         price_per_period: Цена за один период
         total_amount: Общая сумма
         comment: Комментарий к бронированию
+        prepayment_paid: Оплачена ли предоплата
+        prepayment_amount: Сумма предоплаты
+        payment_id: ID платежа в ЮKassa
+        prepayment_paid_at: Дата и время оплаты предоплаты
     """
 
     space = models.ForeignKey(
@@ -686,6 +690,30 @@ class Booking(models.Model):
         verbose_name='Общая стоимость'
     )
 
+    prepayment_paid = models.BooleanField(
+        default=False,
+        verbose_name='Предоплата внесена',
+        db_index=True
+    )
+    prepayment_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Сумма предоплаты'
+    )
+    payment_id = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='ID платежа ЮKassa',
+        db_index=True
+    )
+    prepayment_paid_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Дата оплаты предоплаты'
+    )
+
     comment = models.TextField(blank=True, verbose_name='Комментарий')
     moderator_comment = models.TextField(blank=True, verbose_name='Комментарий модератора')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания', db_index=True)
@@ -705,6 +733,7 @@ class Booking(models.Model):
                 fields=['start_datetime', 'end_datetime'],
                 name='idx_booking_period'
             ),
+            models.Index(fields=['prepayment_paid', 'status'], name='idx_booking_prepayment'),
         ]
 
     def __str__(self) -> str:
@@ -719,6 +748,26 @@ class Booking(models.Model):
     def is_active(self) -> bool:
         """Проверить, активно ли бронирование."""
         return self.status.code in ['pending', 'confirmed']
+
+    @property
+    def prepayment_required(self) -> Decimal:
+        """Получить требуемую сумму предоплаты (10%)."""
+        return (self.total_amount * Decimal('10') / Decimal('100')).quantize(Decimal('0.01'))
+
+    @property
+    def remaining_amount(self) -> Decimal:
+        """Получить оставшуюся сумму к оплате."""
+        if self.prepayment_amount:
+            return self.total_amount - self.prepayment_amount
+        return self.total_amount
+
+    @property
+    def can_pay_prepayment(self) -> bool:
+        """Проверить, можно ли оплатить предоплату."""
+        return (
+            not self.prepayment_paid and
+            self.status.code in ['pending', 'confirmed']
+        )
 
 
 class TransactionStatus(models.Model):

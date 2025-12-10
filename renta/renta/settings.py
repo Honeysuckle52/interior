@@ -239,6 +239,15 @@ DEFAULT_FROM_EMAIL = f'INTERIOR <{EMAIL_HOST_USER}>'
 # Таймаут для SMTP соединения (секунды)
 EMAIL_TIMEOUT = 30
 
+# Получите данные в личном кабинете ЮKassa:
+YOOKASSA_SHOP_ID = os.environ.get('YOOKASSA_SHOP_ID', '1225524')
+YOOKASSA_SECRET_KEY = os.environ.get('YOOKASSA_SECRET_KEY', 'test_-W5gL0m29-Vj5oYnjMBKZ62jHkNiMBFdsmiaZeGhiQs')
+
+# Процент предоплаты (10%)
+PREPAYMENT_PERCENT = 10
+# Часов до начала для бесплатной отмены
+CANCELLATION_HOURS = 24
+
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
