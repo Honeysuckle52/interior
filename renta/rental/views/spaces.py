@@ -676,20 +676,6 @@ def manage_spaces(request: HttpRequest) -> HttpResponse:
 def add_space(request: HttpRequest) -> HttpResponse:
     """
     Добавление нового помещения.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-
-    Returns:
-        HttpResponse: Отрисовка формы добавления или редирект при успехе
-
-    Template:
-        spaces/add.html
-
-    Context:
-        - form: Форма добавления помещения
-        - pricing_periods: Все доступные периоды ценообразования
-        - yandex_api_key: API ключ Яндекс.Карт для геокодирования
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для добавления помещений')
@@ -713,9 +699,10 @@ def add_space(request: HttpRequest) -> HttpResponse:
             space = form.save(commit=False)
             space.owner = request.user
 
-            # Серверное геокодирование убрано - используется клиентское через ymaps.geocode()
-            space.latitude = request.POST.get('latitude')
-            space.longitude = request.POST.get('longitude')
+            lat = request.POST.get('latitude', '').strip()
+            lng = request.POST.get('longitude', '').strip()
+            space.latitude = lat if lat else None
+            space.longitude = lng if lng else None
 
             space.save()
 
@@ -774,9 +761,10 @@ def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
         if form.is_valid():
             space = form.save(commit=False)
 
-            # Серверное геокодирование убрано - используется клиентское через ymaps.geocode()
-            space.latitude = request.POST.get('latitude')
-            space.longitude = request.POST.get('longitude')
+            lat = request.POST.get('latitude', '').strip()
+            lng = request.POST.get('longitude', '').strip()
+            space.latitude = lat if lat else None
+            space.longitude = lng if lng else None
 
             space.save()
 
