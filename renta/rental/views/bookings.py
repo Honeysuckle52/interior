@@ -493,7 +493,18 @@ def cancel_booking(request: HttpRequest, pk: int) -> HttpResponse:
             booking.start_datetime - timezone.now()
         ).total_seconds() / SECONDS_IN_HOUR
 
-        if hours_until_start < HOURS_IN_DAY:
+        refund_message = ''
+        if booking.prepayment_paid:
+            from ..services.payment_service import PaymentService
+
+            refund_result = PaymentService.process_cancellation_refund(booking)
+
+            if refund_result.get('refunded'):
+                refund_message = f' Возврат {refund_result["amount"]} ₽ оформлен.'
+            elif refund_result.get('has_penalty'):
+                refund_message = f' Предоплата {refund_result["penalty_amount"]} ₽ удержана (отмена менее чем за 24 часа).'
+
+        if hours_until_start < HOURS_IN_DAY and not refund_message:
             messages.warning(
                 request,
                 'Внимание: отмена менее чем за 24 часа до начала '
@@ -503,7 +514,7 @@ def cancel_booking(request: HttpRequest, pk: int) -> HttpResponse:
         booking.status = StatusService.get_cancelled_status()
         booking.save()
 
-        messages.success(request, f'Бронирование #{booking.id} отменено')
+        messages.success(request, f'Бронирование #{booking.id} отменено.{refund_message}')
         return redirect('my_bookings')
 
     except Http404:
