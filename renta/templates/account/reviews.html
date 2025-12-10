@@ -1,24 +1,25 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block title %}Мои отзывы | INTERIOR{% endblock %}
-
 {% block content %}
 <div class="container" style="padding-top: 100px;">
     <div class="row">
         <div class="col-12">
+            <!-- Унифицированный breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
-                <ol class="breadcrumb breadcrumb-visible py-2 px-3 rounded">
-                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="breadcrumb-link fw-medium">Личный кабинет</a></li>
-                    <li class="breadcrumb-item active fw-bold">Мои отзывы</li>
+                <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'dashboard' %}" class="breadcrumb-link fw-medium">Личный кабинет</a>
+                    </li>
+                    <li class="breadcrumb-item active fw-bold" aria-current="page">Мои отзывы</li>
                 </ol>
             </nav>
-
             <h1 class="display-5 fw-bold mb-4">
-                </i>Мои отзывы
+                <i class="fas fa-star me-2 gold-text"></i>Мои отзывы
             </h1>
-
             {% if reviews %}
                 <div class="row g-4">
                     {% for review in reviews %}
@@ -84,18 +85,17 @@
                     {% endfor %}
                 </div>
 
-                <!-- Пагинация -->
+                <!-- Пагинация с вашим кастомным стилем -->
                 {% if reviews.has_other_pages %}
                 <nav aria-label="Страницы" class="mt-4">
-                    <ul class="pagination justify-content-center">
+                    <ul class="pagination-themed justify-content-center">
                         {% if reviews.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ reviews.previous_page_number }}">
+                                <a class="page-link" href="?page={{ reviews.previous_page_number }}" aria-label="Предыдущая">
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
                             </li>
                         {% endif %}
-
                         {% for num in reviews.paginator.page_range %}
                             {% if reviews.number == num %}
                                 <li class="page-item active">
@@ -107,10 +107,9 @@
                                 </li>
                             {% endif %}
                         {% endfor %}
-
                         {% if reviews.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ reviews.next_page_number }}">
+                                <a class="page-link" href="?page={{ reviews.next_page_number }}" aria-label="Следующая">
                                     <i class="fas fa-chevron-right"></i>
                                 </a>
                             </li>

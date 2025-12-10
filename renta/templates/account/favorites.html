@@ -1,11 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block title %}Избранное | INTERIOR{% endblock %}
-
 {% block content %}
 <div class="container" style="padding-top: 100px;">
-    <!-- Добавлен унифицированный breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb breadcrumb-styled py-2 px-3 rounded">
             <li class="breadcrumb-item">
@@ -17,73 +14,63 @@
             <li class="breadcrumb-item active fw-bold" aria-current="page">Избранное</li>
         </ol>
     </nav>
-
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="display-6 fw-bold mb-2 text-themed">Избранное</h1>
-            <p class="text-muted">Помещения, которые вам понравились</p>
+            <h1 class="display-5 fw-bold mb-2 text-themed">
+                <i class="fas fa-heart gold-text me-3"></i>Избранное
+            </h1>
+            <p class="text-muted">Ваши любимые помещения</p>
         </div>
     </div>
-
-    {% if favorites %}
-    <div class="row g-4">
-        {% for fav in favorites %}
-        <div class="col-lg-4 col-md-6">
-            <div class="space-card h-100">
-                <div class="space-card-image-wrapper">
-                    {% with fav.space.get_main_image as image %}
-                    {% if image and image.image %}
-                    <img src="{{ image.image.url }}" class="space-image" alt="{{ fav.space.title }}" loading="lazy">
-                    {% else %}
-                    <img src="https://via.placeholder.com/400x250/171717/d4af37?text=INTERIOR" class="space-image" alt="{{ fav.space.title }}" loading="lazy">
-                    {% endif %}
-                    {% endwith %}
-
-                    <span class="space-badge-overlay">{{ fav.space.category.name }}</span>
-
-                    <button class="space-favorite-btn active" data-space-id="{{ fav.space.id }}" type="button">
-                        <i class="fas fa-heart"></i>
-                    </button>
-
-                    <span class="space-city-overlay">
-                        <i class="fas fa-map-marker-alt me-1"></i>{{ fav.space.city.name }}
-                    </span>
-                </div>
-
-                <div class="space-card-body">
-                    <h5 class="space-card-title">{{ fav.space.title }}</h5>
-                    <div class="space-card-meta">
-                        <span>{{ fav.space.area_sqm }} м²</span>
-                        <span>до {{ fav.space.max_capacity }} чел.</span>
-                    </div>
-                    <p class="space-card-desc">{{ fav.space.description|truncatewords:18 }}</p>
-                    <div class="space-card-footer">
-                        <div class="space-card-price">
-                            {% with fav.space.prices.first as price %}
-                            {% if price %}
-                            <span class="price-amount">от {{ price.price|floatformat:0 }} ₽</span>
-                            <span class="price-type">{{ price.period.description }}</span>
+    {% if favorite_spaces %}
+        <div class="row g-4">
+            {% for space in favorite_spaces %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="space-card">
+                        <div class="space-card-image-wrapper">
+                            {% if space.images.first %}
+                                <img src="{{ space.images.first.image.url }}" alt="{{ space.title }}" class="space-image">
                             {% else %}
-                            <span class="price-amount">Цена по запросу</span>
+                                <div class="bg-secondary d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
                             {% endif %}
-                            {% endwith %}
+                            <a href="{% url 'space_detail' pk=space.pk %}" class="space-favorite-btn active" data-space-id="{{ space.id }}" title="Удалить из избранного">
+                                <i class="fas fa-heart"></i>
+                            </a>
                         </div>
-                        <a href="{% url 'space_detail' fav.space.id %}" class="btn btn-gold btn-sm">Подробнее</a>
+                        <div class="space-card-body">
+                            <h5 class="space-card-title">
+                                <a href="{% url 'space_detail' pk=space.pk %}" class="text-decoration-none text-themed">{{ space.title }}</a>
+                            </h5>
+                            <div class="space-card-meta">
+                                <span><i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city }}</span>
+                                <span><i class="fas fa-ruler-combined me-1 gold-text"></i>{{ space.area }} м²</span>
+                            </div>
+                            <p class="space-card-desc">{{ space.description|truncatewords:20 }}</p>
+                            <div class="space-card-footer">
+                                <div class="space-card-price">
+                                    <span class="price-amount">{{ space.get_min_price|floatformat:0 }}</span>
+                                    <span class="price-type">₽/сутки</span>
+                                </div>
+                                <a href="{% url 'space_detail' pk=space.pk %}" class="btn btn-outline-themed btn-sm">
+                                    <i class="fas fa-eye me-1"></i>Смотреть
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
     {% else %}
-    <div class="text-center py-5">
-        <i class="fas fa-heart fa-3x mb-3 text-muted"></i>
-        <h4>Список избранного пуст</h4>
-        <p class="text-muted">Добавляйте понравившиеся помещения в избранное</p>
-        <a href="{% url 'spaces_list' %}" class="btn btn-gold mt-3">Найти помещение</a>
-    </div>
+        <div class="text-center py-5">
+            <i class="fas fa-heart fa-4x text-muted mb-3"></i>
+            <h4>Ваше избранное пусто</h4>
+            <p class="text-muted">Найдите помещение и добавьте его в избранное</p>
+            <a href="{% url 'spaces_list' %}" class="btn btn-gold">
+                <i class="fas fa-search me-2"></i>Найти помещение
+            </a>
+        </div>
     {% endif %}
 </div>
-
-{% csrf_token %}
 {% endblock %}

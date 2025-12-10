@@ -1,8 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block title %}Мои бронирования | INTERIOR{% endblock %}
-
 {% block content %}
 <div class="container" style="padding-top: 100px;">
     <!-- Добавлен унифицированный breadcrumb -->
@@ -17,14 +15,12 @@
             <li class="breadcrumb-item active fw-bold" aria-current="page">Мои бронирования</li>
         </ol>
     </nav>
-
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="display-6 fw-bold mb-2 text-themed">Мои бронирования</h1>
             <p class="text-muted">История всех ваших бронирований</p>
         </div>
     </div>
-
     {% if bookings %}
     <div class="row g-4">
         {% for booking in bookings %}
@@ -44,9 +40,9 @@
                         <div class="col-md-3 text-end mt-3 mt-md-0">
                             <div class="price-tag mb-2">{{ booking.total_amount|floatformat:0 }} ₽</div>
                             {% if booking.status.code == 'pending' or booking.status.code == 'confirmed' %}
-                            <form method="post" action="{% url 'cancel_booking' booking.id %}" class="d-inline" onclick="event.stopPropagation();">
+                            <form method="post" action="{% url 'cancel_booking' booking.id %}" class="d-inline confirm-form" data-message="Отменить бронирование?">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="event.preventDefault(); event.stopPropagation(); if(confirm('Отменить бронирование?')) this.closest('form').submit();">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
                                     Отменить
                                 </button>
                             </form>

@@ -230,13 +230,10 @@ EMAIL_PORT = 465
 EMAIL_USE_SSL = True
 EMAIL_USE_TLS = False  # Важно: SSL и TLS взаимоисключающие
 
-# Ваш email на Mail.ru (danil_naumov_90@bk.ru, mail.ru, inbox.ru, list.ru, bk.ru)
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'danil_naumov_90@bk.ru')
 
-# ВАЖНО: В продакшене использовать переменную окружения!
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'fDwwurqGAMSfNry3JlZU')
 
-# От кого отправляются письма
 DEFAULT_FROM_EMAIL = f'INTERIOR <{EMAIL_HOST_USER}>'
 
 # Таймаут для SMTP соединения (секунды)
