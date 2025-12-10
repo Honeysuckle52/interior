@@ -437,3 +437,33 @@ def get_item(dictionary, key):
         return dictionary.get(key)
     except (AttributeError, TypeError):
         return None
+
+
+@register.filter
+def dot_decimal(value):
+    """
+    Конвертирует числа с запятой в числа с точкой для CSS.
+
+    Django использует локаль RU и форматирует числа с запятой (33,3),
+    но CSS требует точку (33.3) для корректной работы width: X%.
+
+    Args:
+        value: Число или строка с числом
+
+    Returns:
+        str: Число с точкой в качестве десятичного разделителя
+
+    Examples:
+        {{ 33.3|dot_decimal }} -> "33.3"
+        {{ "33,3"|dot_decimal }} -> "33.3"
+    """
+    if value is None:
+        return "0"
+    try:
+        # Преобразуем в строку и заменяем запятую на точку
+        str_value = str(value).replace(',', '.')
+        # Проверяем что это валидное число
+        float(str_value)
+        return str_value
+    except (ValueError, TypeError):
+        return "0"

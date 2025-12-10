@@ -23,14 +23,16 @@
 
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="display-6 fw-bold mb-2 text-themed">Добавить помещение</h1>
+            <h1 class="display-6 fw-bold mb-2 text-themed">
+                <i class="fas fa-plus-circle text-gold me-3"></i>Добавить помещение
+            </h1>
             <p class="text-muted">Заполните информацию о новом помещении</p>
         </div>
     </div>
 
     <form method="post" enctype="multipart/form-data" id="spaceForm">
         {% csrf_token %}
-        
+
         <div class="row g-4">
             <!-- Основная информация -->
             <div class="col-lg-8">
@@ -38,9 +40,9 @@
                     <!-- Основные данные -->
                     <div class="space-form-section">
                         <h5 class="space-form-section-title">
-                            </i>Основная информация
+                            <i class="fas fa-info-circle text-gold me-2"></i>Основная информация
                         </h5>
-                        
+
                         <div class="mb-3">
                             <label for="id_title" class="form-label">Название помещения *</label>
                             {{ form.title }}
@@ -48,7 +50,7 @@
                             <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
                             {% endif %}
                         </div>
-                        
+
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="id_category" class="form-label">Категория *</label>
@@ -59,12 +61,12 @@
                                 {{ form.city }}
                             </div>
                         </div>
-                        
+
                         <div class="mt-3">
                             <label for="id_address" class="form-label">Адрес *</label>
                             {{ form.address }}
                         </div>
-                        
+
                         <div class="row g-3 mt-3">
                             <div class="col-md-6">
                                 <label for="id_area_sqm" class="form-label">Площадь (м²) *</label>
@@ -75,7 +77,7 @@
                                 {{ form.max_capacity }}
                             </div>
                         </div>
-                        
+
                         <div class="mt-3">
                             <label for="id_description" class="form-label">Описание *</label>
                             {{ form.description }}
@@ -85,34 +87,40 @@
                     <!-- Фотографии -->
                     <div class="space-form-section">
                         <h5 class="space-form-section-title">
-                            </i>Фотографии
+                            <i class="fas fa-images text-gold me-2"></i>Фотографии <span class="text-danger">*</span>
                         </h5>
-                        
+
+                        <!-- Добавлено предупреждение об обязательности фото -->
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Необходимо загрузить хотя бы одну фотографию помещения
+                        </div>
+
                         <div class="image-upload-zone" id="imageDropZone">
                             <i class="fas fa-cloud-upload-alt upload-icon"></i>
                             <p class="upload-text">Перетащите фотографии сюда или нажмите для выбора</p>
                             <p class="upload-hint">Поддерживаются: JPG, PNG, WebP. Макс. размер: 5MB</p>
                             <input type="file" id="imageInput" name="images" multiple accept="image/*" class="d-none">
                         </div>
-                        
+
                         <div class="image-preview-grid" id="imagePreviewGrid"></div>
                     </div>
 
                     <!-- Цены -->
                     <div class="space-form-section">
                         <h5 class="space-form-section-title">
-                            </i>Цены
+                            <i class="fas fa-ruble-sign text-gold me-2"></i>Цены
                         </h5>
-                        
+
                         <div class="price-inputs-grid">
                             {% for period in pricing_periods %}
                             <div class="price-input-group">
                                 <label class="price-input-label">
-                                    </i>{{ period.description }}
+                                    {{ period.description }}
                                 </label>
-                                <input type="number" 
-                                       name="price_{{ period.id }}" 
-                                       class="form-control" 
+                                <input type="number"
+                                       name="price_{{ period.id }}"
+                                       class="form-control"
                                        placeholder="Цена в ₽"
                                        min="0"
                                        step="100">
@@ -127,7 +135,7 @@
             <div class="col-lg-4">
                 <div class="space-form-card sticky-top" style="top: 100px;">
                     <h5 class="space-form-section-title">
-                        </i>Настройки публикации
+                        <i class="fas fa-cog text-gold me-2"></i>Настройки публикации
                     </h5>
                     
                     <div class="mb-3">

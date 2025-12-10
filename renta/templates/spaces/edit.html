@@ -2,7 +2,7 @@
 {% load static %}
 {% load rental_tags %}
 
-{% block title %}Управление помещениями | INTERIOR{% endblock %}
+{% block title %}Редактировать: {{ space.title }} | INTERIOR{% endblock %}
 
 {% block content %}
 <div class="container" style="padding-top: 100px;">
@@ -15,181 +15,362 @@
             <li class="breadcrumb-item">
                 <a href="{% url 'dashboard' %}" class="breadcrumb-link fw-medium">Личный кабинет</a>
             </li>
-            <li class="breadcrumb-item active fw-bold" aria-current="page">Управление помещениями</li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'manage_spaces' %}" class="breadcrumb-link fw-medium">Управление помещениями</a>
+            </li>
+            <li class="breadcrumb-item active fw-bold" aria-current="page">Редактировать</li>
         </ol>
     </nav>
 
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <div>
-                    <h1 class="display-6 fw-bold mb-2 text-themed">Управление помещениями</h1>
-                    <p class="text-muted">Добавление, редактирование и управление помещениями</p>
-                </div>
-                <a href="{% url 'add_space' %}" class="btn btn-gold">
-                    <i class="fas fa-plus me-2"></i>Добавить помещение
-                </a>
-            </div>
+            <h1 class="display-6 fw-bold mb-2 text-themed">
+                <i class="fas fa-edit text-gold me-3"></i>Редактировать помещение
+            </h1>
+            <p class="text-muted">Измените информацию о помещении "{{ space.title }}"</p>
         </div>
     </div>
 
-    <!-- Улучшаем статистику с единым дизайном -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3 col-6">
-            <div class="stat-card stat-card-gold">
-                <div class="stat-number">{{ stats.total }}</div>
-                <div class="stat-label">Всего</div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stat-card stat-card-green">
-                <div class="stat-number">{{ stats.active }}</div>
-                <div class="stat-label">Активных</div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stat-card stat-card-blue">
-                <div class="stat-number">{{ stats.featured }}</div>
-                <div class="stat-label">Рекомендуемых</div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stat-card stat-card-red">
-                <div class="stat-number">{{ stats.inactive }}</div>
-                <div class="stat-label">Неактивных</div>
-            </div>
-        </div>
-    </div>
+    <form method="post" enctype="multipart/form-data" id="spaceEditForm">
+        {% csrf_token %}
 
-    <!-- Улучшаем карточки помещений -->
-    <div class="row g-4">
-        {% for space in spaces %}
-        <div class="col-md-6 col-lg-4">
-            <div class="space-manage-card">
-                <div class="space-manage-image">
-                    {% with main_image=space.get_main_image %}
-                    {% if main_image %}
-                    <img src="{{ main_image.image.url }}" alt="{{ space.title }}">
-                    {% else %}
-                    <div class="space-manage-placeholder">
-                        <i class="fas fa-image"></i>
+        <div class="row g-4">
+            <!-- Основная информация -->
+            <div class="col-lg-8">
+                <div class="space-form-card">
+                    <!-- Основные данные -->
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-info-circle text-gold me-2"></i>Основная информация
+                        </h5>
+
+                        <div class="mb-3">
+                            <label for="id_title" class="form-label">Название помещения *</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                            <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="id_category" class="form-label">Категория *</label>
+                                {{ form.category }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_city" class="form-label">Город *</label>
+                                {{ form.city }}
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="id_address" class="form-label">Адрес *</label>
+                            {{ form.address }}
+                        </div>
+
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-6">
+                                <label for="id_area_sqm" class="form-label">Площадь (м²) *</label>
+                                {{ form.area_sqm }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_max_capacity" class="form-label">Макс. вместимость (чел.) *</label>
+                                {{ form.max_capacity }}
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="id_description" class="form-label">Описание *</label>
+                            {{ form.description }}
+                        </div>
                     </div>
-                    {% endif %}
-                    {% endwith %}
-                    <div class="space-manage-badges">
-                        {% if space.is_active %}
-                        <span class="space-badge space-badge-active">Активно</span>
+
+                    <!-- Текущие фотографии -->
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-images text-gold me-2"></i>Текущие фотографии
+                        </h5>
+
+                        {% if space.images.all %}
+                        <div class="current-images-grid mb-3">
+                            {% for image in space.images.all %}
+                            <div class="current-image-item {% if image.is_primary %}primary{% endif %}">
+                                <img src="{{ image.image.url }}" alt="{{ space.title }}">
+                                {% if image.is_primary %}
+                                <span class="image-preview-badge">Главное</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p class="text-muted small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            При загрузке новых фотографий текущие будут заменены
+                        </p>
                         {% else %}
-                        <span class="space-badge space-badge-inactive">Неактивно</span>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            У этого помещения нет фотографий. Загрузите хотя бы одну фотографию.
+                        </div>
                         {% endif %}
-                        {% if space.is_featured %}
-                        <span class="space-badge space-badge-featured">Рекомендуемое</span>
-                        {% endif %}
+                    </div>
+
+                    <!-- Новые фотографии -->
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-cloud-upload-alt text-gold me-2"></i>Загрузить новые фотографии
+                            {% if not space.images.all %}<span class="text-danger">*</span>{% endif %}
+                        </h5>
+
+                        <div class="image-upload-zone" id="imageDropZone">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <p class="upload-text">Перетащите фотографии сюда или нажмите для выбора</p>
+                            <p class="upload-hint">Поддерживаются: JPG, PNG, WebP. Макс. размер: 5MB</p>
+                            <input type="file" id="imageInput" name="images" multiple accept="image/*" class="d-none">
+                        </div>
+
+                        <div class="image-preview-grid" id="imagePreviewGrid"></div>
+                    </div>
+
+                    <!-- Цены -->
+                    <div class="space-form-section">
+                        <h5 class="space-form-section-title">
+                            <i class="fas fa-ruble-sign text-gold me-2"></i>Цены
+                        </h5>
+
+                        <div class="price-inputs-grid">
+                            {% for period in pricing_periods %}
+                            <div class="price-input-group">
+                                <label class="price-input-label">
+                                    {{ period.description }}
+                                </label>
+                                <input type="number"
+                                       name="price_{{ period.id }}"
+                                       class="form-control"
+                                       placeholder="Цена в ₽"
+                                       min="0"
+                                       step="100"
+                                       value="{% if period.id in current_prices %}{{ current_prices|get_item:period.id|floatformat:0 }}{% endif %}">
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
-                <div class="space-manage-content">
-                    <h5 class="space-manage-title">{{ space.title }}</h5>
-                    <div class="space-manage-meta">
-                        <span><i class="fas fa-map-marker-alt"></i>{{ space.city.name }}</span>
-                        <span><i class="fas fa-ruler-combined"></i>{{ space.area_sqm|format_area }}</span>
+            </div>
+
+            <!-- Сайдбар -->
+            <div class="col-lg-4">
+                <div class="space-form-card sticky-top" style="top: 100px;">
+                    <h5 class="space-form-section-title">
+                        <i class="fas fa-cog text-gold me-2"></i>Настройки публикации
+                    </h5>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="id_is_active">Активно (видно в каталоге)</label>
+                        </div>
                     </div>
-                    <div class="space-manage-actions">
-                        <a href="{% url 'space_detail' space.pk %}" class="action-btn action-btn-view" title="Просмотр">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="{% url 'edit_space' space.pk %}" class="action-btn action-btn-edit" title="Редактировать">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <button type="button" class="action-btn action-btn-delete"
-                                onclick="confirmDelete({{ space.pk }}, '{{ space.title }}')" title="Удалить">
-                            <i class="fas fa-trash"></i>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.is_featured }}
+                            <label class="form-check-label" for="id_is_featured">Рекомендуемое</label>
+                        </div>
+                    </div>
+
+                    <!-- Информация о помещении -->
+                    <div class="space-info-card mb-4">
+                        <h6 class="text-muted mb-3">Информация</h6>
+                        <div class="space-info-row">
+                            <span class="space-info-label">ID помещения:</span>
+                            <span class="space-info-value">#{{ space.pk }}</span>
+                        </div>
+                        <div class="space-info-row">
+                            <span class="space-info-label">Создано:</span>
+                            <span class="space-info-value">{{ space.created_at|date:"d.m.Y" }}</span>
+                        </div>
+                        <div class="space-info-row">
+                            <span class="space-info-label">Обновлено:</span>
+                            <span class="space-info-value">{{ space.updated_at|date:"d.m.Y" }}</span>
+                        </div>
+                        <div class="space-info-row">
+                            <span class="space-info-label">Просмотров:</span>
+                            <span class="space-info-value">{{ space.views_count }}</span>
+                        </div>
+                    </div>
+
+                    <hr style="border-color: var(--border-color);">
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-gold">
+                            <i class="fas fa-save me-2"></i>Сохранить изменения
                         </button>
+                        <a href="{% url 'space_detail' space.pk %}" class="btn btn-outline-themed">
+                            <i class="fas fa-eye me-2"></i>Просмотр помещения
+                        </a>
+                        <a href="{% url 'manage_spaces' %}" class="btn btn-outline-themed">
+                            <i class="fas fa-arrow-left me-2"></i>К списку помещений
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
-        {% empty %}
-        <div class="col-12">
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-building"></i>
-                </div>
-                <h5 class="empty-state-title">Помещения не найдены</h5>
-                <p class="empty-state-text">Добавьте первое помещение для начала работы</p>
-                <a href="{% url 'add_space' %}" class="btn btn-gold">
-                    <i class="fas fa-plus me-2"></i>Добавить помещение
-                </a>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- Пагинация -->
-    {% if spaces.has_other_pages %}
-    <div class="d-flex justify-content-center mt-4">
-        <nav aria-label="Навигация по страницам">
-            <ul class="pagination pagination-themed mb-0">
-                {% if spaces.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ spaces.previous_page_number }}">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </li>
-                {% endif %}
-                {% for num in spaces.paginator.page_range %}
-                    {% if spaces.number == num %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > spaces.number|add:'-3' and num < spaces.number|add:'3' %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                    </li>
-                    {% endif %}
-                {% endfor %}
-                {% if spaces.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ spaces.next_page_number }}">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-    {% endif %}
+    </form>
 </div>
 
-<!-- Модальное окно удаления -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content modal-themed">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-exclamation-triangle text-danger me-2"></i>Удаление помещения</h5>
-                <button type="button" class="btn-close btn-close-themed" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-themed">Вы уверены, что хотите удалить помещение "<strong id="deleteSpaceName"></strong>"?</p>
-                <p class="text-muted small mb-0">Это действие нельзя отменить. Все связанные бронирования и отзывы также будут удалены.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-themed" data-bs-dismiss="modal">Отмена</button>
-                <form id="deleteForm" method="post" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-2"></i>Удалить
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+.current-images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.current-image-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 1;
+}
+
+.current-image-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.current-image-item.primary {
+    border: 2px solid var(--gold);
+}
+
+.space-info-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.space-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.space-info-row:last-child {
+    border-bottom: none;
+}
+
+.space-info-label {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.space-info-value {
+    font-weight: 500;
+    color: var(--text-color);
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function confirmDelete(spaceId, spaceName) {
-    document.getElementById('deleteSpaceName').textContent = spaceName;
-    document.getElementById('deleteForm').action = '/manage/spaces/' + spaceId + '/delete/';
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('imageDropZone');
+    const fileInput = document.getElementById('imageInput');
+    const previewGrid = document.getElementById('imagePreviewGrid');
+    let uploadedFiles = [];
+
+    // Клик на зону загрузки
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // Drag & Drop
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    // Выбор файлов
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+
+    function handleFiles(files) {
+        Array.from(files).forEach((file, index) => {
+            if (!file.type.startsWith('image/')) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert(`Файл ${file.name} слишком большой (макс. 5MB)`);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const isPrimary = uploadedFiles.length === 0;
+                uploadedFiles.push({ file, isPrimary });
+                renderPreviews();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderPreviews() {
+        previewGrid.innerHTML = '';
+        uploadedFiles.forEach((item, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item' + (item.isPrimary ? ' primary' : '');
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    ${item.isPrimary ? '<span class="image-preview-badge">Главное</span>' : ''}
+                    <div class="image-preview-actions">
+                        ${!item.isPrimary ? `<button type="button" class="image-action-btn set-primary" onclick="setPrimary(${index})" title="Сделать главным">
+                            <i class="fas fa-star"></i>
+                        </button>` : ''}
+                        <button type="button" class="image-action-btn remove" onclick="removeImage(${index})" title="Удалить">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                previewGrid.appendChild(div);
+            };
+            reader.readAsDataURL(item.file);
+        });
+        updateFileInput();
+    }
+
+    window.setPrimary = function(index) {
+        uploadedFiles.forEach((item, i) => {
+            item.isPrimary = (i === index);
+        });
+        renderPreviews();
+    };
+
+    window.removeImage = function(index) {
+        const wasPrimary = uploadedFiles[index].isPrimary;
+        uploadedFiles.splice(index, 1);
+        if (wasPrimary && uploadedFiles.length > 0) {
+            uploadedFiles[0].isPrimary = true;
+        }
+        renderPreviews();
+    };
+
+    function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        uploadedFiles.forEach(item => {
+            dataTransfer.items.add(item.file);
+        });
+        fileInput.files = dataTransfer.files;
+    }
+});
 </script>
 {% endblock %}

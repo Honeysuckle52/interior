@@ -12,7 +12,7 @@
 - space_detail: Детальная страница помещения с отзывами, изображениями и ценами
 - manage_spaces: Панель управления помещениями для администраторов
 - add_space: Добавление нового помещения
-- edit_space: Редактирование сущест��ующего помещения
+- edit_space: Редактирование существующего помещения
 - delete_space: Удаление помещения
 
 Вспомогательные функции:
@@ -695,13 +695,20 @@ def add_space(request: HttpRequest) -> HttpResponse:
 
     if request.method == 'POST':
         form = SpaceForm(request.POST)
+        images = request.FILES.getlist('images')
+        if not images:
+            messages.error(request, 'Необходимо загрузить хотя бы одну фотографию помещения')
+            return render(request, 'spaces/add.html', {
+                'form': form,
+                'pricing_periods': pricing_periods,
+            })
+
         if form.is_valid():
             space = form.save(commit=False)
             space.owner = request.user
             space.save()
 
             # Сохраняем изображения
-            images = request.FILES.getlist('images')
             for i, image_file in enumerate(images):
                 SpaceImage.objects.create(
                     space=space,
@@ -771,11 +778,22 @@ def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
 
     if request.method == 'POST':
         form = SpaceForm(request.POST, instance=space)
+        new_images = request.FILES.getlist('images')
+        has_existing_images = space.images.exists()
+
+        if not new_images and not has_existing_images:
+            messages.error(request, 'Необходимо загрузить хотя бы одну фотографию помещения')
+            return render(request, 'spaces/edit.html', {
+                'form': form,
+                'space': space,
+                'pricing_periods': pricing_periods,
+                'current_prices': current_prices,
+            })
+
         if form.is_valid():
             space = form.save()
 
-            # Обновляем изображения
-            new_images = request.FILES.getlist('images')
+            # Обновляем изображения только если загружены новые
             if new_images:
                 # Удаляем старые изображения
                 space.images.all().delete()

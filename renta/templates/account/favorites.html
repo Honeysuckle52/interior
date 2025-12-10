@@ -22,38 +22,41 @@
             <p class="text-muted">Ваши любимые помещения</p>
         </div>
     </div>
-    {% if favorite_spaces %}
+    <!-- Исправлено: было favorite_spaces, стало favorites (из view) -->
+    {% if favorites %}
         <div class="row g-4">
-            {% for space in favorite_spaces %}
+            <!-- Исправлено: favorite.space вместо space напрямую -->
+            {% for favorite in favorites %}
                 <div class="col-lg-4 col-md-6">
                     <div class="space-card">
                         <div class="space-card-image-wrapper">
-                            {% if space.images.first %}
-                                <img src="{{ space.images.first.image.url }}" alt="{{ space.title }}" class="space-image">
+                            {% if favorite.space.images.first %}
+                                <img src="{{ favorite.space.images.first.image.url }}" alt="{{ favorite.space.title }}" class="space-image">
                             {% else %}
                                 <div class="bg-secondary d-flex align-items-center justify-content-center" style="height: 200px;">
                                     <i class="fas fa-image fa-3x text-muted"></i>
                                 </div>
                             {% endif %}
-                            <a href="{% url 'space_detail' pk=space.pk %}" class="space-favorite-btn active" data-space-id="{{ space.id }}" title="Удалить из избранного">
+                            <!-- Изменено на button вместо a для корректной работы JS -->
+                            <button type="button" class="space-favorite-btn active" data-space-id="{{ favorite.space.id }}" title="Удалить из избранного">
                                 <i class="fas fa-heart"></i>
-                            </a>
+                            </button>
                         </div>
                         <div class="space-card-body">
                             <h5 class="space-card-title">
-                                <a href="{% url 'space_detail' pk=space.pk %}" class="text-decoration-none text-themed">{{ space.title }}</a>
+                                <a href="{% url 'space_detail' pk=favorite.space.pk %}" class="text-decoration-none text-themed">{{ favorite.space.title }}</a>
                             </h5>
                             <div class="space-card-meta">
-                                <span><i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ space.city }}</span>
-                                <span><i class="fas fa-ruler-combined me-1 gold-text"></i>{{ space.area }} м²</span>
+                                <span><i class="fas fa-map-marker-alt me-1 gold-text"></i>{{ favorite.space.city }}</span>
+                                <span><i class="fas fa-ruler-combined me-1 gold-text"></i>{{ favorite.space.area }} м²</span>
                             </div>
-                            <p class="space-card-desc">{{ space.description|truncatewords:20 }}</p>
+                            <p class="space-card-desc">{{ favorite.space.description|truncatewords:20 }}</p>
                             <div class="space-card-footer">
                                 <div class="space-card-price">
-                                    <span class="price-amount">{{ space.get_min_price|floatformat:0 }}</span>
+                                    <span class="price-amount">{{ favorite.space.get_min_price|floatformat:0 }}</span>
                                     <span class="price-type">₽/сутки</span>
                                 </div>
-                                <a href="{% url 'space_detail' pk=space.pk %}" class="btn btn-outline-themed btn-sm">
+                                <a href="{% url 'space_detail' pk=favorite.space.pk %}" class="btn btn-outline-themed btn-sm">
                                     <i class="fas fa-eye me-1"></i>Смотреть
                                 </a>
                             </div>
@@ -62,10 +65,41 @@
                 </div>
             {% endfor %}
         </div>
+
+        <!-- Пагинация -->
+        {% if favorites.has_other_pages %}
+        <nav aria-label="Пагинация избранного" class="mt-5">
+            <ul class="pagination justify-content-center">
+                {% if favorites.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ favorites.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in favorites.paginator.page_range %}
+                    {% if favorites.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > favorites.number|add:'-3' and num < favorites.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if favorites.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ favorites.next_page_number }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     {% else %}
         <div class="text-center py-5">
             <i class="fas fa-heart fa-4x text-muted mb-3"></i>
-            <h4>Ваше избранное пусто</h4>
+            <h4 class="text-themed">Ваше избранное пусто</h4>
             <p class="text-muted">Найдите помещение и добавьте его в избранное</p>
             <a href="{% url 'spaces_list' %}" class="btn btn-gold">
                 <i class="fas fa-search me-2"></i>Найти помещение

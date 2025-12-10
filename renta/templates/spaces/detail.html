@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load rental_tags %}
 
 {% block title %}{{ space.title }} | INTERIOR{% endblock %}
 
@@ -163,7 +164,8 @@
                         <div class="rating-bar-item">
                             <span class="rating-bar-label">{{ item.star }} <i class="fas fa-star"></i></span>
                             <div class="rating-bar-track">
-                                <div class="rating-bar-fill" style="width: {{ item.percent }}%;"></div>
+                                <!-- Используем фильтр dot_decimal для корректного CSS width -->
+                                <div class="rating-bar-fill" style="width: {{ item.percent|dot_decimal }}%;"></div>
                             </div>
                             <span class="rating-bar-value">{{ item.count }}</span>
                         </div>

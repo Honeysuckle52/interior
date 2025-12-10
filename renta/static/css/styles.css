@@ -423,15 +423,15 @@ a:hover {
 
 /* Стандартные кнопки */
 .btn-gold {
-  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
-  border: none;
-  color: #000;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark)) !important;
+  border: none !important;
+  color: #000 !important;
   font-weight: 600;
   box-shadow: 0 4px 15px rgba(var(--color-gold-rgb), 0.3);
 }
 .btn-gold:hover {
-  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
-  color: #000;
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold)) !important;
+  color: #000 !important;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(var(--color-gold-rgb), 0.4);
 }
@@ -3102,4 +3102,66 @@ footer {
   .admin-quick-action span {
     font-size: 0.75rem;
   }
+}
+
+/* =============================================================================
+   Исправление кнопок btn-outline-primary для темной темы
+   ============================================================================= */
+/* Кнопки "Подробнее" в карточках помещений */
+.space-card .btn-outline-primary,
+.space-card .btn-outline-themed {
+  background: transparent;
+  border: 1px solid var(--color-gold);
+  color: var(--color-gold);
+  font-weight: 500;
+}
+
+.space-card .btn-outline-primary:hover,
+.space-card .btn-outline-themed:hover {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: #000;
+}
+
+/* Темная тема - кнопки в карточках */
+[data-theme="dark"] .space-card .btn-outline-primary,
+[data-theme="dark"] .space-card .btn-outline-themed,
+[data-theme="dark"] .space-card .btn {
+  background: rgba(var(--color-gold-rgb), 0.1);
+  border: 1px solid var(--color-gold);
+  color: var(--color-gold);
+}
+
+[data-theme="dark"] .space-card .btn-outline-primary:hover,
+[data-theme="dark"] .space-card .btn-outline-themed:hover,
+[data-theme="dark"] .space-card .btn:hover {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: #000;
+}
+
+/* Кнопки btn-gold должны быть всегда видимы */
+.btn-gold {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark)) !important;
+  border: none !important;
+  color: #000 !important;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold)) !important;
+  color: #000 !important;
+  transform: translateY(-2px);
+}
+
+/* Универсальные кнопки в темной теме */
+[data-theme="dark"] .btn-outline-primary {
+  background: rgba(var(--color-gold-rgb), 0.1);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+[data-theme="dark"] .btn-outline-primary:hover {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: #000;
 }
