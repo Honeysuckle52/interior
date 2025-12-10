@@ -31,7 +31,7 @@ from .views.auth import (
     verify_email_code,
     resend_verification_code,
 )
-from .views.users import users_ajax
+from .views.users import users_ajax, edit_user
 from .views.spaces import spaces_ajax, manage_spaces, add_space, edit_space, delete_space
 from .views.categories import (
     manage_categories, add_category, edit_category, delete_category, toggle_category_status
@@ -91,6 +91,7 @@ urlpatterns = [
     path('manage/users/', manage_users, name='manage_users'),
     path('api/users/', users_ajax, name='users_ajax'),
     path('manage/users/<int:pk>/', user_detail, name='user_detail_mod'),
+    path('manage/users/<int:pk>/edit/', edit_user, name='edit_user'),
     path('manage/users/<int:pk>/block/', block_user, name='block_user'),
     path('manage/users/<int:pk>/unblock/', unblock_user, name='unblock_user'),
     path('manage/users/<int:pk>/verify-email/', verify_user_email, name='verify_user_email_mod'),

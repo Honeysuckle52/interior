@@ -177,14 +177,25 @@ class SpaceForm(forms.ModelForm):
     - description: Подробное описание
     - is_active: Видимость в каталоге
     - is_featured: Пометка "Рекомендуемое"
+    - latitude: Широта помещения
+    - longitude: Долгота помещения
     """
+
+    latitude = forms.DecimalField(
+        required=False,
+        widget=forms.HiddenInput(attrs={'id': 'id_latitude'})
+    )
+    longitude = forms.DecimalField(
+        required=False,
+        widget=forms.HiddenInput(attrs={'id': 'id_longitude'})
+    )
 
     class Meta:
         model = Space
         fields = [
             'title', 'category', 'city', 'address',
             'area_sqm', 'max_capacity', 'description',
-            'is_active', 'is_featured'
+            'is_active', 'is_featured', 'latitude', 'longitude'  # добавлены координаты
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -195,7 +206,8 @@ class SpaceForm(forms.ModelForm):
             'city': forms.Select(attrs={'class': 'form-select'}),
             'address': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Полный адрес'
+                'placeholder': 'Полный адрес',
+                'id': 'id_address'  # явный id для JavaScript
             }),
             'area_sqm': forms.NumberInput(attrs={
                 'class': 'form-control',

@@ -28,7 +28,7 @@ from .auth import (
     PasswordResetConfirmForm,    # Установка нового пароля
     EmailVerificationCodeForm,   # Ввод кода подтверждения
 )
-from .profile import UserProfileForm, UserProfileExtendedForm, ChangePasswordForm
+from .profile import UserProfileForm, ChangePasswordForm
 from .spaces import SpaceFilterForm, SpaceForm, SpaceImageForm
 from .bookings import BookingForm, BookingFilterForm
 from .reviews import ReviewForm
@@ -49,7 +49,6 @@ __all__ = [
     # ПРОФИЛЬ
     # -------------------------------------------------------------------------
     'UserProfileForm',            # Основные данные профиля
-    'UserProfileExtendedForm',    # Дополнительные данные (bio, соцсети)
     'ChangePasswordForm',         # Смена пароля
 
     # -------------------------------------------------------------------------

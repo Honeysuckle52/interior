@@ -34,6 +34,10 @@
     <form method="post" enctype="multipart/form-data" id="spaceEditForm">
         {% csrf_token %}
 
+        <!-- Скрытые поля для координат -->
+        {{ form.latitude }}
+        {{ form.longitude }}
+
         <div class="row g-4">
             <!-- Основная информация -->
             <div class="col-lg-8">
@@ -66,6 +70,14 @@
                         <div class="mt-3">
                             <label for="id_address" class="form-label">Адрес *</label>
                             {{ form.address }}
+                            <!-- Статус геокодирования -->
+                            <div id="geocodeStatus" class="small mt-1"></div>
+                        </div>
+
+                        <!-- Превью карты для проверки адреса -->
+                        <div class="mt-3">
+                            <label class="form-label">Проверка адреса на карте</label>
+                            <div id="mapPreview" style="height: 250px; border-radius: 8px; background: var(--card-bg); border: 1px solid var(--border-color);"></div>
                         </div>
 
                         <div class="row g-3 mt-3">
@@ -273,17 +285,121 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Яндекс Карты API для геокодирования -->
+<script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // === Геокодирование через Яндекс Карты ===
+    let map = null;
+    let placemark = null;
+    let geocodeTimeout = null;
+
+    const addressInput = document.getElementById('id_address');
+    const citySelect = document.getElementById('id_city');
+    const latInput = document.getElementById('id_latitude');
+    const lngInput = document.getElementById('id_longitude');
+    const statusDiv = document.getElementById('geocodeStatus');
+
+    // Текущие координаты помещения
+    const currentLat = {{ space.latitude|default:"null" }};
+    const currentLng = {{ space.longitude|default:"null" }};
+
+    // Инициализация карты
+    ymaps.ready(function() {
+        const initialCenter = (currentLat && currentLng) ? [currentLat, currentLng] : [52.2869, 104.2809];
+        const initialZoom = (currentLat && currentLng) ? 16 : 12;
+
+        map = new ymaps.Map('mapPreview', {
+            center: initialCenter,
+            zoom: initialZoom,
+            controls: ['zoomControl']
+        });
+
+        // Если есть текущие координаты, показываем метку
+        if (currentLat && currentLng) {
+            placemark = new ymaps.Placemark([currentLat, currentLng], {
+                balloonContent: '{{ space.address }}'
+            }, {
+                preset: 'islands#redDotIcon'
+            });
+            map.geoObjects.add(placemark);
+            statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Координаты сохранены</span>';
+        }
+
+        // Геокодирование при изменении адреса или города
+        if (addressInput) {
+            addressInput.addEventListener('input', debounceGeocode);
+        }
+        if (citySelect) {
+            citySelect.addEventListener('change', debounceGeocode);
+        }
+    });
+
+    function debounceGeocode() {
+        clearTimeout(geocodeTimeout);
+        geocodeTimeout = setTimeout(geocodeAddress, 800);
+    }
+
+    function geocodeAddress() {
+        const address = addressInput ? addressInput.value.trim() : '';
+        const cityOption = citySelect ? citySelect.options[citySelect.selectedIndex] : null;
+        const cityName = cityOption && cityOption.value ? cityOption.text : '';
+
+        if (!address) {
+            statusDiv.innerHTML = '';
+            return;
+        }
+
+        const fullAddress = cityName ? `${cityName}, ${address}` : address;
+        statusDiv.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Поиск адреса...</span>';
+
+        ymaps.geocode(fullAddress, { results: 1 }).then(function(res) {
+            const firstGeoObject = res.geoObjects.get(0);
+
+            if (firstGeoObject) {
+                const coords = firstGeoObject.geometry.getCoordinates();
+                const foundAddress = firstGeoObject.getAddressLine();
+
+                // Сохраняем координаты
+                latInput.value = coords[0];
+                lngInput.value = coords[1];
+
+                // Обновляем карту
+                map.setCenter(coords, 16);
+
+                // Удаляем старую метку
+                if (placemark) {
+                    map.geoObjects.remove(placemark);
+                }
+
+                // Добавляем новую метку
+                placemark = new ymaps.Placemark(coords, {
+                    balloonContent: foundAddress
+                }, {
+                    preset: 'islands#redDotIcon'
+                });
+                map.geoObjects.add(placemark);
+
+                statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Адрес найден: ' + foundAddress + '</span>';
+            } else {
+                statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Адрес не найден. Попробуйте уточнить.</span>';
+                latInput.value = '';
+                lngInput.value = '';
+            }
+        }).catch(function(err) {
+            statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Ошибка геокодирования</span>';
+            console.error('Geocode error:', err);
+        });
+    }
+
+    // === Загрузка изображений ===
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageInput');
     const previewGrid = document.getElementById('imagePreviewGrid');
     let uploadedFiles = [];
 
-    // Клик на зону загрузки
     dropZone.addEventListener('click', () => fileInput.click());
 
-    // Drag & Drop
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('dragover');
@@ -299,7 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
         handleFiles(e.dataTransfer.files);
     });
 
-    // Выбор файлов
     fileInput.addEventListener('change', (e) => {
         handleFiles(e.target.files);
     });

@@ -49,7 +49,7 @@ from ..forms import (
     PasswordResetConfirmForm,
     EmailVerificationCodeForm
 )
-from ..models import UserProfile, CustomUser, EmailVerificationToken, PasswordResetToken
+from ..models import CustomUser, EmailVerificationToken, PasswordResetToken
 from ..services.email_service import send_verification_email, send_password_reset_email, send_verification_code
 
 
@@ -297,10 +297,6 @@ def register_view(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             try:
                 user = form.save()
-
-                # Создаём профиль если не создан
-                if not hasattr(user, 'profile'):
-                    UserProfile.objects.create(user=user)
 
                 # Генерируем код подтверждения
                 code = ''.join(random.choices(string.digits, k=6))

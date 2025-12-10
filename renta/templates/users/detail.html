@@ -4,84 +4,121 @@
 {% block title %}{{ profile_user.get_full_name_or_username }} | INTERIOR{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top: 100px;">
+<div class="container" style="padding-top: 100px; padding-bottom: 60px;">
     <!-- Хлебные крошки -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb breadcrumb-styled">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'manage_users' %}">Управление пользователями</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manage_users' %}">Пользователи</a></li>
             <li class="breadcrumb-item active">{{ profile_user.username }}</li>
         </ol>
     </nav>
 
-    <div class="row">
-        <!-- Основная информация -->
-        <div class="col-lg-4 mb-4">
-            <div class="dashboard-card text-center">
-                <!-- Аватар -->
-                <div style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; border: 4px solid var(--gold); margin: 0 auto 1rem;">
-                    {% if profile_user.avatar %}
-                    <img src="{{ profile_user.avatar.url }}" alt="{{ profile_user.username }}" style="width: 100%; height: 100%; object-fit: cover;">
-                    {% else %}
-                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary);">
-                        <i class="fas fa-user fa-3x text-muted"></i>
+    <div class="row g-4">
+        <!-- Левая колонка - профиль пользователя -->
+        <div class="col-lg-4">
+            <!-- Карточка профиля -->
+            <div class="dashboard-card user-profile-card">
+                <div class="user-profile-header">
+                    <div class="user-avatar-wrapper">
+                        {% if profile_user.avatar %}
+                        <img src="{{ profile_user.avatar.url }}" alt="{{ profile_user.username }}" class="user-avatar-img">
+                        {% else %}
+                        <div class="user-avatar-placeholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        {% endif %}
+                        <span class="user-status-indicator {% if profile_user.is_blocked %}blocked{% elif not profile_user.is_active %}inactive{% else %}active{% endif %}"></span>
                     </div>
-                    {% endif %}
+
+                    <h4 class="user-name">{{ profile_user.get_full_name_or_username }}</h4>
+                    <p class="user-username">@{{ profile_user.username }}</p>
+
+                    <!-- Бейджи -->
+                    <div class="user-badges">
+                        <span class="user-badge badge-{{ profile_user.user_type }}">
+                            <i class="fas fa-{% if profile_user.user_type == 'admin' %}crown{% elif profile_user.user_type == 'moderator' %}shield-alt{% else %}user{% endif %} me-1"></i>
+                            {{ profile_user.get_user_type_display }}
+                        </span>
+                        {% if profile_user.is_blocked %}
+                        <span class="user-badge badge-blocked">
+                            <i class="fas fa-ban me-1"></i>Заблокирован
+                        </span>
+                        {% endif %}
+                        {% if profile_user.email_verified %}
+                        <span class="user-badge badge-verified">
+                            <i class="fas fa-check-circle me-1"></i>Подтверждён
+                        </span>
+                        {% else %}
+                        <span class="user-badge badge-unverified">
+                            <i class="fas fa-exclamation-circle me-1"></i>Не подтверждён
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <h4 class="mb-1">{{ profile_user.get_full_name_or_username }}</h4>
-                <p class="text-muted mb-2">@{{ profile_user.username }}</p>
-                
-                <!-- Бейджи статуса -->
-                <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-                    <span class="badge bg-{% if profile_user.user_type == 'moderator' %}info{% elif profile_user.user_type == 'admin' %}danger{% else %}secondary{% endif %}">
-                        {{ profile_user.get_user_type_display }}
-                    </span>
-                    {% if profile_user.is_blocked %}
-                    <span class="badge bg-danger">Заблокирован</span>
-                    {% elif not profile_user.is_active %}
-                    <span class="badge bg-warning text-dark">Неактивен</span>
-                    {% else %}
-                    <span class="badge bg-success">Активен</span>
-                    {% endif %}
-                    {% if profile_user.email_verified %}
-                    <span class="badge bg-success">Email подтверждён</span>
-                    {% else %}
-                    <span class="badge bg-warning text-dark">Email не подтверждён</span>
-                    {% endif %}
+                <div class="user-profile-body">
+                    <!-- Контакты -->
+                    <div class="user-info-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-address-card me-2"></i>Контактная информация
+                        </h6>
+                        <div class="user-info-item">
+                            <i class="fas fa-envelope"></i>
+                            <span>{{ profile_user.email }}</span>
+                        </div>
+                        {% if profile_user.phone %}
+                        <div class="user-info-item">
+                            <i class="fas fa-phone"></i>
+                            <span>{{ profile_user.phone }}</span>
+                        </div>
+                        {% endif %}
+                        {% if profile_user.company %}
+                        <div class="user-info-item">
+                            <i class="fas fa-building"></i>
+                            <span>{{ profile_user.company }}</span>
+                        </div>
+                        {% endif %}
+                        {% if profile_user.bio %}
+                        <div class="user-info-item bio">
+                            <i class="fas fa-quote-left"></i>
+                            <span>{{ profile_user.bio }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Дата регистрации -->
+                    <div class="user-info-section">
+                        <h6 class="section-title">
+                            <i class="fas fa-clock me-2"></i>Активность
+                        </h6>
+                        <div class="user-info-item">
+                            <i class="fas fa-calendar-plus"></i>
+                            <span>Регистрация: {{ profile_user.created_at|date:"d.m.Y" }}</span>
+                        </div>
+                        {% if profile_user.last_login %}
+                        <div class="user-info-item">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Последний вход: {{ profile_user.last_login|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-
-                <hr>
-
-                <!-- Контактная информация -->
-                <div class="text-start">
-                    <p class="mb-2">
-                        <i class="fas fa-envelope me-2 gold-text"></i>{{ profile_user.email }}
-                    </p>
-                    {% if profile_user.phone %}
-                    <p class="mb-2">
-                        <i class="fas fa-phone me-2 gold-text"></i>{{ profile_user.phone }}
-                    </p>
-                    {% endif %}
-                    {% if profile_user.company %}
-                    <p class="mb-2">
-                        <i class="fas fa-building me-2 gold-text"></i>{{ profile_user.company }}
-                    </p>
-                    {% endif %}
-                    <p class="mb-0 text-muted small">
-                        <i class="fas fa-calendar me-2"></i>Регистрация: {{ profile_user.created_at|date:"d.m.Y H:i" }}
-                    </p>
-                </div>
-
-                <hr>
 
                 <!-- Действия -->
-                <div class="d-grid gap-2">
+                <div class="user-profile-actions">
+                    <!-- Добавлена кнопка редактирования -->
+                    <a href="{% url 'edit_user' profile_user.pk %}" class="btn-user-action btn-edit">
+                        <i class="fas fa-edit"></i>
+                        <span>Редактировать</span>
+                    </a>
+
                     {% if not profile_user.email_verified %}
                     <form method="post" action="{% url 'verify_user_email_mod' profile_user.pk %}">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="fas fa-check me-2"></i>Подтвердить Email
+                        <button type="submit" class="btn-user-action btn-verify">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Подтвердить Email</span>
                         </button>
                     </form>
                     {% endif %}
@@ -90,112 +127,138 @@
                         {% if profile_user.is_blocked %}
                         <form method="post" action="{% url 'unblock_user' profile_user.pk %}">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-warning w-100">
-                                <i class="fas fa-unlock me-2"></i>Разблокировать
+                            <button type="submit" class="btn-user-action btn-unblock">
+                                <i class="fas fa-unlock"></i>
+                                <span>Разблокировать</span>
                             </button>
                         </form>
                         {% else %}
-                        <form method="post" action="{% url 'block_user' profile_user.pk %}" 
-                              onsubmit="return confirm('Вы уверены, что хотите заблокировать этого пользователя?');">
+                        <form method="post" action="{% url 'block_user' profile_user.pk %}"
+                              onsubmit="return confirm('Заблокировать пользователя {{ profile_user.username }}?');">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-danger w-100">
-                                <i class="fas fa-ban me-2"></i>Заблокировать
+                            <button type="submit" class="btn-user-action btn-block">
+                                <i class="fas fa-ban"></i>
+                                <span>Заблокировать</span>
                             </button>
                         </form>
                         {% endif %}
                     {% endif %}
+
+                    <a href="{% url 'manage_users' %}" class="btn-user-action btn-back">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>К списку</span>
+                    </a>
                 </div>
             </div>
         </div>
 
-        <!-- Статистика и активность -->
+        <!-- Правая колонка - статистика и активность -->
         <div class="col-lg-8">
             <!-- Статистика -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3 col-6">
-                    <div class="dashboard-card text-center py-3">
-                        <div class="fs-4 fw-bold gold-text">{{ user_stats.total_bookings }}</div>
-                        <small class="text-muted">Всего броней</small>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card stat-total">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ user_stats.total_bookings }}</span>
+                            <span class="stat-label">Всего броней</span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-6">
-                    <div class="dashboard-card text-center py-3">
-                        <div class="fs-4 fw-bold text-success">{{ user_stats.confirmed_bookings }}</div>
-                        <small class="text-muted">Подтверждённых</small>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card stat-success">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ user_stats.confirmed_bookings }}</span>
+                            <span class="stat-label">Подтверждено</span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-6">
-                    <div class="dashboard-card text-center py-3">
-                        <div class="fs-4 fw-bold text-danger">{{ user_stats.cancelled_bookings }}</div>
-                        <small class="text-muted">Отменённых</small>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card stat-danger">
+                        <div class="stat-icon">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ user_stats.cancelled_bookings }}</span>
+                            <span class="stat-label">Отменено</span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-6">
-                    <div class="dashboard-card text-center py-3">
-                        <div class="fs-4 fw-bold text-info">{{ user_stats.total_spent|floatformat:0 }} ₽</div>
-                        <small class="text-muted">Потрачено</small>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card stat-money">
+                        <div class="stat-icon">
+                            <i class="fas fa-ruble-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ user_stats.total_spent|floatformat:0 }}</span>
+                            <span class="stat-label">Потрачено ₽</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Последние бронирования -->
-            <div class="dashboard-card mb-4">
-                <h5 class="fw-bold mb-3">
-                    <i class="fas fa-calendar-alt me-2 gold-text"></i>Последние бронирования
-                </h5>
+            <div class="dashboard-card activity-card mb-4">
+                <div class="activity-header">
+                    <h5>
+                        <i class="fas fa-history me-2"></i>Последние бронирования
+                    </h5>
+                    <span class="activity-count">{{ user_stats.total_bookings }} всего</span>
+                </div>
+
                 {% if recent_bookings %}
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Помещение</th>
-                                <th>Дата</th>
-                                <th>Сумма</th>
-                                <th>Статус</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for booking in recent_bookings %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'booking_detail' booking.pk %}" class="text-decoration-none">
-                                        #{{ booking.id }}
-                                    </a>
-                                </td>
-                                <td>{{ booking.space.title|truncatechars:30 }}</td>
-                                <td>{{ booking.start_datetime|date:"d.m.Y" }}</td>
-                                <td>{{ booking.total_amount|floatformat:0 }} ₽</td>
-                                <td>
-                                    <span class="badge bg-{{ booking.status.color }}">{{ booking.status.name }}</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="bookings-list">
+                    {% for booking in recent_bookings %}
+                    <div class="booking-item">
+                        <div class="booking-info">
+                            <a href="{% url 'booking_detail' booking.pk %}" class="booking-id">#{{ booking.id }}</a>
+                            <div class="booking-details">
+                                <span class="booking-space">{{ booking.space.title|truncatechars:35 }}</span>
+                                <span class="booking-date">
+                                    <i class="far fa-calendar me-1"></i>{{ booking.start_datetime|date:"d.m.Y" }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="booking-meta">
+                            <span class="booking-amount">{{ booking.total_amount|floatformat:0 }} ₽</span>
+                            <span class="booking-status status-{{ booking.status.code }}">
+                                {{ booking.status.name }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 {% else %}
-                <p class="text-muted text-center mb-0 py-3">
-                    <i class="fas fa-calendar-times fa-2x mb-2 d-block"></i>
-                    Бронирования отсутствуют
-                </p>
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>Бронирования отсутствуют</p>
+                </div>
                 {% endif %}
             </div>
 
             <!-- Последние отзывы -->
-            <div class="dashboard-card">
-                <h5 class="fw-bold mb-3">
-                    <i class="fas fa-star me-2 gold-text"></i>Последние отзывы
-                </h5>
+            <div class="dashboard-card activity-card">
+                <div class="activity-header">
+                    <h5>
+                        <i class="fas fa-star me-2"></i>Последние отзывы
+                    </h5>
+                    <span class="activity-count">{{ user_stats.reviews_count }} всего</span>
+                </div>
+
                 {% if recent_reviews %}
-                {% for review in recent_reviews %}
-                <div class="border-bottom border-secondary pb-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <a href="{% url 'space_detail' review.space.pk %}" class="text-decoration-none fw-bold">
+                <div class="reviews-list">
+                    {% for review in recent_reviews %}
+                    <div class="review-item">
+                        <div class="review-header">
+                            <a href="{% url 'space_detail' review.space.pk %}" class="review-space">
                                 {{ review.space.title }}
                             </a>
-                            <div class="text-warning">
+                            <div class="review-rating">
                                 {% for i in "12345" %}
                                     {% if forloop.counter <= review.rating %}
                                     <i class="fas fa-star"></i>
@@ -205,26 +268,476 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        <div class="text-end">
+                        <p class="review-text">{{ review.comment|truncatechars:120 }}</p>
+                        <div class="review-footer">
+                            <span class="review-date">{{ review.created_at|date:"d.m.Y" }}</span>
                             {% if review.is_approved %}
-                            <span class="badge bg-success">Одобрен</span>
+                            <span class="review-status approved">
+                                <i class="fas fa-check me-1"></i>Одобрен
+                            </span>
                             {% else %}
-                            <span class="badge bg-warning text-dark">На модерации</span>
+                            <span class="review-status pending">
+                                <i class="fas fa-clock me-1"></i>На модерации
+                            </span>
                             {% endif %}
-                            <div class="text-muted small">{{ review.created_at|date:"d.m.Y" }}</div>
                         </div>
                     </div>
-                    <p class="text-muted mb-0">{{ review.comment|truncatechars:150 }}</p>
+                    {% endfor %}
                 </div>
-                {% endfor %}
                 {% else %}
-                <p class="text-muted text-center mb-0 py-3">
-                    <i class="fas fa-star-half-alt fa-2x mb-2 d-block"></i>
-                    Отзывы отсутствуют
-                </p>
+                <div class="empty-state">
+                    <i class="fas fa-star-half-alt"></i>
+                    <p>Отзывы отсутствуют</p>
+                </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* Профиль пользователя */
+.user-profile-card {
+    overflow: hidden;
+}
+
+.user-profile-header {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-avatar-wrapper {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1rem;
+}
+
+.user-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--gold);
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3);
+}
+
+.user-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid var(--gold);
+}
+
+.user-avatar-placeholder i {
+    font-size: 3rem;
+    color: var(--text-muted);
+}
+
+.user-status-indicator {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-primary);
+}
+
+.user-status-indicator.active { background: #22c55e; }
+.user-status-indicator.blocked { background: #ef4444; }
+.user-status-indicator.inactive { background: #f59e0b; }
+
+.user-name {
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.user-username {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.user-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.user-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+}
+
+.badge-user { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+.badge-moderator { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.badge-admin { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.badge-blocked { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.badge-verified { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+.badge-unverified { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+.user-profile-body {
+    padding: 1.5rem;
+}
+
+.user-info-section {
+    margin-bottom: 1.5rem;
+}
+
+.user-info-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    color: var(--gold);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.user-info-item i {
+    color: var(--gold);
+    width: 16px;
+    text-align: center;
+    margin-top: 2px;
+}
+
+.user-info-item.bio {
+    font-style: italic;
+    opacity: 0.9;
+}
+
+.user-profile-actions {
+    padding: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.btn-user-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.btn-edit {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--gold);
+}
+.btn-edit:hover { background: rgba(212, 175, 55, 0.25); color: var(--gold); }
+
+.btn-verify {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+.btn-verify:hover { background: rgba(34, 197, 94, 0.25); color: #4ade80; }
+
+.btn-unblock {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+.btn-unblock:hover { background: rgba(245, 158, 11, 0.25); color: #fbbf24; }
+
+.btn-block {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+.btn-block:hover { background: rgba(239, 68, 68, 0.25); color: #f87171; }
+
+.btn-back {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+}
+.btn-back:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
+
+/* Статистика */
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    height: 100%;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.stat-total .stat-icon { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+.stat-success .stat-icon { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.stat-danger .stat-icon { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.stat-money .stat-icon { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Карточки активности */
+.activity-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.activity-header h5 {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.activity-header h5 i {
+    color: var(--gold);
+}
+
+.activity-count {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+/* Список бронирований */
+.bookings-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.booking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.2s ease;
+}
+
+.booking-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.booking-item:last-child {
+    border-bottom: none;
+}
+
+.booking-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.booking-id {
+    color: var(--gold);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.booking-id:hover {
+    text-decoration: underline;
+}
+
+.booking-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.booking-space {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.booking-date {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.booking-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.booking-amount {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.booking-status {
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.status-confirmed { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.status-completed { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.status-cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+/* Список отзывов */
+.reviews-list {
+    padding: 0.5rem 0;
+}
+
+.review-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.review-item:last-child {
+    border-bottom: none;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.review-space {
+    color: var(--text-primary);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.review-space:hover {
+    color: var(--gold);
+}
+
+.review-rating {
+    color: #fbbf24;
+    font-size: 0.85rem;
+}
+
+.review-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.review-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.review-date {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.review-status {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.review-status.approved { color: #4ade80; }
+.review-status.pending { color: #fbbf24; }
+
+/* Пустое состояние */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin: 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .booking-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .booking-meta {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+    }
+}
+</style>
 {% endblock %}

@@ -19,7 +19,7 @@
 
 from django.db.models import Sum, Count, Avg
 
-from ..models import CustomUser, UserProfile, Booking, Review, Favorite
+from ..models import CustomUser, Booking, Review, Favorite
 
 
 class UserService:
@@ -29,23 +29,6 @@ class UserService:
     Содержит статические методы для выполнения операций с пользователями,
     управления профилями и сбора статистики для разных типов пользователей.
     """
-
-    @staticmethod
-    def get_or_create_profile(user: CustomUser) -> UserProfile:
-        """
-        Получить или создать профиль пользователя.
-
-        Гарантирует наличие профиля для пользователя,
-        создавая его при необходимости.
-
-        Args:
-            user (CustomUser): Пользователь, для которого нужен профиль
-
-        Returns:
-            UserProfile: Профиль пользователя (существующий или созданный)
-        """
-        profile, created = UserProfile.objects.get_or_create(user=user)
-        return profile
 
     @staticmethod
     def get_user_stats(user: CustomUser) -> dict:
@@ -129,7 +112,7 @@ class UserService:
         return stats
 
     @staticmethod
-    def update_profile(user: CustomUser, user_data: dict, profile_data: dict = None) -> CustomUser:
+    def update_profile(user: CustomUser, user_data: dict) -> CustomUser:
         """
         Обновить профиль пользователя.
 
@@ -139,25 +122,14 @@ class UserService:
         Args:
             user (CustomUser): Пользователь, чей профиль обновляется
             user_data (dict): Словарь с данными для обновления полей CustomUser
-            profile_data (dict, optional): Словарь с данными для обновления полей UserProfile
 
         Returns:
             CustomUser: Обновленный пользователь
         """
-        # Обновляем основные данные
         for field, value in user_data.items():
             if hasattr(user, field):
                 setattr(user, field, value)
         user.save()
-
-        # Обновляем дополнительный профиль
-        if profile_data:
-            profile = UserService.get_or_create_profile(user)
-            for field, value in profile_data.items():
-                if hasattr(profile, field):
-                    setattr(profile, field, value)
-            profile.save()
-
         return user
 
     @staticmethod
@@ -180,15 +152,6 @@ class UserService:
             В текущей реализации проверка на наличие завершенного бронирования закомментирована,
             но может быть активирована при необходимости.
         """
-        # Уже оставлял отзыв
         if Review.objects.filter(author=user, space_id=space_id).exists():
             return False
-
-        # Проверяем, было ли завершённое бронирование (опционально)
-        # has_booking = Booking.objects.filter(
-        #     tenant=user,
-        #     space_id=space_id,
-        #     status__code='completed'
-        # ).exists()
-
         return True

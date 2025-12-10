@@ -17,8 +17,8 @@ from django.db.models import Sum, Count
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
-from ..forms import UserProfileForm, UserProfileExtendedForm
-from ..models import Booking, Favorite, Review, UserProfile, CustomUser
+from ..forms import UserProfileForm
+from ..models import Booking, Favorite, Review, CustomUser
 
 # Константы пагинации
 RECENT_BOOKINGS_LIMIT: int = 5
@@ -45,9 +45,6 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     try:
         user = request.user
 
-        # Get or create profile
-        user_profile, _ = UserProfile.objects.get_or_create(user=user)
-
         # Handle profile form submission
         if request.method == 'POST':
             user_form = UserProfileForm(
@@ -55,18 +52,13 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 request.FILES,
                 instance=user
             )
-            profile_form = UserProfileExtendedForm(
-                request.POST,
-                instance=user_profile
-            )
 
-            if user_form.is_valid() and profile_form.is_valid():
+            if user_form.is_valid():
                 try:
                     saved_user = user_form.save(commit=False)
                     if 'avatar' in request.FILES:
                         saved_user.avatar = request.FILES['avatar']
                     saved_user.save()
-                    profile_form.save()
 
                     messages.success(request, 'Профиль успешно обновлён!')
                     return redirect('dashboard')
@@ -74,10 +66,18 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                     logger.error(f"Database error saving profile: {e}", exc_info=True)
                     messages.error(request, 'Ошибка при сохранении профиля')
             else:
-                messages.error(request, 'Пожалуйста, исправьте ошибки в форме')
+                error_messages = []
+                for field, errors in user_form.errors.items():
+                    field_name = user_form.fields.get(field).label if field in user_form.fields else field
+                    for error in errors:
+                        error_messages.append(f"{field_name}: {error}")
+
+                if error_messages:
+                    messages.error(request, 'Ошибки: ' + '; '.join(error_messages))
+                else:
+                    messages.error(request, 'Пожалуйста, исправьте ошибки в форме')
         else:
             user_form = UserProfileForm(instance=user)
-            profile_form = UserProfileExtendedForm(instance=user_profile)
 
         # Recent bookings
         recent_bookings = Booking.objects.filter(
@@ -109,33 +109,19 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             ).aggregate(total=Sum('total_amount'))['total'] or 0,
         }
 
-        # Get active tab from query parameter
-        active_tab = request.GET.get('tab', 'overview')
-
         context: dict[str, Any] = {
             'recent_bookings': recent_bookings,
             'recent_favorites': recent_favorites,
             'stats': stats,
             'user_form': user_form,
-            'profile_form': profile_form,
-            'active_tab': active_tab,
+            'active_tab': request.GET.get('tab', 'overview'),
         }
         return render(request, 'account/dashboard.html', context)
 
     except Exception as e:
         logger.error(f"Error in dashboard view: {e}", exc_info=True)
-        return render(request, 'account/dashboard.html', {
-            'recent_bookings': [],
-            'recent_favorites': [],
-            'stats': {
-                'bookings_total': 0,
-                'bookings_active': 0,
-                'favorites_count': 0,
-                'reviews_count': 0,
-                'total_spent': 0,
-            },
-            'error': 'Ошибка при загрузке данных'
-        })
+        messages.error(request, 'Произошла ошибка при загрузке дашборда')
+        return redirect('home')
 
 
 @login_required

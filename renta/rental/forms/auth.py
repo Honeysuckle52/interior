@@ -26,7 +26,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserChangeForm
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
-from ..models import CustomUser, UserProfile
+from ..models import CustomUser
 from ..core.validators import validate_russian_phone, normalize_phone
 
 
@@ -263,7 +263,6 @@ class CustomUserCreationForm(forms.ModelForm):
 
         if commit:
             user.save()
-            UserProfile.objects.get_or_create(user=user)
         return user
 
 

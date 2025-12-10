@@ -298,7 +298,7 @@ def manage_reviews(request: HttpRequest) -> HttpResponse:
             return redirect('home')
 
         reviews = Review.objects.select_related(
-            'space', 'space__city', 'author', 'author__profile'
+            'space', 'space__city', 'author'
         ).order_by('-created_at')
 
         selected_status = request.GET.get('status', '')

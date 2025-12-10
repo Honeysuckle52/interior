@@ -24,7 +24,7 @@ from unidecode import unidecode
 
 from ...models import (
     Region, City, SpaceCategory, PricingPeriod, Space, SpaceImage,
-    SpacePrice, BookingStatus, TransactionStatus, UserProfile, Review
+    SpacePrice, BookingStatus, TransactionStatus, Review
 )
 
 User = get_user_model()
@@ -64,7 +64,7 @@ class Command(BaseCommand):
                 self.create_categories()
                 self.create_pricing_periods()
                 self.create_statuses()
-                self.create_admin_user()
+                self.create_admin()
                 self.create_moderators()
                 self.create_test_users()
                 self.create_spaces()
@@ -239,7 +239,7 @@ class Command(BaseCommand):
 
         self.stdout.write('  → Статусы созданы')
 
-    def create_admin_user(self) -> None:
+    def create_admin(self) -> None:
         """Создание администратора."""
         self.stdout.write('\n👤 Создание администратора...')
 
@@ -249,9 +249,9 @@ class Command(BaseCommand):
                 'email': 'admin@interior.ru',
                 'first_name': 'Администратор',
                 'last_name': 'Системы',
+                'user_type': 'admin',
                 'is_staff': True,
                 'is_superuser': True,
-                'user_type': 'admin',
                 'phone': '+7 (999) 123-45-67',
                 'email_verified': True
             }
@@ -259,7 +259,6 @@ class Command(BaseCommand):
         if created:
             admin.set_password('admin123')
             admin.save()
-            UserProfile.objects.get_or_create(user=admin)
             self.stdout.write(self.style.WARNING(
                 '  → Создан администратор: admin / admin123'
             ))
@@ -294,14 +293,9 @@ class Command(BaseCommand):
             if created:
                 moderator.set_password('Moderator123!')
                 moderator.save()
-                UserProfile.objects.get_or_create(user=moderator)
                 created_count += 1
 
         self.stdout.write(f'  → Создано модераторов: {created_count}')
-        if created_count > 0:
-            self.stdout.write(self.style.WARNING(
-                '  → Логин: moderator1, moderator2, moderator3 / Пароль: Moderator123!'
-            ))
 
     def create_test_users(self) -> None:
         """Создание 50 уникальных тестовых пользователей."""
@@ -383,20 +377,6 @@ class Command(BaseCommand):
             if created:
                 user.set_password('User123!')
                 user.save()
-                UserProfile.objects.get_or_create(
-                    user=user,
-                    defaults={
-                        'bio': random.choice([
-                            'Предприниматель',
-                            'Фрилансер',
-                            'Менеджер проектов',
-                            'IT-специалист',
-                            'Дизайнер',
-                            'Маркетолог',
-                            ''
-                        ])
-                    }
-                )
                 created_count += 1
 
         self.stdout.write(f'  → Создано пользователей: {created_count}')

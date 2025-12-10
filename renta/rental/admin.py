@@ -25,7 +25,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .models import (
-    CustomUser, UserProfile, Region, City, SpaceCategory,
+    CustomUser, Region, City, SpaceCategory,
     PricingPeriod, Space, SpaceImage, SpacePrice,
     BookingStatus, Booking, TransactionStatus, Transaction,
     Review, Favorite, ActionLog
@@ -830,16 +830,6 @@ class CustomUserAdmin(LoggingAdminMixin, UserAdmin):
     )
 
     readonly_fields = ('created_at', 'updated_at', 'last_login')
-
-
-@admin.register(UserProfile, site=interior_admin_site)
-class UserProfileAdmin(LoggingAdminMixin, admin.ModelAdmin):
-    list_display = ('user', 'bio_short', 'website', 'social_telegram')
-    search_fields = ('user__username', 'bio', 'website')
-
-    @admin.display(description='О себе')
-    def bio_short(self, obj):
-        return (obj.bio[:50] + '...') if obj.bio and len(obj.bio) > 50 else (obj.bio or '-')
 
 
 @admin.register(Region, site=interior_admin_site)

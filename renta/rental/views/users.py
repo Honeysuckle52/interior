@@ -14,6 +14,7 @@
 - block_user: Блокировка пользователя (POST)
 - unblock_user: Разблокировка пользователя (POST)
 - verify_user_email: Ручное подтверждение email пользователя (POST)
+- edit_user: Редактирование пользователя (GET/POST)
 
 Декораторы:
 - moderator_required: Проверка прав модератора/администратора
@@ -48,6 +49,7 @@ from django.views.decorators.http import require_POST
 from ..models import CustomUser, Booking, Review, Favorite
 from ..core.pagination import paginate
 from ..core.decorators import moderator_required
+from ..forms.users import UserEditForm
 
 
 USERS_PER_PAGE: int = 20
@@ -171,10 +173,7 @@ def user_detail(request: HttpRequest, pk: int) -> HttpResponse:
     Детальная страница пользователя для модератора.
     """
     try:
-        user = get_object_or_404(
-            CustomUser.objects.select_related('profile'),
-            pk=pk
-        )
+        user = get_object_or_404(CustomUser, pk=pk)
 
         if user.is_superuser and not request.user.is_superuser:
             messages.error(request, 'Нет доступа к этому пользователю')
@@ -219,6 +218,47 @@ def user_detail(request: HttpRequest, pk: int) -> HttpResponse:
     except Exception as e:
         logger.error(f"Error in user_detail view for pk={pk}: {e}", exc_info=True)
         messages.error(request, 'Ошибка при загрузке данных пользователя')
+        return redirect('manage_users')
+
+
+@login_required
+@moderator_required
+def edit_user(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    Редактирование пользователя модератором/администратором.
+    """
+    try:
+        user = get_object_or_404(CustomUser, pk=pk)
+
+        # Суперпользователей могут редактировать только суперпользователи
+        if user.is_superuser and not request.user.is_superuser:
+            messages.error(request, 'Нет доступа к редактированию этого пользователя')
+            return redirect('manage_users')
+
+        # Модераторов могут редактировать только админы
+        if user.user_type == 'moderator' and not request.user.is_superuser:
+            messages.error(request, 'Только администратор может редактировать модератора')
+            return redirect('user_detail_mod', pk=pk)
+
+        if request.method == 'POST':
+            form = UserEditForm(request.POST, instance=user, current_user=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f'Данные пользователя {user.username} обновлены')
+                logger.info(f"User {user.username} edited by {request.user.username}")
+                return redirect('user_detail_mod', pk=pk)
+        else:
+            form = UserEditForm(instance=user, current_user=request.user)
+
+        context: dict[str, Any] = {
+            'form': form,
+            'edit_user': user,
+        }
+        return render(request, 'users/edit.html', context)
+
+    except Exception as e:
+        logger.error(f"Error in edit_user view for pk={pk}: {e}", exc_info=True)
+        messages.error(request, 'Ошибка при редактировании пользователя')
         return redirect('manage_users')
 
 

@@ -50,9 +50,11 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.conf import settings
 
 from ..models import Space, City, SpaceCategory, Favorite, SpaceImage, SpacePrice, PricingPeriod
 from ..forms.spaces import SpaceForm, SpaceImageForm
+from ..services.geocoding_service import geocode_address
 
 # Константы пагинации
 DEFAULT_ITEMS_PER_PAGE: int = 12
@@ -519,7 +521,7 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
     try:
         space: Space = get_object_or_404(
             Space.objects.select_related(
-                'city', 'city__region', 'category', 'owner', 'owner__profile'
+                'city', 'city__region', 'category', 'owner'
             ).prefetch_related(
                 'images',
                 'prices',
@@ -560,7 +562,7 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
         # Approved reviews with stats
         approved_reviews = space.reviews.filter(is_approved=True)
         reviews = approved_reviews.select_related(
-            'author', 'author__profile'
+            'author'
         ).order_by('-created_at')[:MAX_RECENT_REVIEWS]
 
         reviews_stats: dict[str, Any] = approved_reviews.aggregate(
@@ -609,6 +611,7 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
             'rating_list': rating_list,
             'is_favorite': is_favorite,
             'can_review': can_review,
+            'yandex_maps_api_key': getattr(settings, 'YANDEX_GEOCODER_API_KEY', ''),
         }
         return render(request, 'spaces/detail.html', context)
 
@@ -686,12 +689,14 @@ def add_space(request: HttpRequest) -> HttpResponse:
     Context:
         - form: Форма добавления помещения
         - pricing_periods: Все доступные периоды ценообразования
+        - yandex_api_key: API ключ Яндекс.Карт для геокодирования
     """
     if not request.user.can_moderate:
         messages.error(request, 'У вас нет прав для добавления помещений')
         return redirect('dashboard')
 
     pricing_periods = PricingPeriod.objects.all().order_by('sort_order')
+    yandex_api_key = getattr(settings, 'YANDEX_MAPS_API_KEY', '')
 
     if request.method == 'POST':
         form = SpaceForm(request.POST)
@@ -701,11 +706,17 @@ def add_space(request: HttpRequest) -> HttpResponse:
             return render(request, 'spaces/add.html', {
                 'form': form,
                 'pricing_periods': pricing_periods,
+                'yandex_api_key': yandex_api_key,
             })
 
         if form.is_valid():
             space = form.save(commit=False)
             space.owner = request.user
+
+            # Серверное геокодирование убрано - используется клиентское через ymaps.geocode()
+            space.latitude = request.POST.get('latitude')
+            space.longitude = request.POST.get('longitude')
+
             space.save()
 
             # Сохраняем изображения
@@ -739,6 +750,7 @@ def add_space(request: HttpRequest) -> HttpResponse:
     return render(request, 'spaces/add.html', {
         'form': form,
         'pricing_periods': pricing_periods,
+        'yandex_api_key': yandex_api_key,
     })
 
 
@@ -746,79 +758,63 @@ def add_space(request: HttpRequest) -> HttpResponse:
 def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
     """
     Редактирование существующего помещения.
-
-    Args:
-        request (HttpRequest): Объект HTTP запроса
-        pk (int): ID помещения для редактирования
-
-    Returns:
-        HttpResponse: Отрисовка формы редактирования или редирект при успехе
-
-    Template:
-        spaces/edit.html
-
-    Context:
-        - form: Форма редактирования помещения
-        - space: Объект редактируемого помещения
-        - pricing_periods: Все доступные периоды ценообразования
-        - current_prices: Текущие цены помещения для предзаполнения формы
     """
-    if not request.user.can_moderate:
-        messages.error(request, 'У вас нет прав для редактирования помещений')
+    space = get_object_or_404(Space, pk=pk)
+
+    if not request.user.can_moderate and space.owner != request.user:
+        messages.error(request, 'У вас нет прав для редактирования этого помещения')
         return redirect('dashboard')
 
-    space = get_object_or_404(Space, pk=pk)
     pricing_periods = PricingPeriod.objects.all().order_by('sort_order')
-
-    # Текущие цены для заполнения формы
-    current_prices = {
-        price.period_id: price.price
-        for price in space.prices.filter(is_active=True)
-    }
+    current_prices = {sp.period_id: sp.price for sp in space.prices.all()}
+    yandex_api_key = getattr(settings, 'YANDEX_MAPS_API_KEY', '')
 
     if request.method == 'POST':
         form = SpaceForm(request.POST, instance=space)
-        new_images = request.FILES.getlist('images')
-        has_existing_images = space.images.exists()
-
-        if not new_images and not has_existing_images:
-            messages.error(request, 'Необходимо загрузить хотя бы одну фотографию помещения')
-            return render(request, 'spaces/edit.html', {
-                'form': form,
-                'space': space,
-                'pricing_periods': pricing_periods,
-                'current_prices': current_prices,
-            })
-
         if form.is_valid():
-            space = form.save()
+            space = form.save(commit=False)
 
-            # Обновляем изображения только если загружены новые
-            if new_images:
-                # Удаляем старые изображения
-                space.images.all().delete()
-                for i, image_file in enumerate(new_images):
-                    SpaceImage.objects.create(
-                        space=space,
-                        image=image_file,
-                        is_primary=(i == 0),
-                        sort_order=i
-                    )
+            # Серверное геокодирование убрано - используется клиентское через ymaps.geocode()
+            space.latitude = request.POST.get('latitude')
+            space.longitude = request.POST.get('longitude')
+
+            space.save()
 
             # Обновляем цены
-            space.prices.all().delete()
             for period in pricing_periods:
                 price_value = request.POST.get(f'price_{period.id}')
                 if price_value:
                     try:
-                        SpacePrice.objects.create(
+                        SpacePrice.objects.update_or_create(
                             space=space,
                             period=period,
-                            price=float(price_value),
-                            is_active=True
+                            defaults={'price': float(price_value), 'is_active': True}
                         )
                     except (ValueError, TypeError):
                         pass
+
+            # Обработка новых изображений
+            new_images = request.FILES.getlist('images')
+            if new_images:
+                max_order = space.images.count()
+                for i, image_file in enumerate(new_images):
+                    SpaceImage.objects.create(
+                        space=space,
+                        image=image_file,
+                        is_primary=False,
+                        sort_order=max_order + i
+                    )
+
+            # Обработка удаления изображений
+            delete_images = request.POST.getlist('delete_images')
+            if delete_images:
+                SpaceImage.objects.filter(id__in=delete_images, space=space).delete()
+
+            # Обработка главного изображения
+            primary_image_id = request.POST.get('primary_image')
+            if primary_image_id:
+                space.images.update(is_primary=False)
+                space.images.filter(id=primary_image_id).update(is_primary=True)
 
             messages.success(request, f'Помещение "{space.title}" успешно обновлено')
             return redirect('manage_spaces')
@@ -830,6 +826,7 @@ def edit_space(request: HttpRequest, pk: int) -> HttpResponse:
         'space': space,
         'pricing_periods': pricing_periods,
         'current_prices': current_prices,
+        'yandex_api_key': yandex_api_key,
     })
 
 

@@ -47,7 +47,6 @@ JAZZMIN_SETTINGS = {
         "auth.user": "fas fa-user",
         "auth.Group": "fas fa-users",
         "rental.CustomUser": "fas fa-user-circle",
-        "rental.UserProfile": "fas fa-id-card",
         "rental.Region": "fas fa-globe-europe",
         "rental.City": "fas fa-city",
         "rental.SpaceCategory": "fas fa-th-large",
@@ -247,6 +246,10 @@ YOOKASSA_SECRET_KEY = os.environ.get('YOOKASSA_SECRET_KEY', 'test_-W5gL0m29-Vj5o
 PREPAYMENT_PERCENT = 10
 # Часов до начала для бесплатной отмены
 CANCELLATION_HOURS = 24
+
+# Получите ключ на https://developer.tech.yandex.ru/
+# Выберите API "JavaScript API и HTTP Геокодер"
+YANDEX_GEOCODER_API_KEY = os.environ.get('YANDEX_GEOCODER_API_KEY', '607b4bfc-3ec1-4a3f-aa87-ce16df446f1e')
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True

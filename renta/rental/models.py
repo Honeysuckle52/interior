@@ -1,6 +1,11 @@
 """
 МОДЕЛИ БАЗЫ ДАННЫХ ДЛЯ САЙТА АРЕНДЫ ПОМЕЩЕНИЙ ООО "ИНТЕРЬЕР"
 Приведены к третьей нормальной форме (3НФ)
+
+Защита от SQL-инъекций:
+- Все запросы выполняются через Django ORM
+- Raw SQL запросы НЕ используются
+- Параметры автоматически экранируются Django
 """
 
 from __future__ import annotations
@@ -33,18 +38,13 @@ class CustomUser(AbstractUser):
     """
     Расширенная модель пользователя.
 
+    Поля bio и social_vk перенесены из UserProfile для соблюдения 3НФ
+    (связь 1-к-1 избыточна, все атрибуты принадлежат одной сущности)
+
     Роли:
         - user: Обычный пользователь (арендатор)
         - moderator: Модератор (проверка отзывов, модерация контента)
         - admin: Администратор (полный доступ)
-
-    Attributes:
-        user_type: Тип пользователя (пользователь, модератор, администратор)
-        phone: Контактный телефон
-        company: Название компании
-        avatar: Фото профиля
-        email_verified: Флаг подтверждения email
-        is_blocked: Флаг блокировки пользователя
     """
 
     class UserType(models.TextChoices):
@@ -74,6 +74,10 @@ class CustomUser(AbstractUser):
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name='Аватар')
     email_verified = models.BooleanField(default=False, verbose_name='Email подтвержден')
     is_blocked = models.BooleanField(default=False, verbose_name='Заблокирован')
+
+    bio = models.TextField(blank=True, verbose_name='О себе')
+    social_vk = models.URLField(blank=True, verbose_name='ВКонтакте')
+
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата регистрации', db_index=True)
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
 
@@ -171,36 +175,6 @@ class PasswordResetToken(models.Model):
         return f"Password reset token for {self.user.username}"
 
 
-class UserProfile(models.Model):
-    """
-    Дополнительный профиль пользователя (вынесено для соблюдения 3НФ).
-
-    Attributes:
-        user: Связанный пользователь
-        bio: Описание о себе
-        website: Личный сайт
-        social_vk: Ссылка на VK
-        social_telegram: Username в Telegram
-    """
-
-    user = models.OneToOneField(
-        CustomUser,
-        on_delete=models.CASCADE,
-        related_name='profile',
-        verbose_name='Пользователь'
-    )
-    bio = models.TextField(blank=True, verbose_name='О себе')
-    website = models.URLField(blank=True, verbose_name='Веб-сайт')
-    social_vk = models.URLField(blank=True, verbose_name='ВКонтакте')
-    social_telegram = models.CharField(max_length=100, blank=True, verbose_name='Telegram')
-
-    class Meta:
-        verbose_name = 'Профиль пользователя'
-        verbose_name_plural = 'Профили пользователей'
-        db_table = 'user_profiles'
-
-    def __str__(self) -> str:
-        return f"Профиль {self.user.username}"
 
 
 # ============== СПРАВОЧНИКИ ==============
@@ -323,8 +297,8 @@ class SpaceQuerySet(models.QuerySet):
     """QuerySet для модели Space с часто используемыми запросами."""
 
     def active(self) -> 'SpaceQuerySet':
-        """Получить только активные помещения."""
-        return self.filter(is_active=True)
+        """Получить только активные помещения с активными категориями."""
+        return self.filter(is_active=True, category__is_active=True)
 
     def featured(self) -> 'SpaceQuerySet':
         """Получить рекомендуемые помещения."""
@@ -946,7 +920,7 @@ class ActionLog(models.Model):
         object_id: ID объекта
         object_repr: Строковое представление объекта
         changes: JSON с изменениями
-        ip_address: IP адрес ользователя
+        ip_address: IP адрес пользователя
         user_agent: User-Agent браузера
     """
 

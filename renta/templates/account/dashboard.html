@@ -487,22 +487,37 @@
                             <div class="col-md-6">
                                 <label class="form-label">Имя</label>
                                 {{ user_form.first_name }}
+                                {% if user_form.first_name.errors %}
+                                    <div class="text-danger small mt-1">{{ user_form.first_name.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Фамилия</label>
                                 {{ user_form.last_name }}
+                                {% if user_form.last_name.errors %}
+                                    <div class="text-danger small mt-1">{{ user_form.last_name.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Email</label>
                                 {{ user_form.email }}
+                                {% if user_form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ user_form.email.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Телефон</label>
                                 {{ user_form.phone }}
+                                {% if user_form.phone.errors %}
+                                    <div class="text-danger small mt-1">{{ user_form.phone.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Компания</label>
                                 {{ user_form.company }}
+                                {% if user_form.company.errors %}
+                                    <div class="text-danger small mt-1">{{ user_form.company.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -515,15 +530,17 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label">О себе</label>
-                                {{ profile_form.bio }}
+                                {{ user_form.bio }}
+                                {% if user_form.bio.errors %}
+                                    <div class="text-danger small mt-1">{{ user_form.bio.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Веб-сайт</label>
-                                {{ profile_form.website }}
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Telegram</label>
-                                {{ profile_form.social_telegram }}
+                                <label class="form-label">ВКонтакте</label>
+                                {{ user_form.social_vk }}
+                                {% if user_form.social_vk.errors %}
+                                    <div class="text-danger small mt-1">{{ user_form.social_vk.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
