@@ -977,6 +977,96 @@ class PaymentService:
             }
 
     @classmethod
+    def process_admin_refund(cls, booking: 'Booking') -> Dict[str, Any]:
+        """
+        Обработать возврат предоплаты при отклонении бронирования администратором.
+
+        При отклонении администратором/модератором всегда возвращается полная сумма
+        предоплаты без штрафных санкций, так как отмена происходит не по вине клиента.
+
+        Args:
+            booking: Бронирование с предоплатой
+
+        Returns:
+            dict: Результат операции с ключами:
+                - refunded (bool): Успешен ли возврат
+                - amount (Decimal): Сумма возврата
+                - refund_id (str): ID возврата в ЮKassa
+                - message (str): Сообщение о результате
+                - error (str): Описание ошибки (при неудаче)
+        """
+        if not booking.prepayment_paid or not booking.prepayment_amount:
+            return {
+                'success': False,
+                'refunded': False,
+                'message': 'Предоплата не была внесена'
+            }
+
+        # payment_id хранится в booking.payment_id при успешной оплате
+        payment_id = booking.payment_id
+
+        # Если payment_id пустой, пробуем найти в транзакциях
+        if not payment_id:
+            # Ищем успешную транзакцию (статус 'success', не 'succeeded')
+            successful_transaction = booking.transactions.filter(
+                status__code='success'
+            ).order_by('-created_at').first()
+
+            if successful_transaction and successful_transaction.external_id:
+                payment_id = successful_transaction.external_id
+
+        if not payment_id:
+            return {
+                'success': False,
+                'refunded': False,
+                'error': 'Не найден платеж для возврата',
+                'message': 'Ошибка: платеж не найден'
+            }
+
+        # Создаем возврат полной суммы предоплаты
+        refund_result = cls.create_refund(
+            payment_id=payment_id,
+            amount=booking.prepayment_amount,
+            description=f'Возврат предоплаты - бронирование #{booking.id} отклонено администратором'
+        )
+
+        if refund_result['success']:
+            from ..models import Transaction, TransactionStatus
+            refund_status, _ = TransactionStatus.objects.get_or_create(
+                code='refunded',
+                defaults={'name': 'Возврат'}
+            )
+            Transaction.objects.create(
+                booking=booking,
+                status=refund_status,
+                amount=booking.prepayment_amount,
+                payment_method='yookassa',
+                external_id=refund_result.get('refund_id', '')
+            )
+
+            # Обновляем статус предоплаты в бронировании
+            booking.prepayment_paid = False
+            booking.save(update_fields=['prepayment_paid'])
+
+            # Отправляем квитанцию о возврате
+            cls.send_refund_receipt(booking, booking.prepayment_amount)
+
+            return {
+                'success': True,
+                'refunded': True,
+                'refund_id': refund_result['refund_id'],
+                'amount': refund_result['amount'],
+                'message': f'Возврат {booking.prepayment_amount} ₽ оформлен'
+            }
+        else:
+            return {
+                'success': False,
+                'refunded': False,
+                'error': refund_result.get('error'),
+                'message': 'Ошибка оформления возврата'
+            }
+
+    @classmethod
     def is_configured(cls) -> bool:
         """Проверить, настроена ли платежная система."""
         shop_id = getattr(settings, 'YOOKASSA_SHOP_ID', None)

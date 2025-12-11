@@ -381,10 +381,22 @@ def reject_booking(request: HttpRequest, pk: int) -> HttpResponse:
         if moderator_comment:
             booking.moderator_comment = moderator_comment
 
+        refund_message = ''
+        if booking.prepayment_paid and booking.prepayment_amount:
+            from ..services.payment_service import PaymentService
+
+            # При отклонении администратором всегда возвращаем полную сумму (без штрафа)
+            refund_result = PaymentService.process_admin_refund(booking)
+
+            if refund_result.get('refunded'):
+                refund_message = f' Возврат предоплаты {refund_result["amount"]} ₽ оформлен.'
+            elif refund_result.get('error'):
+                refund_message = f' Ошибка возврата предоплаты: {refund_result.get("error", "неизвестная ошибка")}.'
+
         booking.status = StatusService.get_cancelled_status()
         booking.save()
 
-        messages.success(request, f'Бронирование #{booking.id} отклонено')
+        messages.success(request, f'Бронирование #{booking.id} отклонено.{refund_message}')
         return redirect('booking_detail', pk=pk)
 
     except Http404:

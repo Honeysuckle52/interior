@@ -3,41 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Возврат средств | {{ site_name }}</title>
+    <title>Возврат средств | INTERIOR</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a1a; color: #e0e0e0;">
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
         <tr>
             <td style="padding: 40px 20px;">
-                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #2d2d2d; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                     <!-- Header -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #d4af37 0%, #b8962f 100%); padding: 30px; text-align: center;">
-                            <h1 style="margin: 0; color: #1a1a1a; font-size: 28px; font-weight: 700;">
-                                 Возврат средств
+                        <td style="background-color: #1a1a1a; padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #d4af37; font-size: 24px; font-weight: 700; letter-spacing: 2px;">
+                                INTERIOR
                             </h1>
+                            <p style="margin: 8px 0 0; color: #888888; font-size: 14px;">
+                                Аренда помещений
+                            </p>
                         </td>
                     </tr>
 
                     <!-- Content -->
                     <tr>
                         <td style="padding: 40px 30px;">
-                            <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6;">
-                                Здравствуйте, <strong style="color: #d4af37;">{{ booking.tenant.first_name|default:booking.tenant.username }}</strong>!
+                            <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 22px; font-weight: 600;">
+                                Возврат средств
+                            </h2>
+
+                            <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6; color: #333333;">
+                                Здравствуйте, <strong>{{ booking.tenant.first_name|default:booking.tenant.username }}</strong>!
                             </p>
 
-                            <p style="margin: 0 0 30px; font-size: 16px; line-height: 1.6;">
+                            <p style="margin: 0 0 30px; font-size: 16px; line-height: 1.6; color: #333333;">
                                 Вам был оформлен возврат средств по бронированию #{{ booking.id }}.
                             </p>
 
                             <!-- Refund Amount Box -->
-                            <table role="presentation" style="width: 100%; background-color: #22c55e20; border: 2px solid #22c55e; border-radius: 8px; margin-bottom: 30px;">
+                            <table role="presentation" style="width: 100%; background-color: #d4af37; border-radius: 8px; margin-bottom: 30px;">
                                 <tr>
-                                    <td style="padding: 20px; text-align: center;">
-                                        <p style="margin: 0 0 10px; font-size: 14px; color: #22c55e; text-transform: uppercase; letter-spacing: 1px;">
+                                    <td style="padding: 25px; text-align: center;">
+                                        <p style="margin: 0 0 8px; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">
                                             Сумма возврата
                                         </p>
-                                        <p style="margin: 0; font-size: 36px; font-weight: 700; color: #22c55e;">
+                                        <p style="margin: 0; font-size: 42px; font-weight: 700; color: #1a1a1a; letter-spacing: 2px;">
                                             {{ amount|floatformat:0 }} ₽
                                         </p>
                                     </td>
@@ -45,31 +52,31 @@
                             </table>
 
                             <!-- Booking Details -->
-                            <table role="presentation" style="width: 100%; background-color: #363636; border-radius: 8px; margin-bottom: 30px;">
+                            <table role="presentation" style="width: 100%; background-color: #f8f8f8; border-radius: 8px; margin-bottom: 30px;">
                                 <tr>
                                     <td style="padding: 20px;">
-                                        <h3 style="margin: 0 0 15px; color: #d4af37; font-size: 16px;">
-                                             Детали бронирования
+                                        <h3 style="margin: 0 0 15px; color: #1a1a1a; font-size: 16px; font-weight: 600;">
+                                            Детали бронирования
                                         </h3>
                                         <table role="presentation" style="width: 100%;">
                                             <tr>
-                                                <td style="padding: 8px 0; color: #888; font-size: 14px;">Помещение:</td>
-                                                <td style="padding: 8px 0; text-align: right; font-size: 14px;">{{ booking.space.title }}</td>
+                                                <td style="padding: 8px 0; color: #666666; font-size: 14px;">Помещение:</td>
+                                                <td style="padding: 8px 0; text-align: right; font-size: 14px; color: #1a1a1a; font-weight: 500;">{{ booking.space.title }}</td>
                                             </tr>
                                             <tr>
-                                                <td style="padding: 8px 0; color: #888; font-size: 14px;">Номер бронирования:</td>
-                                                <td style="padding: 8px 0; text-align: right; font-size: 14px;">#{{ booking.id }}</td>
+                                                <td style="padding: 8px 0; color: #666666; font-size: 14px; border-top: 1px solid #e0e0e0;">Номер бронирования:</td>
+                                                <td style="padding: 8px 0; text-align: right; font-size: 14px; color: #1a1a1a; font-weight: 500; border-top: 1px solid #e0e0e0;">#{{ booking.id }}</td>
                                             </tr>
                                         </table>
                                     </td>
                                 </tr>
                             </table>
 
-                            <p style="margin: 0 0 20px; font-size: 14px; color: #888; line-height: 1.6;">
+                            <p style="margin: 0 0 15px; font-size: 14px; color: #666666; line-height: 1.6;">
                                 Средства будут зачислены на вашу карту в течение 3-5 рабочих дней в зависимости от вашего банка.
                             </p>
 
-                            <p style="margin: 0; font-size: 14px; color: #888; line-height: 1.6;">
+                            <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.6;">
                                 Если у вас возникли вопросы, свяжитесь с нами.
                             </p>
                         </td>
@@ -77,12 +84,9 @@
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #1f1f1f; padding: 25px 30px; text-align: center; border-top: 1px solid #404040;">
-                            <p style="margin: 0 0 10px; font-size: 14px; color: #d4af37; font-weight: 600;">
-                                {{ site_name }}
-                            </p>
-                            <p style="margin: 0; font-size: 12px; color: #666;">
-                                © {{ year }} {{ site_name }}. Все права защищены.
+                        <td style="background-color: #f8f8f8; padding: 25px 30px; text-align: center; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0; font-size: 12px; color: #888888;">
+                                © {{ year }} INTERIOR. Все права защищены.
                             </p>
                         </td>
                     </tr>
