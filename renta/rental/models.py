@@ -74,6 +74,16 @@ class CustomUser(AbstractUser):
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name='Аватар')
     email_verified = models.BooleanField(default=False, verbose_name='Email подтвержден')
     is_blocked = models.BooleanField(default=False, verbose_name='Заблокирован')
+    block_reason = models.TextField(blank=True, verbose_name='Причина блокировки')
+    blocked_at = models.DateTimeField(null=True, blank=True, verbose_name='Дата блокировки')
+    blocked_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='blocked_users',
+        verbose_name='Заблокировал'
+    )
 
     bio = models.TextField(blank=True, verbose_name='О себе')
     social_vk = models.URLField(blank=True, verbose_name='ВКонтакте')

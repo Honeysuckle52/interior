@@ -45,6 +45,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
 from ..models import CustomUser, Booking, Review, Favorite
 from ..core.pagination import paginate
@@ -267,7 +268,7 @@ def edit_user(request: HttpRequest, pk: int) -> HttpResponse:
 @require_POST
 def block_user(request: HttpRequest, pk: int) -> HttpResponse:
     """
-    Блокировка пользователя.
+    Блокировка пользователя с указанием причины.
     """
     try:
         user = get_object_or_404(CustomUser, pk=pk)
@@ -280,11 +281,16 @@ def block_user(request: HttpRequest, pk: int) -> HttpResponse:
             messages.error(request, 'Нельзя заблокировать суперпользователя')
             return redirect('user_detail_mod', pk=pk)
 
+        block_reason = request.POST.get('block_reason', '').strip()
+
         user.is_blocked = True
+        user.block_reason = block_reason
+        user.blocked_at = timezone.now()
+        user.blocked_by = request.user
         user.save()
 
         messages.success(request, f'Пользователь {user.username} заблокирован')
-        logger.info(f"User {user.username} blocked by {request.user.username}")
+        logger.info(f"User {user.username} blocked by {request.user.username}. Reason: {block_reason}")
 
         return redirect('user_detail_mod', pk=pk)
 
@@ -305,6 +311,9 @@ def unblock_user(request: HttpRequest, pk: int) -> HttpResponse:
         user = get_object_or_404(CustomUser, pk=pk)
 
         user.is_blocked = False
+        user.block_reason = ''
+        user.blocked_at = None
+        user.blocked_by = None
         user.save()
 
         messages.success(request, f'Пользователь {user.username} разблокирован')

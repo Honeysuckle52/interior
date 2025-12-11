@@ -154,10 +154,11 @@ class BlockedUserMiddleware(MiddlewareMixin):
                 if hasattr(user, 'is_blocked') and user.is_blocked:
                     # Разлогиниваем заблокированного пользователя
                     logout(request)
-                    messages.error(
-                        request,
-                        'Ваш аккаунт заблокирован. Обратитесь к администратору.'
-                    )
+                    block_message = 'Ваш аккаунт заблокирован.'
+                    if hasattr(user, 'block_reason') and user.block_reason:
+                        block_message += f' Причина: {user.block_reason}'
+                    block_message += ' Обратитесь к администратору.'
+                    messages.error(request, block_message)
                     return redirect('login')
 
             except CustomUser.DoesNotExist:

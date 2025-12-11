@@ -44,8 +44,34 @@
                                 <i class="fas fa-check-circle me-1"></i>Подтверждён
                             </span>
                             {% endif %}
+                            <!-- Отображение статуса блокировки в публичном профиле -->
+                            {% if profile_user.is_blocked %}
+                            <span class="badge px-3 py-2" style="background: rgba(239, 68, 68, 0.2); color: #f87171;">
+                                <i class="fas fa-ban me-1"></i>Заблокирован
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
+
+                    <!-- Блок с информацией о блокировке для публичного профиля -->
+                    {% if profile_user.is_blocked %}
+                    <div class="mb-4 p-3 rounded" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <h6 class="fw-bold mb-2" style="color: #f87171;">
+                            <i class="fas fa-ban me-2"></i>Аккаунт заблокирован
+                        </h6>
+                        {% if profile_user.block_reason %}
+                        <p class="mb-1" style="color: var(--text-secondary);">
+                            <strong>Причина:</strong> {{ profile_user.block_reason }}
+                        </p>
+                        {% endif %}
+                        {% if profile_user.blocked_at %}
+                        <small style="color: var(--text-muted);">
+                            <i class="fas fa-calendar-times me-1"></i>
+                            Заблокирован: {{ profile_user.blocked_at|date:"d.m.Y" }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
 
                     <!-- Статистика -->
                     <div class="row text-center mb-4">
@@ -94,7 +120,7 @@
             <div class="card mt-4" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
                 <div class="card-header" style="background: transparent; border-bottom: 1px solid var(--border-color);">
                     <h5 class="mb-0" style="color: var(--text-primary);">
-                        <i class="fas fa-star me-2 gold-text"></i>Последние отзывы
+                        </i>Последние отзывы
                     </h5>
                 </div>
                 <div class="card-body">

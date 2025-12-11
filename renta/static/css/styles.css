@@ -846,34 +846,57 @@ a:hover {
   display: flex;
   align-items: center;
 }
+
+/* Исправленные стили для filter-select-modern - убраны дубликаты и исправлена стрелка */
 .filter-select-modern,
 .filter-input-modern {
   width: 100%;
   padding: 0.75rem 1rem;
-  background: var(--bg-input);
+  background-color: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.9rem;
   transition: all var(--transition-fast);
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
 }
+
 .filter-select-modern {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3e%3cpath fill='%23d4af37' d='M6 8L1 3h10z'/%3e%3c/svg%3e");
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23d4af37' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
-  padding-right: 2.5rem;
+  background-size: 12px;
+  cursor: pointer;
 }
+
+.filter-select-modern:hover,
+.filter-input-modern:hover {
+  border-color: var(--color-gold);
+}
+
 .filter-select-modern:focus,
 .filter-input-modern:focus {
   border-color: var(--color-gold);
-  box-shadow: 0 0 0 3px rgba(var(--color-gold-rgb), 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--color-gold-rgb), 0.15);
   outline: none;
 }
+
 .filter-select-modern option {
   background: var(--bg-card);
   color: var(--text-primary);
+  padding: 0.5rem;
 }
+
+/* Стиль для малого размера select */
+.filter-select-sm {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  min-width: 120px;
+}
+
 .filter-range {
   display: flex;
   align-items: center;
@@ -2778,7 +2801,7 @@ footer {
 /* Стили для select категорий */
 .filter-select-modern {
   width: 100%;
-  padding: 0.625rem 2rem 0.625rem 0.875rem;
+  padding: 0.625rem 2.5rem 0.625rem 0.875rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -2787,7 +2810,10 @@ footer {
   cursor: pointer;
   transition: all var(--transition-fast);
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23d4af37' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;
+  background-size: 12px 12px;
 }
 .filter-select-modern:hover {
   border-color: var(--color-gold);

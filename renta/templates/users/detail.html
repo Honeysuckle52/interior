@@ -58,6 +58,33 @@
                 </div>
 
                 <div class="user-profile-body">
+                    <!-- Блок с информацией о блокировке -->
+                    {% if profile_user.is_blocked %}
+                    <div class="user-info-section block-info-section">
+                        <h6 class="section-title text-danger">
+                            <i class="fas fa-ban me-2"></i>Информация о блокировке
+                        </h6>
+                        {% if profile_user.block_reason %}
+                        <div class="user-info-item">
+                            <i class="fas fa-comment-slash text-danger"></i>
+                            <span><strong>Причина:</strong> {{ profile_user.block_reason }}</span>
+                        </div>
+                        {% endif %}
+                        {% if profile_user.blocked_at %}
+                        <div class="user-info-item">
+                            <i class="fas fa-calendar-times text-danger"></i>
+                            <span><strong>Дата:</strong> {{ profile_user.blocked_at|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        {% endif %}
+                        {% if profile_user.blocked_by %}
+                        <div class="user-info-item">
+                            <i class="fas fa-user-shield text-danger"></i>
+                            <span><strong>Заблокировал:</strong> {{ profile_user.blocked_by.username }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
                     <!-- Контакты -->
                     <div class="user-info-section">
                         <h6 class="section-title">
@@ -133,14 +160,11 @@
                             </button>
                         </form>
                         {% else %}
-                        <form method="post" action="{% url 'block_user' profile_user.pk %}"
-                              onsubmit="return confirm('Заблокировать пользователя {{ profile_user.username }}?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn-user-action btn-block">
-                                <i class="fas fa-ban"></i>
-                                <span>Заблокировать</span>
-                            </button>
-                        </form>
+                        <!-- Модальное окно для блокировки с причиной -->
+                        <button type="button" class="btn-user-action btn-block" data-bs-toggle="modal" data-bs-target="#blockUserModal">
+                            <i class="fas fa-ban"></i>
+                            <span>Заблокировать</span>
+                        </button>
                         {% endif %}
                     {% endif %}
 
@@ -206,7 +230,7 @@
             <div class="dashboard-card activity-card mb-4">
                 <div class="activity-header">
                     <h5>
-                        <i class="fas fa-history me-2"></i>Последние бронирования
+                        </i>Последние бронирования
                     </h5>
                     <span class="activity-count">{{ user_stats.total_bookings }} всего</span>
                 </div>
@@ -245,7 +269,7 @@
             <div class="dashboard-card activity-card">
                 <div class="activity-header">
                     <h5>
-                        <i class="fas fa-star me-2"></i>Последние отзывы
+                        </i>Последние отзывы
                     </h5>
                     <span class="activity-count">{{ user_stats.reviews_count }} всего</span>
                 </div>
@@ -295,10 +319,72 @@
     </div>
 </div>
 
+<!-- Модальное окно для блокировки с причиной -->
+{% if profile_user.user_type == 'user' and not profile_user.is_blocked %}
+<div class="modal fade" id="blockUserModal" tabindex="-1" aria-labelledby="blockUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+                <h5 class="modal-title text-danger" id="blockUserModalLabel">
+                    <i class="fas fa-ban me-2"></i>Заблокировать пользователя
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'block_user' profile_user.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        Вы собираетесь заблокировать пользователя <strong class="gold-text">{{ profile_user.username }}</strong>.
+                    </p>
+                    <div class="mb-3">
+                        <label for="blockReason" class="form-label">Причина блокировки <span class="text-danger">*</span></label>
+                        <textarea
+                            class="form-control"
+                            id="blockReason"
+                            name="block_reason"
+                            rows="4"
+                            placeholder="Укажите причину блокировки пользователя..."
+                            required
+                            style="background: var(--bg-input); border-color: var(--border-color); color: var(--text-primary);"
+                        ></textarea>
+                        <div class="form-text text-muted">
+                            Эта информация будет показана пользователю при попытке входа.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-color);">
+                    <button type="button" class="btn btn-outline-themed" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-ban me-2"></i>Заблокировать
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <style>
 /* Профиль пользователя */
 .user-profile-card {
     overflow: hidden;
+}
+
+/* Стили для блока информации о блокировке */
+.block-info-section {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.block-info-section .section-title {
+    color: #f87171;
+}
+
+.block-info-section .user-info-item {
+    color: var(--text-secondary);
 }
 
 .user-profile-header {
@@ -562,8 +648,7 @@
 
 /* Список бронирований */
 .bookings-list {
-    max-height: 400px;
-    overflow-y: auto;
+    padding: 0.5rem 0;
 }
 
 .booking-item {
@@ -575,12 +660,12 @@
     transition: background 0.2s ease;
 }
 
-.booking-item:hover {
-    background: rgba(255, 255, 255, 0.02);
-}
-
 .booking-item:last-child {
     border-bottom: none;
+}
+
+.booking-item:hover {
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .booking-info {
@@ -590,14 +675,14 @@
 }
 
 .booking-id {
-    color: var(--gold);
     font-weight: 600;
+    color: var(--gold);
     text-decoration: none;
-    font-size: 0.9rem;
+    min-width: 60px;
 }
 
 .booking-id:hover {
-    text-decoration: underline;
+    color: var(--gold-light);
 }
 
 .booking-details {
@@ -608,12 +693,12 @@
 
 .booking-space {
     color: var(--text-primary);
-    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 .booking-date {
-    color: var(--text-muted);
     font-size: 0.8rem;
+    color: var(--text-muted);
 }
 
 .booking-meta {
@@ -623,21 +708,21 @@
 }
 
 .booking-amount {
-    color: var(--text-primary);
     font-weight: 600;
+    color: var(--text-primary);
 }
 
 .booking-status {
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 500;
 }
 
-.status-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-.status-confirmed { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
-.status-completed { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-.status-cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.status-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.status-confirmed { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+.status-completed { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.status-cancelled { background: rgba(239, 68, 68, 0.2); color: #f87171; }
 
 /* Список отзывов */
 .reviews-list {
@@ -661,18 +746,22 @@
 }
 
 .review-space {
-    color: var(--text-primary);
+    color: var(--gold);
     font-weight: 500;
     text-decoration: none;
 }
 
 .review-space:hover {
-    color: var(--gold);
+    color: var(--gold-light);
 }
 
 .review-rating {
-    color: #fbbf24;
-    font-size: 0.85rem;
+    color: var(--gold);
+    font-size: 0.9rem;
+}
+
+.review-rating i {
+    margin-left: 2px;
 }
 
 .review-text {
@@ -689,22 +778,30 @@
 }
 
 .review-date {
-    color: var(--text-muted);
     font-size: 0.8rem;
+    color: var(--text-muted);
 }
 
 .review-status {
     font-size: 0.75rem;
-    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
 }
 
-.review-status.approved { color: #4ade80; }
-.review-status.pending { color: #fbbf24; }
+.review-status.approved {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.review-status.pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
 
 /* Пустое состояние */
 .empty-state {
     text-align: center;
-    padding: 3rem 1.5rem;
+    padding: 3rem;
     color: var(--text-muted);
 }
 
