@@ -1324,43 +1324,158 @@ a:hover {
 /* =============================================================================
    14. ТАБЛИЦЫ
    ============================================================================= */
-.table-themed {
+/* Полностью переработанные стили таблиц для переопределения Bootstrap 5.3 */
+
+/* Базовое переопределение Bootstrap .table для тёмной темы */
+.table.table-themed,
+table.table-themed {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text-primary);
+  --bs-table-border-color: var(--border-color);
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+  --bs-table-striped-color: var(--text-primary);
+  --bs-table-hover-bg: var(--bg-hover);
+  --bs-table-hover-color: var(--text-primary);
+  --bs-table-active-bg: var(--bg-hover);
+  --bs-table-active-color: var(--text-primary);
 }
-.table-themed thead th {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+
+/* Заголовки таблицы */
+.table.table-themed > thead,
+table.table-themed > thead {
+  background: var(--bg-secondary) !important;
+}
+
+.table.table-themed > thead > tr,
+table.table-themed > thead > tr {
+  background: var(--bg-secondary) !important;
+}
+
+.table.table-themed > thead > tr > th,
+table.table-themed > thead > tr > th {
+  background: var(--bg-secondary) !important;
+  color: var(--text-secondary) !important;
   font-weight: 600;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color) !important;
+  border-top: none !important;
   text-align: left;
-}
-.table-themed thead th:first-child {
-  border-radius: var(--radius-md) 0 0 0;
-}
-.table-themed thead th:last-child {
-  border-radius: 0 var(--radius-md) 0 0;
-}
-.table-themed tbody tr {
-  transition: all var(--transition-fast);
-}
-.table-themed tbody tr:hover {
-  background: var(--bg-hover);
-}
-.table-themed tbody td {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
-  color: var(--text-primary);
   vertical-align: middle;
 }
-.table-themed tbody tr:last-child td {
-  border-bottom: none;
+
+.table.table-themed > thead > tr > th:first-child,
+table.table-themed > thead > tr > th:first-child {
+  border-radius: var(--radius-md) 0 0 0;
 }
+
+.table.table-themed > thead > tr > th:last-child,
+table.table-themed > thead > tr > th:last-child {
+  border-radius: 0 var(--radius-md) 0 0;
+}
+
+/* Тело таблицы - строки */
+.table.table-themed > tbody,
+table.table-themed > tbody {
+  background: transparent !important;
+}
+
+.table.table-themed > tbody > tr,
+table.table-themed > tbody > tr {
+  background-color: transparent !important;
+  background: transparent !important;
+  transition: background-color 0.15s ease;
+}
+
+/* Hover эффект для строк */
+.table.table-themed > tbody > tr:hover,
+table.table-themed > tbody > tr:hover,
+.table.table-themed.table-hover > tbody > tr:hover,
+table.table-themed.table-hover > tbody > tr:hover {
+  background-color: var(--bg-hover) !important;
+  background: var(--bg-hover) !important;
+}
+
+/* Ячейки тела таблицы */
+.table.table-themed > tbody > tr > td,
+table.table-themed > tbody > tr > td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color) !important;
+  border-top: none !important;
+  color: var(--text-primary) !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  vertical-align: middle;
+}
+
+/* Hover на ячейках */
+.table.table-themed > tbody > tr:hover > td,
+table.table-themed > tbody > tr:hover > td,
+.table.table-themed.table-hover > tbody > tr:hover > td,
+table.table-themed.table-hover > tbody > tr:hover > td {
+  background-color: var(--bg-hover) !important;
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Последняя строка без нижней границы */
+.table.table-themed > tbody > tr:last-child > td,
+table.table-themed > tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* Текстовые классы внутри таблиц */
+.table.table-themed .text-themed,
+table.table-themed .text-themed {
+  color: var(--text-primary) !important;
+}
+
+.table.table-themed .text-muted,
+table.table-themed .text-muted {
+  color: var(--text-muted) !important;
+}
+
+.table.table-themed .gold-text,
+table.table-themed .gold-text {
+  color: var(--color-gold) !important;
+}
+
+/* Кликабельные строки */
+.table.table-themed .booking-row,
+table.table-themed .booking-row {
+  cursor: pointer;
+}
+
+/* Строка заблокированного пользователя */
+.table.table-themed > tbody > tr.row-blocked,
+table.table-themed > tbody > tr.row-blocked {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.table.table-themed > tbody > tr.row-blocked:hover,
+table.table-themed > tbody > tr.row-blocked:hover {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+/* Адаптивная обёртка */
+.table-responsive {
+  background: transparent !important;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* =============================================================================
+   БЕЙДЖИ СТАТУСОВ (после таблиц)
+   ============================================================================= */
 /* Бейджи статусов */
 .badge {
   padding: 0.4em 0.8em;
