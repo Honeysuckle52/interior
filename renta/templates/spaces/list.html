@@ -41,7 +41,7 @@
             <div class="filter-grid">
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-map-marker-alt me-1 gold-text"></i>Город
+                        </i>Город
                     </label>
                     <select name="city" id="cityFilter" class="filter-select-modern">
                         <option value="">Все города</option>
@@ -54,7 +54,7 @@
                 <!-- Заменили чипы категорий на выпадающий список -->
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-folder me-1 gold-text"></i>Категория
+                        </i>Категория
                     </label>
                     <select name="category" id="categoryFilter" class="filter-select-modern">
                         <option value="">Все категории</option>
@@ -70,7 +70,7 @@
 
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-ruler-combined me-1 gold-text"></i>Площадь, м²
+                        </i>Площадь, м²
                     </label>
                     <div class="filter-range">
                         <input type="number" name="min_area" id="minArea" class="filter-input-modern" placeholder="от" value="{{ min_area }}" min="0">
@@ -81,14 +81,14 @@
 
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-users me-1 gold-text"></i>Вместимость
+                        </i>Вместимость
                     </label>
                     <input type="number" name="min_capacity" id="minCapacity" class="filter-input-modern" placeholder="от человек" value="{{ min_capacity }}" min="1">
                 </div>
 
                 <div class="filter-item">
                     <label class="filter-label-modern">
-                        <i class="fas fa-ruble-sign me-1 gold-text"></i>Цена, ₽
+                        </i>Цена, ₽
                     </label>
                     <div class="filter-range">
                         <input type="number" name="min_price" id="minPrice" class="filter-input-modern" placeholder="от" value="{{ min_price }}" min="0">
@@ -102,7 +102,7 @@
             <div class="filter-actions">
                 <div class="filter-sort">
                     <label class="filter-label-modern mb-0">
-                        <i class="fas fa-sort me-1 gold-text"></i>Сортировка:
+                        </i>Сортировка:
                     </label>
                     <select name="sort" id="sortFilter" class="filter-select-modern filter-select-sm">
                         <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Новые</option>
