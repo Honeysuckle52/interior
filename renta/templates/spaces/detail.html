@@ -21,11 +21,16 @@
 
     <div class="row">
         <div class="col-lg-8">
-            <!-- Галерея -->
+            <!-- Галерея с поддержкой lightbox -->
             <div class="mb-4">
                 {% with space.get_main_image as main_image %}
                 {% if main_image and main_image.image %}
-                <img src="{{ main_image.image.url }}" class="img-fluid rounded-3 w-100 mb-3" alt="{{ space.title }}" style="max-height: 450px; object-fit: cover;">
+                <img src="{{ main_image.image.url }}"
+                     class="img-fluid rounded-3 w-100 mb-3 gallery-main-image"
+                     alt="{{ space.title }}"
+                     style="max-height: 450px; object-fit: cover; cursor: pointer;"
+                     data-gallery-index="0"
+                     onclick="openLightbox(0)">
                 {% else %}
                 <div class="rounded-3 w-100 mb-3 d-flex align-items-center justify-content-center" style="height: 450px; background: var(--bg-secondary);">
                     <i class="fas fa-building fa-4x" style="color: var(--gold);"></i>
@@ -37,12 +42,18 @@
                 <div class="row g-2">
                     {% for image in space.images.all|slice:":4" %}
                     <div class="col-3">
-                        <img src="{{ image.image.url }}" class="img-fluid rounded" alt="{{ space.title }}" style="height: 80px; object-fit: cover; width: 100%; cursor: pointer;">
+                        <img src="{{ image.image.url }}"
+                             class="img-fluid rounded gallery-thumbnail"
+                             alt="{{ space.title }}"
+                             style="height: 80px; object-fit: cover; width: 100%; cursor: pointer;"
+                             data-gallery-index="{{ forloop.counter0 }}"
+                             onclick="openLightbox({{ forloop.counter0 }})">
                     </div>
                     {% endfor %}
                 </div>
                 {% endif %}
             </div>
+            <!-- END CHANGE -->
 
             <h1 class="display-5 fw-bold mb-3">{{ space.title }}</h1>
 
@@ -293,11 +304,14 @@
 
                 <div class="mt-4 pt-4 border-top" style="border-color: var(--border-color) !important;">
                     <p class="text-muted small mb-2">Остались вопросы?</p>
-                    <a href="tel:89836903854" class="btn btn-outline-light w-100 mb-2">
+                    <!-- Кнопка копирования номера телефона -->
+                    <button type="button" class="btn btn-outline-light w-100 mb-2" onclick="copyPhoneNumber()" id="copyPhoneBtn">
                         <i class="fas fa-phone me-2"></i>8 (983) 690-38-54
-                    </a>
-                    <a href="mailto:danil_naumov_90@bk.ru" class="btn btn-outline-light w-100">
-                        <i class="fas fa-envelope me-2"></i>Написать
+                        <i class="fas fa-copy ms-2" style="opacity: 0.6;"></i>
+                    </button>
+                    <!-- Кнопка написать теперь отправляет на почту -->
+                    <a href="mailto:danil_naumov_90@bk.ru?subject=Вопрос по помещению: {{ space.title|urlencode }}" class="btn btn-outline-light w-100">
+                        <i class="fas fa-envelope me-2"></i>Написать нам
                     </a>
                 </div>
             </div>
@@ -344,6 +358,24 @@
     </section>
     {% endif %}
 </div>
+
+<!-- Lightbox Modal для просмотра фотографий -->
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox(event)">
+    <button class="lightbox-close" onclick="closeLightbox(event)" aria-label="Закрыть">
+        <i class="fas fa-times"></i>
+    </button>
+    <button class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1, event)" aria-label="Предыдущее фото">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <button class="lightbox-nav lightbox-next" onclick="navigateLightbox(1, event)" aria-label="Следующее фото">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+        <img src="/placeholder.svg" alt="{{ space.title }}" class="lightbox-image" id="lightboxImage">
+    </div>
+    <div class="lightbox-counter" id="lightboxCounter"></div>
+</div>
+<!-- END CHANGE -->
 {% endblock %}
 
 {% block extra_js %}
@@ -516,9 +548,119 @@ function showMapError(message) {
 })();
 </script>
 
-<!-- Скрипт для звёзд отзыва -->
+<!-- Скрипт для звёзд отзыва и Lightbox галереи -->
 <script>
+// Массив всех изображений галереи
+const galleryImages = [
+    {% for image in space.images.all %}
+    "{{ image.image.url }}"{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+let currentImageIndex = 0;
+
+// Открытие lightbox
+function openLightbox(index) {
+    if (galleryImages.length === 0) return;
+
+    currentImageIndex = index;
+    const overlay = document.getElementById('lightboxOverlay');
+    const image = document.getElementById('lightboxImage');
+    const counter = document.getElementById('lightboxCounter');
+
+    image.src = galleryImages[index];
+    counter.textContent = `${index + 1} / ${galleryImages.length}`;
+
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // Показать/скрыть навигацию если одно фото
+    document.querySelectorAll('.lightbox-nav').forEach(btn => {
+        btn.style.display = galleryImages.length > 1 ? 'flex' : 'none';
+    });
+}
+
+// Закрытие lightbox
+function closeLightbox(event) {
+    if (event) event.stopPropagation();
+    const overlay = document.getElementById('lightboxOverlay');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Навигация по галерее
+function navigateLightbox(direction, event) {
+    if (event) event.stopPropagation();
+
+    currentImageIndex += direction;
+
+    if (currentImageIndex < 0) {
+        currentImageIndex = galleryImages.length - 1;
+    } else if (currentImageIndex >= galleryImages.length) {
+        currentImageIndex = 0;
+    }
+
+    const image = document.getElementById('lightboxImage');
+    const counter = document.getElementById('lightboxCounter');
+
+    image.src = galleryImages[currentImageIndex];
+    counter.textContent = `${currentImageIndex + 1} / ${galleryImages.length}`;
+}
+
+// Клавиатурная навигация
+document.addEventListener('keydown', function(e) {
+    const overlay = document.getElementById('lightboxOverlay');
+    if (!overlay.classList.contains('active')) return;
+
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') navigateLightbox(-1);
+    if (e.key === 'ArrowRight') navigateLightbox(1);
+});
+
+// Копирование номера телефона
+function copyPhoneNumber() {
+    const phone = '89836903854';
+    const btn = document.getElementById('copyPhoneBtn');
+
+    navigator.clipboard.writeText(phone).then(function() {
+        // Показать уведомление об успехе
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-2"></i>Номер скопирован!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-light');
+
+        setTimeout(function() {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-light');
+        }, 2000);
+
+        // Также показать toast уведомление если есть функция
+        if (typeof showNotification === 'function') {
+            showNotification('Номер скопирован в буфер обмена', 'success');
+        }
+    }).catch(function(err) {
+        console.error('Ошибка копирования:', err);
+        // Fallback для старых браузеров
+        const textArea = document.createElement('textarea');
+        textArea.value = phone;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            if (typeof showNotification === 'function') {
+                showNotification('Номер скопирован в буфер обмена', 'success');
+            }
+        } catch (e) {
+            if (typeof showNotification === 'function') {
+                showNotification('Не удалось скопировать номер', 'danger');
+            }
+        }
+        document.body.removeChild(textArea);
+    });
+}
 </script>
+<!-- END CHANGE -->
 
 <style>
 /* Добавлены стили для счетчика просмотров */
@@ -538,5 +680,140 @@ function showMapError(message) {
     min-width: 0;
     transition: width 0.3s ease;
 }
+
+/* Стили для Lightbox галереи */
+.lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.lightbox-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.lightbox-content {
+    max-width: 90%;
+    max-height: 90%;
+    position: relative;
+}
+
+.lightbox-image {
+    max-width: 100%;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1.5rem;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+}
+
+.lightbox-close:hover {
+    background: var(--color-gold);
+    color: #000;
+    transform: rotate(90deg);
+}
+
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1.25rem;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+}
+
+.lightbox-nav:hover {
+    background: var(--color-gold);
+    color: #000;
+}
+
+.lightbox-prev {
+    left: 20px;
+}
+
+.lightbox-next {
+    right: 20px;
+}
+
+.lightbox-counter {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 16px;
+    border-radius: 20px;
+}
+
+.gallery-main-image:hover,
+.gallery-thumbnail:hover {
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+@media (max-width: 768px) {
+    .lightbox-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    .lightbox-prev {
+        left: 10px;
+    }
+
+    .lightbox-next {
+        right: 10px;
+    }
+
+    .lightbox-close {
+        top: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+    }
+}
+/* END CHANGE */
 </style>
 {% endblock %}

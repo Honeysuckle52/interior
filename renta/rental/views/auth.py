@@ -85,6 +85,13 @@ class CustomLoginView(LoginView):
         """
         user = form.get_user()
 
+        if user.is_blocked:
+            messages.error(
+                self.request,
+                'Ваш аккаунт заблокирован. Обратитесь в службу поддержки.'
+            )
+            return super().form_invalid(form)
+
         # Администраторы и суперпользователи пропускают проверку email
         if user.is_staff or user.is_superuser:
             try:
