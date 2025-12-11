@@ -249,7 +249,7 @@
 {% block content %}
 <div class="dashboard-container">
     <div class="dashboard-header">
-        <h1><i class="fas fa-chart-bar"></i> Аналитический дашборд</h1>
+        <h1></i> Аналитический дашборд</h1>
         <a href="{% url 'interior_admin:reports' %}" class="back-link">
             <i class="fas fa-arrow-left"></i> Назад к отчетам
         </a>
@@ -258,7 +258,7 @@
     <div class="charts-grid">
         <!-- График бронирований -->
         <div class="chart-card">
-            <h2><i class="fas fa-calendar-check"></i> Бронирования за 30 дней</h2>
+            <h2></i> Бронирования за 30 дней</h2>
             <div class="chart-wrapper">
                 <canvas id="bookingsChart"></canvas>
             </div>
@@ -266,7 +266,7 @@
 
         <!-- График доходов -->
         <div class="chart-card">
-            <h2><i class="fas fa-ruble-sign"></i> Доходы за 30 дней</h2>
+            <h2></i> Доходы за 30 дней</h2>
             <div class="chart-wrapper">
                 <canvas id="revenueChart"></canvas>
             </div>
@@ -276,7 +276,7 @@
     <div class="bottom-section">
         <!-- Топ помещений -->
         <div class="data-card">
-            <h2><i class="fas fa-trophy"></i> Топ-5 помещений</h2>
+            <h2></i> Топ-5 помещений</h2>
             {% if top_spaces %}
             <table class="data-table">
                 <thead>
@@ -310,7 +310,7 @@
 
         <!-- Распределение по статусам -->
         <div class="chart-card">
-            <h2><i class="fas fa-chart-pie"></i> Бронирования по статусам</h2>
+            <h2></i> Бронирования по статусам</h2>
             <div class="chart-wrapper">
                 <canvas id="statusChart"></canvas>
             </div>

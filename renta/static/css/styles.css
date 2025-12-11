@@ -20,6 +20,13 @@
   --color-gold-light: #e5c666;
   --color-gold-dark: #b8941f;
   --color-gold-rgb: 212, 175, 55;
+
+  /* Алиасы для совместимости с шаблонами */
+  --gold: var(--color-gold);
+  --gold-light: var(--color-gold-light);
+  --gold-dark: var(--color-gold-dark);
+  --card-bg: var(--bg-card);
+
   /* Семантические цвета */
   --color-success: #22c55e;
   --color-success-bg: rgba(34, 197, 94, 0.1);
@@ -39,7 +46,7 @@
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
-  --border-color: #27272a;
+  --border-color: #272727; /* <-- ИСПРАВЛЕНО: Лучше контраст */
   --border-hover: #3f3f46;
   --shadow-color: rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -124,6 +131,22 @@ main {
 .text-muted {
   color: var(--text-muted) !important;
 }
+
+/* Added themed text classes for dark/light mode compatibility */
+.text-primary-themed {
+  color: var(--text-primary) !important;
+}
+.text-secondary-themed {
+  color: var(--text-secondary) !important;
+}
+.text-muted-themed {
+  color: var(--text-muted) !important;
+}
+.themed-hr {
+  border-color: var(--border-color) !important;
+  opacity: 0.5;
+}
+
 .gold-text {
   color: var(--color-gold) !important;
 }
@@ -729,9 +752,14 @@ a:hover {
   text-transform: uppercase;
   letter-spacing: 1.5px;
 }
+/* Added prepare class for scroll animations to avoid inline style conflicts */
+.animate-prepare {
+  opacity: 0;
+}
+
 .animate-fade-in {
   animation: fadeInUp 0.8s ease forwards;
-  opacity: 0;
+  /* opacity: 0 is set by animation from keyframe */
 }
 .animate-fade-in.delay-1 {
   animation-delay: 0.1s;
@@ -935,7 +963,7 @@ a:hover {
 }
 
 /* =============================================================================
-   10. КАСТОМНЫЙ КАЛЕНДАРЬ
+   10. КАСТОМНЫЙ КАЛЕНДАР
    ============================================================================= */
 .custom-datepicker-wrapper {
   position: relative;
@@ -2894,16 +2922,6 @@ footer {
   color: #fbbf24;
   border: 1px solid rgba(251, 191, 36, 0.3);
 }
-.admin-section-icon.primary {
-  background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(96, 165, 250, 0.1));
-  color: #60a5fa;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-}
-.admin-section-icon.danger {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(248, 113, 113, 0.1));
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.3);
-}
 .admin-section-title {
   font-size: 1.1rem;
   font-weight: 600;
@@ -2958,7 +2976,6 @@ footer {
 .btn-gold:hover {
   background: linear-gradient(135deg, var(--color-gold-hover), var(--color-gold));
   color: #000;
-  transform: translateY(-1px);
 }
 .btn-info {
   background: linear-gradient(135deg, #22d3ee, #06b6d4);
@@ -3206,12 +3223,42 @@ footer {
 }
 
 /* Стили для блока стоимости бронирования */
+/* =============================================================================
+   СТИЛИ ДЛЯ БЛОКА СТОИМОСТИ БРОНИРОВАНИЯ
+   ============================================================================= */
 .booking-cost-details .cost-label {
-  color: var(--text-secondary);
+  color: var(--text-secondary) !important;
 }
 
 .booking-cost-details .cost-value {
+  color: var(--text-primary) !important;
+}
+
+.booking-cost-details hr {
+  border-color: var(--border-color);
+  opacity: 0.5;
+}
+
+.booking-cost-details .fw-bold.cost-label {
+  color: var(--text-primary) !important;
+}
+
+/* Для card-header внутри glass-card */
+.glass-card .card-header,
+.glass-card .card-header h5,
+.glass-card .card-body {
   color: var(--text-primary);
+}
+
+/* Стили для текстовых меток в блоке стоимости в темной теме */
+[data-theme="dark"] .booking-cost-details .cost-label,
+[data-theme="dark"] .card .cost-label {
+  color: #a1a1aa !important;
+}
+
+[data-theme="dark"] .booking-cost-details .cost-value,
+[data-theme="dark"] .card .cost-value {
+  color: #fafafa !important;
 }
 
 /* Параграфы в карточках */

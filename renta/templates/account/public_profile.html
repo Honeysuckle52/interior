@@ -9,33 +9,34 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb breadcrumb-visible py-2 px-3 rounded" style="background: rgba(212, 175, 55, 0.1);">
             <li class="breadcrumb-item"><a href="{% url 'home' %}" class="breadcrumb-link fw-medium">Главная</a></li>
-            <li class="breadcrumb-item active fw-bold" style="color: var(--gold) !important;">Профиль пользователя</li>
+            <li class="breadcrumb-item active fw-bold gold-text">Профиль пользователя</li>
         </ol>
     </nav>
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <!-- Карточка профиля -->
-            <div class="card glass-card">
+            <!-- Removed glass-card class to avoid JS opacity animation issue, using card only -->
+            <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
                 <div class="card-body">
                     <div class="text-center mb-4">
                         <div class="mb-3">
                             {% if profile_user.avatar %}
-                            <img src="{{ profile_user.avatar.url }}" alt="{{ profile_user.username }}" 
-                                 class="rounded-circle" 
-                                 style="width: 120px; height: 120px; object-fit: cover; border: 3px solid var(--gold);">
+                            <img src="{{ profile_user.avatar.url }}" alt="{{ profile_user.username }}"
+                                 class="rounded-circle"
+                                 style="width: 120px; height: 120px; object-fit: cover; border: 3px solid var(--color-gold);">
                             {% else %}
-                            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto" 
-                                 style="width: 120px; height: 120px; background: var(--card-bg); border: 3px solid var(--gold);">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                                 style="width: 120px; height: 120px; background: var(--bg-secondary); border: 3px solid var(--color-gold);">
                                 <i class="fas fa-user fa-3x" style="color: var(--text-muted);"></i>
                             </div>
                             {% endif %}
                         </div>
+                        <!-- Fixed text colors using inline styles instead of themed classes -->
                         <h4 class="fw-bold mb-1" style="color: var(--text-primary);">{{ profile_user.get_full_name_or_username }}</h4>
                         <p class="mb-3" style="color: var(--text-muted);">@{{ profile_user.username }}</p>
 
                         <div class="d-flex justify-content-center gap-2 flex-wrap">
-                            <span class="badge px-3 py-2" style="background: rgba(212, 175, 55, 0.2); color: var(--gold);">
+                            <span class="badge px-3 py-2" style="background: rgba(212, 175, 55, 0.2); color: var(--color-gold);">
                                 <i class="fas fa-user me-1"></i>{{ profile_user.get_user_type_display }}
                             </span>
                             {% if profile_user.email_verified %}
@@ -50,17 +51,16 @@
                     <div class="row text-center mb-4">
                         <div class="col-12">
                             <div class="p-3 rounded" style="background: rgba(212, 175, 55, 0.1);">
-                                <div class="h3 mb-0 fw-bold" style="color: var(--gold);">{{ user_stats.reviews_count }}</div>
-                                <!-- fixed text color for dark theme -->
+                                <div class="h3 mb-0 fw-bold gold-text">{{ user_stats.reviews_count }}</div>
                                 <small style="color: var(--text-muted);">Отзывов</small>
                             </div>
                         </div>
                     </div>
 
-                    <!-- replaced company with VK link -->
+                    <!-- VK link -->
                     {% if profile_user.social_vk %}
                     <div class="mb-4">
-                        <h6 class="fw-bold mb-3" style="color: var(--gold);">
+                        <h6 class="fw-bold mb-3 gold-text">
                             <i class="fab fa-vk me-2"></i>ВКонтакте
                         </h6>
                         <a href="{{ profile_user.social_vk }}" target="_blank" rel="noopener noreferrer"
@@ -72,7 +72,7 @@
 
                     {% if profile_user.bio %}
                     <div class="mb-4">
-                        <h6 class="fw-bold mb-3" style="color: var(--gold);">
+                        <h6 class="fw-bold mb-3 gold-text">
                             <i class="fas fa-quote-left me-2"></i>О себе
                         </h6>
                         <p class="mb-0" style="color: var(--text-secondary);">{{ profile_user.bio }}</p>
@@ -80,7 +80,6 @@
                     {% endif %}
 
                     <div class="mb-4">
-                        <!-- fixed text color for dark theme -->
                         <small style="color: var(--text-muted);">
                             <i class="fas fa-calendar me-1"></i>
                             На сайте с {{ profile_user.created_at|date:"d.m.Y" }}
@@ -91,28 +90,27 @@
 
             <!-- Последние отзывы -->
             {% if recent_reviews %}
-            <div class="card glass-card mt-4">
-                <div class="card-header">
+            <!-- Removed glass-card class, using card with inline styles -->
+            <div class="card mt-4" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
+                <div class="card-header" style="background: transparent; border-bottom: 1px solid var(--border-color);">
                     <h5 class="mb-0" style="color: var(--text-primary);">
-                        <i class="fas fa-star me-2" style="color: var(--gold);"></i>Последние отзывы
+                        <i class="fas fa-star me-2 gold-text"></i>Последние отзывы
                     </h5>
                 </div>
                 <div class="card-body">
                     {% for review in recent_reviews %}
-                    <div class="p-3 mb-3 rounded" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div class="p-3 mb-3 rounded" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <a href="{% url 'space_detail' review.space.pk %}"
-                               class="text-decoration-none fw-bold"
-                               style="color: var(--gold);">
+                               class="text-decoration-none fw-bold gold-text">
                                 {{ review.space.title }}
                             </a>
-                            <span style="color: var(--gold);">
+                            <span class="gold-text">
                                 {% for i in "12345" %}
                                 <i class="{% if forloop.counter <= review.rating %}fas{% else %}far{% endif %} fa-star"></i>
                                 {% endfor %}
                             </span>
                         </div>
-                        <!-- fixed text color for dark theme -->
                         <p class="mb-2" style="color: var(--text-secondary);">{{ review.comment|truncatechars:150 }}</p>
                         <small style="color: var(--text-muted);">{{ review.created_at|date:"d.m.Y" }}</small>
                     </div>

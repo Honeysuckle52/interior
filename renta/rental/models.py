@@ -625,7 +625,7 @@ class Booking(models.Model):
 
     space = models.ForeignKey(
         Space,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='bookings',
         verbose_name='Помещение'
     )

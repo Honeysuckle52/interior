@@ -426,7 +426,7 @@ function initScrollAnimations() {
   )
 
   document.querySelectorAll(".space-card, .dashboard-card, .glass-card").forEach((el) => {
-    el.style.opacity = "0"
+    el.classList.add("animate-prepare")
     observer.observe(el)
   })
 }
