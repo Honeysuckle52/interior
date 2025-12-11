@@ -240,7 +240,12 @@
                                     {% endif %}
                                 </div>
                                 <div>
-                                    <strong>{{ review.author.get_full_name_or_username }}</strong>
+                                    <!-- Добавлена ссылка на профиль автора отзыва -->
+                                    <a href="{% url 'public_user_profile' review.author.pk %}"
+                                       class="text-decoration-none"
+                                       style="color: var(--gold);">
+                                        <strong>{{ review.author.get_full_name_or_username }}</strong>
+                                    </a>
                                     <div class="review-date">{{ review.created_at|date:"d.m.Y" }}</div>
                                 </div>
                             </div>

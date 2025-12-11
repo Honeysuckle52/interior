@@ -11,7 +11,7 @@ from .views import (
     # Аутентификация
     CustomLoginView, register_view, logout_view,
     # Личный кабинет
-    dashboard, profile, my_bookings, my_favorites, view_user_profile,
+    dashboard, profile, my_bookings, my_favorites, view_user_profile, public_user_profile,  # Добавлен public_user_profile
     # Избранное
     toggle_favorite,
     # Бронирования
@@ -86,6 +86,7 @@ urlpatterns = [
     path('my-reviews/', my_reviews, name='my_reviews'),
 
     path('users/<int:pk>/profile/', view_user_profile, name='view_user_profile'),
+    path('users/<int:pk>/', public_user_profile, name='public_user_profile'),  # Добавлен URL публичного профиля
 
     # ============== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (Модератор) ==============
     path('manage/users/', manage_users, name='manage_users'),

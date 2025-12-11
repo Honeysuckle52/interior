@@ -39,7 +39,6 @@ class UserProfileForm(forms.ModelForm):
     - last_name: Фамилия пользователя
     - email: Email для связи
     - phone: Телефон для связи
-    - company: Название компании
     - avatar: Фото профиля
     - bio: О себе
     - social_vk: Ссылка ВКонтакте
@@ -58,7 +57,7 @@ class UserProfileForm(forms.ModelForm):
         model = CustomUser
         fields = [
             'first_name', 'last_name', 'email',
-            'phone', 'company', 'avatar', 'bio', 'social_vk'
+            'phone', 'avatar', 'bio', 'social_vk'
         ]
         widgets = {
             'first_name': forms.TextInput(attrs={
@@ -72,10 +71,6 @@ class UserProfileForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Email'
-            }),
-            'company': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Название компании (необязательно)'
             }),
             'avatar': forms.FileInput(attrs={
                 'class': 'form-control',
@@ -96,7 +91,6 @@ class UserProfileForm(forms.ModelForm):
             'last_name': 'Фамилия',
             'email': 'Email',
             'phone': 'Телефон',
-            'company': 'Компания',
             'avatar': 'Фото профиля',
             'bio': 'О себе',
             'social_vk': 'ВКонтакте',

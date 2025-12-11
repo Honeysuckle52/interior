@@ -86,16 +86,18 @@
     {% if reviews %}
     <div class="reviews-manage-list">
         {% for review in reviews %}
-        <div class="review-manage-item glass-card mb-3">
-            <div class="review-manage-header">
+        <div class="review-manage-item glass-card mb-3 p-4">
+            <div class="review-manage-header mb-3">
                 <div class="review-manage-info">
-                    <div class="review-manage-author">
-                        </i>
-                        <strong>{{ review.author.get_full_name|default:review.author.username }}</strong>
+                    <div class="review-manage-author mb-1">
+                        <a href="{% url 'public_user_profile' review.author.pk %}"
+                           class="text-decoration-none" style="color: var(--gold);">
+                            <strong>{{ review.author.get_full_name|default:review.author.username }}</strong>
+                        </a>
                     </div>
-                    <div class="review-manage-meta text-muted">
-                        <span></i>{{ review.space.title }}</span>
-                        <span></i>{{ review.created_at|date:"d.m.Y H:i" }}</span>
+                    <div class="review-manage-meta" style="color: var(--text-muted);">
+                        <span class="me-3"><i class="fas fa-building me-1"></i>{{ review.space.title }}</span>
+                        <span><i class="fas fa-calendar me-1"></i>{{ review.created_at|date:"d.m.Y H:i" }}</span>
                     </div>
                 </div>
                 <div class="review-manage-status">
@@ -106,18 +108,18 @@
                     {% endif %}
                 </div>
             </div>
-            
+
             <div class="review-manage-body">
                 <div class="review-manage-rating mb-2">
                     {% for i in "12345" %}
                     <i class="{% if forloop.counter <= review.rating %}fas{% else %}far{% endif %} fa-star gold-text"></i>
                     {% endfor %}
-                    <span class="ms-2 text-muted">({{ review.rating }}/5)</span>
+                    <span class="ms-2" style="color: var(--text-muted);">({{ review.rating }}/5)</span>
                 </div>
-                <p class="review-manage-comment">{{ review.comment }}</p>
+                <p class="review-manage-comment mb-0" style="color: var(--text-secondary); line-height: 1.6;">{{ review.comment }}</p>
             </div>
-            
-            <div class="review-manage-actions">
+
+            <div class="review-manage-actions mt-3 pt-3" style="border-top: 1px solid rgba(255, 255, 255, 0.1);">
                 {% if not review.is_approved %}
                 <form action="{% url 'approve_review' review.pk %}" method="post" class="d-inline">
                     {% csrf_token %}
@@ -127,17 +129,17 @@
                 </form>
                 {% endif %}
                 <a href="{% url 'edit_review' review.pk %}" class="btn btn-outline-gold btn-sm">
-                    </i>Редактировать
+                    <i class="fas fa-edit me-1"></i>Редактировать
                 </a>
-                <form action="{% url 'admin_delete_review' review.pk %}" method="post" class="d-inline" 
+                <form action="{% url 'admin_delete_review' review.pk %}" method="post" class="d-inline"
                       onsubmit="return confirm('Удалить этот отзыв?');">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-danger btn-sm">
-                        </i>Удалить
+                        <i class="fas fa-trash me-1"></i>Удалить
                     </button>
                 </form>
                 <a href="{% url 'space_detail' review.space.pk %}" class="btn btn-outline-secondary btn-sm">
-                    </i>Перейти
+                    <i class="fas fa-external-link-alt me-1"></i>Перейти
                 </a>
             </div>
         </div>

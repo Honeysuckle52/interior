@@ -19,7 +19,7 @@
             <div class="card glass-card">
                 <div class="card-header">
                     <h4 class="mb-0">
-                        </i>Редактирование отзыва
+                        Редактирование отзыва
                     </h4>
                 </div>
                 <div class="card-body">
@@ -33,14 +33,21 @@
 
                     <form method="post">
                         {% csrf_token %}
-                        
+
+                        <!-- Заменены кружки на звездочки как на остальном сайте -->
                         <div class="mb-3">
                             <label class="form-label">Рейтинг</label>
-                            <div class="star-rating">
-                                {% for i in "54321" %}
-                                <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" {% if review.rating == i|add:0 %}checked{% endif %} required>
-                                <label for="star{{ i }}" title="{{ i }} {% if i == '1' %}звезда{% elif i < '5' %}звезды{% else %}звёзд{% endif %}"><i class="fas fa-star"></i></label>
-                                {% endfor %}
+                            <div class="star-rating-input" id="starRatingEdit">
+                                <input type="radio" id="star5" name="rating" value="5" {% if review.rating == 5 %}checked{% endif %} required>
+                                <label for="star5" title="5 звёзд"></label>
+                                <input type="radio" id="star4" name="rating" value="4" {% if review.rating == 4 %}checked{% endif %}>
+                                <label for="star4" title="4 звезды"></label>
+                                <input type="radio" id="star3" name="rating" value="3" {% if review.rating == 3 %}checked{% endif %}>
+                                <label for="star3" title="3 звезды"></label>
+                                <input type="radio" id="star2" name="rating" value="2" {% if review.rating == 2 %}checked{% endif %}>
+                                <label for="star2" title="2 звезды"></label>
+                                <input type="radio" id="star1" name="rating" value="1" {% if review.rating == 1 %}checked{% endif %}>
+                                <label for="star1" title="1 звезда"></label>
                             </div>
                         </div>
 
@@ -60,7 +67,7 @@
 
                         <div class="d-flex gap-3">
                             <button type="submit" class="btn btn-gold">
-                                </i>Сохранить
+                                <i class="fas fa-save me-2"></i>Сохранить
                             </button>
                             <a href="{% url 'space_detail' review.space.id %}" class="btn btn-outline-secondary">
                                 Отмена

@@ -209,7 +209,7 @@ def edit_review(request: HttpRequest, pk: int) -> HttpResponse:
             if form.is_valid():
                 form.save()
                 messages.success(request, 'Отзыв успешно обновлён')
-                return redirect('space_detail', pk=review.space.pk)
+                return redirect('manage_reviews')
         else:
             form = ReviewForm(instance=review)
 

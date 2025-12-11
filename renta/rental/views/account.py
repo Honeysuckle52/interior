@@ -269,3 +269,42 @@ def view_user_profile(request: HttpRequest, pk: int) -> HttpResponse:
         logger.error(f"Error in view_user_profile view for pk={pk}: {e}", exc_info=True)
         messages.error(request, 'Ошибка при загрузке профиля пользователя')
         return redirect('manage_bookings')
+
+
+@login_required
+def public_user_profile(request: HttpRequest, pk: int) -> HttpResponse:
+    """
+    Публичный просмотр профиля пользователя (автора отзыва).
+    Доступен всем авторизованным пользователям.
+    Показывает ограниченную информацию без модераторских действий.
+    """
+    try:
+        profile_user: CustomUser = get_object_or_404(
+            CustomUser,
+            pk=pk
+        )
+
+        # Статистика (только публичная)
+        user_stats: dict[str, int] = {
+            'reviews_count': Review.objects.filter(author=profile_user, is_approved=True).count(),
+        }
+
+        # Последние одобренные отзывы пользователя
+        recent_reviews = Review.objects.filter(
+            author=profile_user,
+            is_approved=True
+        ).select_related(
+            'space', 'space__city'
+        ).order_by('-created_at')[:5]
+
+        context: dict[str, Any] = {
+            'profile_user': profile_user,
+            'user_stats': user_stats,
+            'recent_reviews': recent_reviews,
+        }
+        return render(request, 'account/public_profile.html', context)
+
+    except Exception as e:
+        logger.error(f"Error in public_user_profile view for pk={pk}: {e}", exc_info=True)
+        messages.error(request, 'Ошибка при загрузке профиля пользователя')
+        return redirect('home')

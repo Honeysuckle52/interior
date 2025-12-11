@@ -28,7 +28,7 @@
 from .home import home
 from .spaces import spaces_list, space_detail
 from .auth import CustomLoginView, register_view, logout_view
-from .account import dashboard, profile, my_bookings, my_favorites, view_user_profile
+from .account import dashboard, profile, my_bookings, my_favorites, view_user_profile, public_user_profile
 from .favorites import toggle_favorite
 from .bookings import (
     create_booking, booking_detail, cancel_booking,
@@ -65,6 +65,7 @@ __all__ = [
     'my_bookings',
     'my_favorites',
     'view_user_profile',
+    'public_user_profile',  # Добавлен экспорт public_user_profile
 
     # -------------------------------------------------------------------------
     # ИЗБРАННОЕ (AJAX)
