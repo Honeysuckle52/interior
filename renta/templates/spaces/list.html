@@ -332,22 +332,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     const data = await response.json();
 
-                    if (data.is_favorite) {
+                    const isActive = data.status === 'added';
+
+                    if (isActive) {
                         this.classList.add('active');
                         icon.classList.remove('far');
                         icon.classList.add('fas');
                         // Анимация пульса
                         icon.style.animation = 'heartPulse 0.6s ease';
+                        setTimeout(() => { icon.style.animation = ''; }, 600);
                     } else {
                         this.classList.remove('active');
                         icon.classList.remove('fas');
                         icon.classList.add('far');
-                        icon.style.animation = 'none';
+                        icon.style.animation = '';
                     }
 
                     // Возврат масштаба с небольшим отскоком
                     setTimeout(() => {
-                        this.style.transform = data.is_favorite ? 'scale(1.1)' : 'scale(1)';
+                        this.style.transform = isActive ? 'scale(1.1)' : 'scale(1)';
                         setTimeout(() => {
                             this.style.transform = 'scale(1)';
                         }, 150);

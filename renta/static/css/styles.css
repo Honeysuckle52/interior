@@ -2760,8 +2760,6 @@ footer {
   transition: all var(--transition-fast);
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
 }
 .filter-select-modern:hover {
   border-color: var(--color-gold);
@@ -3164,4 +3162,128 @@ footer {
   background: var(--color-gold);
   border-color: var(--color-gold);
   color: #000;
+}
+
+/* =============================================================================
+   Исправление видимости текста в темной теме (бронирования, карточки)
+   ============================================================================= */
+
+/* Исправление text-muted в карточках для темной темы */
+.glass-card .text-muted,
+.card .text-muted,
+.detail-card .text-muted,
+.dashboard-card .text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Исправление fw-bold текста в карточках */
+.glass-card .fw-bold,
+.card .fw-bold,
+.detail-card .fw-bold,
+.dashboard-card .fw-bold {
+  color: var(--text-primary) !important;
+}
+
+/* Заголовки в карточках */
+.glass-card h5,
+.glass-card h4,
+.glass-card h6,
+.card h5,
+.card h4,
+.card h6 {
+  color: var(--text-primary);
+}
+
+/* Ссылки в карточках бронирования */
+.glass-card a.text-decoration-none,
+.card a.text-decoration-none {
+  color: var(--color-gold) !important;
+}
+
+.glass-card a.text-decoration-none:hover,
+.card a.text-decoration-none:hover {
+  color: var(--color-gold-light) !important;
+}
+
+/* Стили для блока стоимости бронирования */
+.booking-cost-details .cost-label {
+  color: var(--text-secondary);
+}
+
+.booking-cost-details .cost-value {
+  color: var(--text-primary);
+}
+
+/* Параграфы в карточках */
+.glass-card p,
+.card p {
+  color: var(--text-secondary);
+}
+
+.glass-card p.text-muted,
+.card p.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Разделители в карточках */
+.glass-card hr,
+.card hr {
+  border-color: var(--border-color);
+  opacity: 0.5;
+}
+
+/* Строки с информацией в бронировании */
+.glass-card .row .col-6 small.text-muted {
+  color: var(--text-muted) !important;
+  font-size: 0.8rem;
+}
+
+.glass-card .row .col-6 .fw-bold {
+  color: var(--text-primary) !important;
+}
+
+/* =============================================================================
+   Стили для отображения рейтинга в карточках помещений
+   ============================================================================= */
+
+/* Рейтинг в карточке помещения */
+.space-card-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.space-card-rating .rating-stars {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: var(--color-gold);
+}
+
+.space-card-rating .rating-stars i {
+  font-size: 0.8rem;
+}
+
+.space-card-rating .rating-stars .fa-star-half-alt {
+  position: relative;
+}
+
+.space-card-rating .rating-value {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left: 0.25rem;
+}
+
+.space-card-rating .rating-count {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* Без рейтинга */
+.space-card-rating .no-rating {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.8rem;
 }
