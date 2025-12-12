@@ -397,11 +397,11 @@ function initYandexMap() {
     const latitude = {{ space.latitude|default:"null" }};
     const longitude = {{ space.longitude|default:"null" }};
 
-    console.log('[v0] Координаты из БД:', latitude, longitude);
+    console.log('Координаты из БД:', latitude, longitude);
 
     if (latitude && longitude && latitude !== 0 && longitude !== 0) {
         // Используем точные координаты из базы данных
-        console.log('[v0] Используем координаты из БД');
+        console.log('Используем координаты из БД');
         createMap([latitude, longitude]);
     } else {
         // Fallback: геокодирование по адресу через JavaScript API
@@ -409,27 +409,27 @@ function initYandexMap() {
         const address = "{{ space.address|escapejs }}";
         const fullAddress = city + ", " + address;
 
-        console.log('[v0] Геокодирование адреса:', fullAddress);
+        console.log('Геокодирование адреса:', fullAddress);
 
         ymaps.geocode(fullAddress, { results: 1 }).then(function(res) {
             const firstGeoObject = res.geoObjects.get(0);
             if (firstGeoObject) {
                 const coords = firstGeoObject.geometry.getCoordinates();
-                console.log('[v0] Геокодирование успешно:', coords);
+                console.log('Геокодирование успешно:', coords);
                 createMap(coords);
             } else {
-                console.error('[v0] Адрес не найден');
+                console.error('Адрес не найден');
                 showMapError('Адрес не найден на карте');
             }
         }).catch(function(err) {
-            console.error('[v0] Ошибка геокодирования:', err);
+            console.error('Ошибка геокодирования:', err);
             showMapError('Ошибка геокодирования: ' + err.message);
         });
     }
 }
 
 function createMap(coords) {
-    console.log('[v0] Создание карты с координатами:', coords);
+    console.log('Создание карты с координатами:', coords);
 
     try {
         // Создаём карту
@@ -461,9 +461,9 @@ function createMap(coords) {
             yandexMap.behaviors.enable('scrollZoom');
         });
 
-        console.log('[v0] Карта создана успешно');
+        console.log('Карта создана успешно');
     } catch (err) {
-        console.error('[v0] Ошибка создания карты:', err);
+        console.error('Ошибка создания карты:', err);
         showMapError('Ошибка создания карты');
     }
 }
@@ -515,7 +515,7 @@ function showMapError(message) {
     document.head.appendChild(style);
 
     const apiKey = '{{ yandex_maps_api_key|default:"" }}';
-    console.log('[v0] API ключ:', apiKey ? 'установлен' : 'отсутствует');
+    console.log('API ключ:', apiKey ? 'установлен' : 'отсутствует');
 
     if (!apiKey) {
         showMapError('API ключ Яндекс.Карт не настроен');
@@ -528,7 +528,7 @@ function showMapError(message) {
     script.async = true;
 
     script.onload = function() {
-        console.log('[v0] Яндекс.Карты API загружен');
+        console.log('Яндекс.Карты API загружен');
         if (typeof ymaps !== 'undefined') {
             ymaps.ready(initYandexMap);
         } else {
@@ -537,7 +537,7 @@ function showMapError(message) {
     };
 
     script.onerror = function(e) {
-        console.error('[v0] Ошибка загрузки скрипта:', e);
+        console.error('Ошибка загрузки скрипта:', e);
         showMapError('Не удалось загрузить Яндекс.Карты');
     };
 
@@ -546,7 +546,7 @@ function showMapError(message) {
     // Таймаут на загрузку
     setTimeout(function() {
         if (typeof ymaps === 'undefined') {
-            console.error('[v0] Таймаут загрузки Яндекс.Карты');
+            console.error('Таймаут загрузки Яндекс.Карты');
             showMapError('Превышено время ожидания загрузки карты');
         }
     }, 15000);
