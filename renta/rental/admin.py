@@ -262,8 +262,8 @@ class InteriorAdminSite(AdminSite):
                 'C:/Windows/Fonts/DejaVuSans.ttf',
                 '/Library/Fonts/DejaVuSans.ttf',
                 '/System/Library/Fonts/Supplemental/DejaVuSans.ttf',
-                os.path.join(settings.BASE_DIR, 'static', 'fonts', 'DejaVuSans.ttf'),
-                os.path.join(settings.BASE_DIR, 'fonts', 'DejaVuSans.ttf'),
+                os.path.join(settings.BASE_DIR, 'renta', 'bolt', 'DejaVuSans.ttf'),
+                os.path.join(settings.BASE_DIR, 'bolt', 'DejaVuSans.ttf'),
             ]
 
             for font_path in font_paths:

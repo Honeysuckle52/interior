@@ -635,10 +635,9 @@ class Command(BaseCommand):
 
     def _create_space_images(self, space: Space, space_slug: str) -> int:
         """
-        Создаёт изображения для помещения, используя реальные файлы
-        из папки media/12, указанные в IMAGE_FILENAMES.
+        Создаёт записи об изображениях, привязывая их к существующим файлам
+        в папке media/spaces/2025/12. Не создает дубликатов файлов.
         """
-        # 2. Получаем имена файлов по slug помещения
         filenames = self.IMAGE_FILENAMES.get(space_slug, [])
 
         if not filenames:
@@ -647,35 +646,42 @@ class Command(BaseCommand):
 
         created_images = 0
 
+        # Относительная папка внутри MEDIA_ROOT, где лежат фото
+        # Мы берем её жестко, так как она определена в TEST_IMAGES_DIR как константа
+        relative_folder = 'spaces/2025/12'
+
         for i, filename in enumerate(filenames):
-            source_path = os.path.join(TEST_IMAGES_DIR, filename)
+            # Полный путь только для проверки существования файла
+            full_path = os.path.join(TEST_IMAGES_DIR, filename)
 
-            if not os.path.exists(source_path):
-                self.stdout.write(self.style.ERROR(f'    Ошибка: Файл не найден: {source_path}'))
+            if not os.path.exists(full_path):
+                self.stdout.write(self.style.ERROR(f'    Ошибка: Файл не найден по пути: {full_path}'))
                 continue
-            
-            # Создаём объект SpaceImage
-            image = SpaceImage(
-                space=space,
-                alt_text=f'{space.title} - фото {i + 1}',
-                is_primary=(i == 0),
-                sort_order=i
-            )
 
-            # Определяем целевой путь в стандартной папке 'media/spaces/...'
-            # Используем ContentFile и shutil для имитации загрузки файла
             try:
-                # Читаем содержимое файла
-                with open(source_path, 'rb') as f:
-                    content = ContentFile(f.read())
-                
-                # Сохраняем файл через FileField.save()
-                target_filename = f'{space_slug}_{i + 1}_{os.path.basename(filename)}'
-                image.image.save(target_filename, content, save=True)
-                
+                # Создаём объект, но пока не сохраняем в БД
+                image = SpaceImage(
+                    space=space,
+                    alt_text=f'{space.title} - фото {i + 1}',
+                    is_primary=(i == 0),
+                    sort_order=i
+                )
+
+                # ГЛАВНОЕ ИЗМЕНЕНИЕ:
+                # Мы вручную формируем путь относительно MEDIA_ROOT.
+                # Django хранит в БД именно строку пути.
+                # Используем forward slash '/', так как это стандарт для путей в БД Django даже на Windows.
+                image_relative_path = f'{relative_folder}/{filename}'
+
+                # Присваиваем атрибуту name поля ImageField этот путь
+                image.image.name = image_relative_path
+
+                # Сохраняем только запись в БД (метод save модели, а не поля файла)
+                image.save()
+
                 created_images += 1
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f'    Не удалось обработать файл {filename}: {e}'))
+                self.stdout.write(self.style.ERROR(f'    Не удалось привязать файл {filename}: {e}'))
 
         return created_images
 
