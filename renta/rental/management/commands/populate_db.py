@@ -21,6 +21,8 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils.text import slugify
 from unidecode import unidecode
+# Импортируем shutil для копирования файлов
+import shutil
 
 from ...models import (
     Region, City, SpaceCategory, PricingPeriod, Space, SpaceImage,
@@ -33,11 +35,30 @@ User = get_user_model()
 MIN_PRICE: int = 100
 PRICE_ROUND_BASE: int = 100
 
+# Директория для хранения тестовых изображений (относительно корня проекта)
+# Убедитесь, что эта папка существует и содержит ваши файлы
+TEST_IMAGES_DIR: str = os.path.join(settings.BASE_DIR, 'media', 'spaces', '2025', '12')
+
 
 class Command(BaseCommand):
     """Команда для заполнения базы данных тестовыми данными."""
 
     help = 'Заполняет базу данных начальными данными для сайта аренды помещений'
+
+    # 1. Словарь для указания имен файлов изображений
+    IMAGE_FILENAMES: dict[str, list[str]] = {
+        'bc-moscow-city-tower': ['office_1_1.jpg', 'office_1_2.jpg', 'office_1_3.jpg'],
+        'loft-krasny-oktyabr': ['loft_1_1.jpg', 'loft_1_2.jpg', 'loft_1_3.jpg'],
+        'coworking-nevsky': ['coworking_1_1.jpg', 'coworking_1_2.jpg', 'coworking_1_3.jpg'],
+        'conference-akademichesky': ['conference_1_1.jpg'],
+        'photo-studio-irkutsk': ['photo_1_1.jpg', 'photo_1_2.jpg', 'photo_1_3.jpg'],
+        'showroom-kazan': ['showroom_1_1.jpg', 'showroom_1_2.jpg'],
+        'office-baikal-business': ['office_2_1.jpg', 'office_2_2.jpg', 'office_2_3.jpg'],
+        'warehouse-nizny': ['warehouse_1_1.jpg'],
+        'retail-irkutsk-center': ['retail_1_1.jpg'],
+        'creative-loft-novosib': ['loft_2_1.jpg'],
+    }
+
 
     def add_arguments(self, parser) -> None:
         """Добавление аргументов командной строки."""
@@ -76,6 +97,7 @@ class Command(BaseCommand):
             self.print_summary()
 
         except Exception as e:
+            # Убедимся, что при ошибке отображается полный путь к файлу
             raise CommandError(f'Ошибка при заполнении БД: {e}')
 
     def clear_data(self) -> None:
@@ -95,26 +117,20 @@ class Command(BaseCommand):
         self.stdout.write('  → Данные очищены')
 
     def create_regions_and_cities(self) -> None:
-        """Создание только городов-миллионников и Иркутска (13 городов)."""
-        self.stdout.write('\n📍 Создание регионов и городов-миллионников...')
+        """Создание только городов-миллионников и Иркутска (9 городов)."""
+        self.stdout.write('\n📍 Создание регионов и городов-миллионников (9 городов)...')
 
-        # Только города-миллионники России + Иркутск
+        # Города для создания: Москва, Санкт-Петербург, Новосибирск, Казань, Нижний Новгород,
+        # Омск, Красноярск, Пермь, Иркутск (всего 9)
         regions_data: dict[str, tuple[str, list[str]]] = {
             'Москва': ('77', ['Москва']),
             'Санкт-Петербург': ('78', ['Санкт-Петербург']),
             'Новосибирская область': ('54', ['Новосибирск']),
-            'Свердловская область': ('66', ['Екатеринбург']),
             'Республика Татарстан': ('16', ['Казань']),
             'Нижегородская область': ('52', ['Нижний Новгород']),
-            'Челябинская область': ('74', ['Челябинск']),
-            'Самарская область': ('63', ['Самара']),
             'Омская область': ('55', ['Омск']),
-            'Ростовская область': ('61', ['Ростов-на-Дону']),
-            'Республика Башкортостан': ('02', ['Уфа']),
             'Красноярский край': ('24', ['Красноярск']),
-            'Воронежская область': ('36', ['Воронеж']),
             'Пермский край': ('59', ['Пермь']),
-            'Волгоградская область': ('34', ['Волгоград']),
             'Иркутская область': ('38', ['Иркутск']),
         }
 
@@ -141,6 +157,9 @@ class Command(BaseCommand):
         self.stdout.write(f'  → Создано регионов: {regions_created}')
         self.stdout.write(f'  → Создано городов: {cities_created}')
 
+    # ... (Остальные методы: create_categories, create_pricing_periods, create_statuses,
+    # create_admin, create_moderators, create_test_users остаются без изменений)
+    
     def create_categories(self) -> None:
         """Создание категорий помещений."""
         self.stdout.write('\n📂 Создание категорий помещений...')
@@ -386,7 +405,10 @@ class Command(BaseCommand):
             ))
 
     def create_spaces(self) -> None:
-        """Создание 10 реальных помещений с точными координатами."""
+        """
+        Создание 10 реальных помещений с точными координатами.
+        Обновлено для использования только созданных городов.
+        """
         self.stdout.write('\n🏢 Создание 10 реальных помещений...')
 
         admin = User.objects.filter(user_type='admin').first()
@@ -398,9 +420,14 @@ class Command(BaseCommand):
         if not admin:
             self.stdout.write(self.style.ERROR('  → Администратор не найден'))
             return
-
-        # 10 реальных помещений с точными адресами и координатами
+            
+        # Список доступных городов для распределения помещений
+        city_names = ['Москва', 'Санкт-Петербург', 'Новосибирск', 'Казань', 
+                      'Нижний Новгород', 'Омск', 'Красноярск', 'Пермь', 'Иркутск']
+        
+        # 10 реальных помещений с точными адресами и координатами, привязанные к доступным городам
         spaces_data = [
+            # 1. Москва - Офис
             {
                 'title': 'Бизнес-центр "Москва-Сити" Tower',
                 'slug': 'bc-moscow-city-tower',
@@ -415,6 +442,7 @@ class Command(BaseCommand):
                 'is_featured': True,
                 'prices': {'hour': 5000, 'day': 35000, 'week': 180000, 'month': 650000}
             },
+            # 2. Москва - Лофт
             {
                 'title': 'Лофт "Красный Октябрь"',
                 'slug': 'loft-krasny-oktyabr',
@@ -429,6 +457,7 @@ class Command(BaseCommand):
                 'is_featured': True,
                 'prices': {'hour': 8000, 'day': 50000, 'week': 280000, 'month': 900000}
             },
+            # 3. Санкт-Петербург - Коворкинг
             {
                 'title': 'Коворкинг "Невский Проспект"',
                 'slug': 'coworking-nevsky',
@@ -443,6 +472,7 @@ class Command(BaseCommand):
                 'is_featured': True,
                 'prices': {'hour': 400, 'day': 2500, 'week': 12000, 'month': 35000}
             },
+            # 4. Новосибирск - Конференц-зал
             {
                 'title': 'Конференц-зал "Академический"',
                 'slug': 'conference-akademichesky',
@@ -457,23 +487,25 @@ class Command(BaseCommand):
                 'is_featured': False,
                 'prices': {'hour': 2500, 'day': 15000, 'week': 70000, 'month': 200000}
             },
+            # 5. Иркутск (был Екатеринбург) - Фотостудия
             {
-                'title': 'Фотостудия "Свет и Тень"',
-                'slug': 'photo-studio-svet-i-ten',
-                'city': 'Екатеринбург',
-                'address': 'ул. 8 Марта, 46',
+                'title': 'Фотостудия "Байкал-Свет"',
+                'slug': 'photo-studio-irkutsk',
+                'city': 'Иркутск',
+                'address': 'ул. Ленина, 7',
                 'category': 'photo-studio',
                 'area': 90,
                 'capacity': 15,
-                'latitude': 56.835538,
-                'longitude': 60.612973,
-                'description': 'Профессиональная фотостудия с полным комплектом оборудования Profoto. Циклорама 5x8м, зона для предметной съёмки, гримёрная комната. Набор фонов и реквизита включён в стоимость.',
+                'latitude': 52.285856,
+                'longitude': 104.288599,
+                'description': 'Профессиональная фотостудия с полным комплектом оборудования. Циклорама, зона для предметной съёмки, гримёрная комната. Набор фонов и реквизита включён в стоимость.',
                 'is_featured': True,
                 'prices': {'hour': 2000, 'day': 12000, 'week': 55000, 'month': 180000}
             },
+            # 6. Казань - Шоу-рум
             {
                 'title': 'Шоу-рум "Галерея Искусств"',
-                'slug': 'showroom-gallery',
+                'slug': 'showroom-kazan',
                 'city': 'Казань',
                 'address': 'ул. Баумана, 48',
                 'category': 'showroom',
@@ -485,6 +517,7 @@ class Command(BaseCommand):
                 'is_featured': False,
                 'prices': {'hour': 3000, 'day': 18000, 'week': 90000, 'month': 300000}
             },
+            # 7. Иркутск - Офис
             {
                 'title': 'Офис "Байкал Бизнес"',
                 'slug': 'office-baikal-business',
@@ -499,9 +532,10 @@ class Command(BaseCommand):
                 'is_featured': True,
                 'prices': {'hour': 800, 'day': 5000, 'week': 25000, 'month': 80000}
             },
+            # 8. Нижний Новгород - Склад
             {
                 'title': 'Склад "Логистик-Центр"',
-                'slug': 'warehouse-logistic-center',
+                'slug': 'warehouse-nizny',
                 'city': 'Нижний Новгород',
                 'address': 'ул. Ларина, 15',
                 'category': 'warehouse',
@@ -513,30 +547,32 @@ class Command(BaseCommand):
                 'is_featured': False,
                 'prices': {'hour': 500, 'day': 3500, 'week': 20000, 'month': 70000}
             },
+            # 9. Иркутск (был Ростов-на-Дону) - Торговое помещение
             {
-                'title': 'Торговое помещение "Центральное"',
-                'slug': 'retail-centralnoe',
-                'city': 'Ростов-на-Дону',
-                'address': 'ул. Большая Садовая, 71',
+                'title': 'Торговое помещение "Иркутск-Центр"',
+                'slug': 'retail-irkutsk-center',
+                'city': 'Иркутск',
+                'address': 'ул. Литвинова, 17',
                 'category': 'retail',
                 'area': 100,
                 'capacity': 30,
-                'latitude': 47.222531,
-                'longitude': 39.718705,
-                'description': 'Торговое помещение на первой линии главной улицы города. Большие витринные окна, отдельный вход, высокая проходимость. Все коммуникации, кондиционирование.',
+                'latitude': 52.285579,
+                'longitude': 104.288283,
+                'description': 'Торговое помещение на первой линии в центре Иркутска. Большие витринные окна, отдельный вход, высокая проходимость. Все коммуникации, кондиционирование.',
                 'is_featured': False,
                 'prices': {'hour': 1500, 'day': 10000, 'week': 50000, 'month': 180000}
             },
+            # 10. Новосибирск (был Самара) - Лофт
             {
                 'title': 'Креативный лофт "Фабрика"',
-                'slug': 'creative-loft-fabrika',
-                'city': 'Самара',
-                'address': 'ул. Ленинградская, 77',
+                'slug': 'creative-loft-novosib',
+                'city': 'Новосибирск',
+                'address': 'ул. Ленина, 12',
                 'category': 'loft',
                 'area': 250,
                 'capacity': 100,
-                'latitude': 53.195873,
-                'longitude': 50.101084,
+                'latitude': 55.030571,
+                'longitude': 82.915077,
                 'description': 'Просторный индустриальный лофт в бывшем заводском здании. Открытые балки, кирпичные стены, панорамное остекление. Идеально для мероприятий, концертов, выставок и корпоративных праздников.',
                 'is_featured': True,
                 'prices': {'hour': 4000, 'day': 25000, 'week': 130000, 'month': 450000}
@@ -552,7 +588,8 @@ class Command(BaseCommand):
                 city = City.objects.get(name=space_data['city'])
                 category = SpaceCategory.objects.get(slug=space_data['category'])
             except (City.DoesNotExist, SpaceCategory.DoesNotExist) as e:
-                self.stdout.write(self.style.WARNING(f"  → Пропущено: {space_data['title']} - {e}"))
+                # Этот блок не должен срабатывать после исправления, но оставим для отладки
+                self.stdout.write(self.style.ERROR(f"  → ОШИБКА: {space_data['title']} - {e}"))
                 continue
 
             space, created = Space.objects.get_or_create(
@@ -585,33 +622,39 @@ class Command(BaseCommand):
                         is_active=True
                     )
 
-                # Создаём placeholder изображения
-                images_count = self._create_space_images(space, space_data['category'])
+                # Создаём изображения по имени файла
+                images_count = self._create_space_images(space, space_data['slug'])
                 total_images += images_count
-                created_count += 1
                 self.stdout.write(f'  → Создано: {space_data["title"]}')
+            else:
+                self.stdout.write(f'  → Пропущено (уже существует): {space_data["title"]}')
+
 
         self.stdout.write(f'  → Всего создано помещений: {created_count}')
         self.stdout.write(f'  → Всего создано изображений: {total_images}')
 
-    def _create_space_images(self, space: Space, category_slug: str) -> int:
-        """Создаёт placeholder изображения для помещения."""
-        # Создаём 3 изображения для каждого помещения
-        images_queries = {
-            'office': ['modern office interior', 'office workspace', 'office meeting room'],
-            'loft': ['industrial loft interior', 'loft space event', 'loft brick walls'],
-            'coworking': ['coworking space', 'shared workspace', 'modern coworking'],
-            'conference': ['conference room', 'meeting room modern', 'seminar hall'],
-            'photo-studio': ['photo studio equipment', 'photography studio', 'studio cyclorama'],
-            'showroom': ['showroom interior', 'exhibition space', 'retail showroom'],
-            'warehouse': ['warehouse interior', 'storage facility', 'logistics warehouse'],
-            'retail': ['retail store interior', 'shop front', 'commercial space'],
-        }
+    def _create_space_images(self, space: Space, space_slug: str) -> int:
+        """
+        Создаёт изображения для помещения, используя реальные файлы
+        из папки media/12, указанные в IMAGE_FILENAMES.
+        """
+        # 2. Получаем имена файлов по slug помещения
+        filenames = self.IMAGE_FILENAMES.get(space_slug, [])
 
-        queries = images_queries.get(category_slug, ['commercial space'])
+        if not filenames:
+            self.stdout.write(self.style.WARNING(f'    Нет файлов изображений для: {space.title} ({space_slug})'))
+            return 0
+
         created_images = 0
 
-        for i, query in enumerate(queries[:3]):
+        for i, filename in enumerate(filenames):
+            source_path = os.path.join(TEST_IMAGES_DIR, filename)
+
+            if not os.path.exists(source_path):
+                self.stdout.write(self.style.ERROR(f'    Ошибка: Файл не найден: {source_path}'))
+                continue
+            
+            # Создаём объект SpaceImage
             image = SpaceImage(
                 space=space,
                 alt_text=f'{space.title} - фото {i + 1}',
@@ -619,34 +662,41 @@ class Command(BaseCommand):
                 sort_order=i
             )
 
-            # Создаём путь к файлу в media/spaces/
-            filename = f'space_{space.id}_{i + 1}.jpg'
-
-            # Генерируем placeholder URL для изображения
-            # Сохраняем как placeholder - реальные фото нужно загрузить через админку
-            placeholder_content = self._generate_placeholder_image(query)
-            if placeholder_content:
-                image.image.save(filename, placeholder_content, save=True)
+            # Определяем целевой путь в стандартной папке 'media/spaces/...'
+            # Используем ContentFile и shutil для имитации загрузки файла
+            try:
+                # Читаем содержимое файла
+                with open(source_path, 'rb') as f:
+                    content = ContentFile(f.read())
+                
+                # Сохраняем файл через FileField.save()
+                target_filename = f'{space_slug}_{i + 1}_{os.path.basename(filename)}'
+                image.image.save(target_filename, content, save=True)
+                
                 created_images += 1
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'    Не удалось обработать файл {filename}: {e}'))
 
         return created_images
 
+    # 3. Удаляем или комментируем ненужный метод _generate_placeholder_image
+    # (Оригинальный метод закомментирован на случай, если он понадобится)
     def _generate_placeholder_image(self, query: str) -> Optional[ContentFile]:
-        """Генерирует placeholder изображение."""
-        try:
-            from urllib.request import urlopen
-            from urllib.error import URLError
+        """Генерирует placeholder изображение. (Теперь не используется)"""
+        # try:
+        #     from urllib.request import urlopen
+        #     from urllib.error import URLError
 
-            # Используем placeholder.com для генерации изображений
-            seed = hash(query) % 10000
-            url = f"https://picsum.photos/seed/{seed}/800/600"
+        #     # Используем placeholder.com для генерации изображений
+        #     seed = hash(query) % 10000
+        #     url = f"https://picsum.photos/seed/{seed}/800/600"
 
-            response = urlopen(url, timeout=15)
-            image_data = response.read()
-            return ContentFile(image_data)
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f'    Не удалось создать изображение: {e}'))
-            return None
+        #     response = urlopen(url, timeout=15)
+        #     image_data = response.read()
+        #     return ContentFile(image_data)
+        # except Exception as e:
+        #     self.stdout.write(self.style.WARNING(f'    Не удалось создать изображение: {e}'))
+        return None
 
     def create_test_reviews(self) -> None:
         """Создание тестовых отзывов от пользователей к помещениям."""
