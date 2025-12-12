@@ -611,7 +611,7 @@ def space_detail(request: HttpRequest, pk: int) -> HttpResponse:
             'rating_list': rating_list,
             'is_favorite': is_favorite,
             'can_review': can_review,
-            'yandex_maps_api_key': getattr(settings, 'YANDEX_GEOCODER_API_KEY', ''),
+            'yandex_maps_api_key': getattr(settings, 'YANDEX_GEOCODER_API_KEY', '607b4bfc-3ec1-4a3f-aa87-ce16df446f1e'),
         }
         return render(request, 'spaces/detail.html', context)
 
@@ -682,7 +682,9 @@ def add_space(request: HttpRequest) -> HttpResponse:
         return redirect('dashboard')
 
     pricing_periods = PricingPeriod.objects.all().order_by('sort_order')
-    yandex_api_key = getattr(settings, 'YANDEX_MAPS_API_KEY', '')
+
+    # ИСПРАВЛЕНИЕ: Используем правильное имя переменной из settings.py
+    yandex_api_key = getattr(settings, 'YANDEX_GEOCODER_API_KEY', '')
 
     if request.method == 'POST':
         form = SpaceForm(request.POST)
@@ -699,10 +701,20 @@ def add_space(request: HttpRequest) -> HttpResponse:
             space = form.save(commit=False)
             space.owner = request.user
 
+            # Получаем координаты из формы (скрытые поля)
             lat = request.POST.get('latitude', '').strip()
             lng = request.POST.get('longitude', '').strip()
-            space.latitude = lat if lat else None
-            space.longitude = lng if lng else None
+
+            # Логика: Если координаты пришли с фронта - берем их.
+            # Если нет - пробуем найти через серверный сервис.
+            if lat and lng:
+                space.latitude = lat
+                space.longitude = lng
+            elif space.city and space.address:
+                # Fallback: серверное геокодирование
+                coords = geocode_address(space.city.name, space.address)
+                if coords:
+                    space.latitude, space.longitude = coords
 
             space.save()
 

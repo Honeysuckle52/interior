@@ -181,11 +181,10 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Яндекс Карты API для геокодирования -->
 <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_api_key }}&lang=ru_RU"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // === Геокодирование через Яндекс Карты ===
+    // === Интерактивная карта для выбора координат ===
     let map = null;
     let placemark = null;
     let geocodeTimeout = null;
@@ -196,26 +195,70 @@ document.addEventListener('DOMContentLoaded', function() {
     const lngInput = document.getElementById('id_longitude');
     const statusDiv = document.getElementById('geocodeStatus');
 
-    // Инициализация карты
-    ymaps.ready(function() {
+    ymaps.ready(init);
+
+    function init() {
+        // Координаты по умолчанию (центр России или Москвы), если город не выбран
+        let defaultCenter = [55.751244, 37.618423];
+        let defaultZoom = 10;
+
         map = new ymaps.Map('mapPreview', {
-            center: [52.2869, 104.2809], // Иркутск по умолчанию
-            zoom: 12,
-            controls: ['zoomControl']
+            center: defaultCenter,
+            zoom: defaultZoom,
+            controls: ['zoomControl', 'fullscreenControl']
         });
 
-        // Геокодирование при изменении адреса или города
-        if (addressInput) {
-            addressInput.addEventListener('input', debounceGeocode);
+        // Слушаем клик по карте для ручной установки точки
+        map.events.add('click', function (e) {
+            const coords = e.get('coords');
+            setPlacemark(coords);
+            // Опционально: можно попробовать получить адрес по координатам (обратное геокодирование)
+            // но мы не будем перезаписывать поле адреса, чтобы не сбить пользователя
+        });
+
+        // Если форма редактирования и координаты уже есть - ставим точку
+        const initialLat = latInput.value;
+        const initialLng = lngInput.value;
+        if (initialLat && initialLng) {
+            setPlacemark([parseFloat(initialLat), parseFloat(initialLng)]);
+            map.setCenter([parseFloat(initialLat), parseFloat(initialLng)], 16);
         }
-        if (citySelect) {
-            citySelect.addEventListener('change', debounceGeocode);
+
+        // Привязываем события к полям
+        if (addressInput) addressInput.addEventListener('input', debounceGeocode);
+        if (citySelect) citySelect.addEventListener('change', debounceGeocode);
+    }
+
+    function setPlacemark(coords) {
+        // Обновляем скрытые поля
+        latInput.value = coords[0].toFixed(6);
+        lngInput.value = coords[1].toFixed(6);
+
+        if (placemark) {
+            placemark.geometry.setCoordinates(coords);
+        } else {
+            placemark = new ymaps.Placemark(coords, {
+                hintContent: 'Перетащите метку для уточнения адреса'
+            }, {
+                preset: 'islands#darkOrangeIcon',
+                draggable: true // Разрешаем перетаскивание
+            });
+
+            // Слушаем событие окончания перетаскивания
+            placemark.events.add('dragend', function () {
+                const newCoords = placemark.geometry.getCoordinates();
+                latInput.value = newCoords[0].toFixed(6);
+                lngInput.value = newCoords[1].toFixed(6);
+                statusDiv.innerHTML = '<span class="text-info"><i class="fas fa-map-pin me-1"></i>Координаты уточнены вручную</span>';
+            });
+
+            map.geoObjects.add(placemark);
         }
-    });
+    }
 
     function debounceGeocode() {
         clearTimeout(geocodeTimeout);
-        geocodeTimeout = setTimeout(geocodeAddress, 800);
+        geocodeTimeout = setTimeout(geocodeAddress, 1000); // Задержка 1 сек
     }
 
     function geocodeAddress() {
@@ -223,12 +266,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const cityOption = citySelect ? citySelect.options[citySelect.selectedIndex] : null;
         const cityName = cityOption && cityOption.value ? cityOption.text : '';
 
-        if (!address) {
-            statusDiv.innerHTML = '';
-            return;
-        }
+        // Если поля пустые - ничего не ищем
+        if (!address && !cityName) return;
 
         const fullAddress = cityName ? `${cityName}, ${address}` : address;
+
         statusDiv.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Поиск адреса...</span>';
 
         ymaps.geocode(fullAddress, { results: 1 }).then(function(res) {
@@ -236,75 +278,48 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (firstGeoObject) {
                 const coords = firstGeoObject.geometry.getCoordinates();
-                const foundAddress = firstGeoObject.getAddressLine();
 
-                // Сохраняем координаты
-                latInput.value = coords[0];
-                lngInput.value = coords[1];
+                // Ставим метку и обновляем координаты
+                setPlacemark(coords);
 
-                // Обновляем карту
-                map.setCenter(coords, 16);
+                // Центрируем карту
+                map.setCenter(coords, 16, { duration: 300 });
 
-                // Удаляем старую метку
-                if (placemark) {
-                    map.geoObjects.remove(placemark);
-                }
-
-                // Добавляем новую метку
-                placemark = new ymaps.Placemark(coords, {
-                    balloonContent: foundAddress
-                }, {
-                    preset: 'islands#redDotIcon'
-                });
-                map.geoObjects.add(placemark);
-
-                statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Адрес найден: ' + foundAddress + '</span>';
+                statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Адрес найден на карте</span>';
             } else {
-                statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Адрес не найден. Попробуйте уточнить.</span>';
-                latInput.value = '';
-                lngInput.value = '';
+                statusDiv.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Адрес не найден. Укажите точку на карте вручную.</span>';
             }
         }).catch(function(err) {
-            statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Ошибка геокодирования</span>';
             console.error('Geocode error:', err);
+            statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Ошибка поиска. Укажите точку вручную.</span>';
         });
     }
 
-    // === Загрузка изображений ===
+    // === Логика загрузки изображений (оставляем вашу реализацию без изменений) ===
     const dropZone = document.getElementById('imageDropZone');
     const fileInput = document.getElementById('imageInput');
     const previewGrid = document.getElementById('imagePreviewGrid');
     let uploadedFiles = [];
 
-    dropZone.addEventListener('click', () => fileInput.click());
+    if(dropZone) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+    }
 
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-    });
+    if(fileInput) {
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+    }
 
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('dragover');
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        handleFiles(e.dataTransfer.files);
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        handleFiles(e.target.files);
-    });
-    
     function handleFiles(files) {
-        Array.from(files).forEach((file, index) => {
+        Array.from(files).forEach((file) => {
             if (!file.type.startsWith('image/')) return;
+            // Проверка размера файла (5MB)
             if (file.size > 5 * 1024 * 1024) {
                 alert(`Файл ${file.name} слишком большой (макс. 5MB)`);
                 return;
             }
-            
             const reader = new FileReader();
             reader.onload = (e) => {
                 const isPrimary = uploadedFiles.length === 0;
@@ -314,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
             reader.readAsDataURL(file);
         });
     }
-    
+
     function renderPreviews() {
         previewGrid.innerHTML = '';
         uploadedFiles.forEach((item, index) => {
@@ -326,12 +341,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <img src="${e.target.result}" alt="Preview">
                     ${item.isPrimary ? '<span class="image-preview-badge">Главное</span>' : ''}
                     <div class="image-preview-actions">
-                        ${!item.isPrimary ? `<button type="button" class="image-action-btn set-primary" onclick="setPrimary(${index})" title="Сделать главным">
-                            <i class="fas fa-star"></i>
-                        </button>` : ''}
-                        <button type="button" class="image-action-btn remove" onclick="removeImage(${index})" title="Удалить">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        ${!item.isPrimary ? `<button type="button" class="image-action-btn set-primary" onclick="setPrimary(${index})" title="Сделать главным"><i class="fas fa-star"></i></button>` : ''}
+                        <button type="button" class="image-action-btn remove" onclick="removeImage(${index})" title="Удалить"><i class="fas fa-times"></i></button>
                     </div>
                 `;
                 previewGrid.appendChild(div);
@@ -340,28 +351,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         updateFileInput();
     }
-    
+
     window.setPrimary = function(index) {
-        uploadedFiles.forEach((item, i) => {
-            item.isPrimary = (i === index);
-        });
+        uploadedFiles.forEach((item, i) => { item.isPrimary = (i === index); });
         renderPreviews();
     };
-    
+
     window.removeImage = function(index) {
         const wasPrimary = uploadedFiles[index].isPrimary;
         uploadedFiles.splice(index, 1);
-        if (wasPrimary && uploadedFiles.length > 0) {
-            uploadedFiles[0].isPrimary = true;
-        }
+        if (wasPrimary && uploadedFiles.length > 0) uploadedFiles[0].isPrimary = true;
         renderPreviews();
     };
-    
+
     function updateFileInput() {
         const dataTransfer = new DataTransfer();
-        uploadedFiles.forEach(item => {
-            dataTransfer.items.add(item.file);
-        });
+        uploadedFiles.forEach(item => dataTransfer.items.add(item.file));
         fileInput.files = dataTransfer.files;
     }
 });
