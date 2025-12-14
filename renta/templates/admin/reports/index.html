@@ -402,7 +402,7 @@
 {% block content %}
 <div class="reports-container">
     <div class="reports-header">
-        <h1></i> Отчеты и аналитика</h1>
+        <h1>Отчеты и аналитика</h1>
     </div>
 
     <div class="stats-grid">
@@ -450,7 +450,7 @@
     </div>
 
     <div class="report-section">
-        <h2></i> Отчеты</h2>
+        <h2>Отчеты</h2>
         <div class="report-links">
             <a href="{% url 'interior_admin:action_logs' %}" class="report-link">
                 <i class="fas fa-history"></i>
@@ -470,6 +470,7 @@
                 <span class="arrow"><i class="fas fa-chevron-right"></i></span>
             </a>
 
+            {% if can_access_backup %}
             <a href="{% url 'interior_admin:backup' %}" class="report-link">
                 <i class="fas fa-database"></i>
                 <div class="text">
@@ -478,12 +479,13 @@
                 </div>
                 <span class="arrow"><i class="fas fa-chevron-right"></i></span>
             </a>
+            {% endif %}
         </div>
     </div>
 
     <!-- Удалён CSV формат из экспорта -->
     <div class="report-section">
-        <h2></i> Экспорт отчетов</h2>
+        <h2>Экспорт отчетов</h2>
 
         <form method="get" class="export-form" id="exportForm">
             <div class="form-group">
@@ -517,7 +519,7 @@
     </div>
 
     <div class="report-section">
-        <h2></i> Последние действия</h2>
+        <h2>Последние действия</h2>
 
         {% if recent_actions %}
         <table class="actions-table">

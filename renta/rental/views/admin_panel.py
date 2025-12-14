@@ -25,7 +25,8 @@
 3. Бронирования - Управление заявками на бронирование
 4. Отзывы - Модерация отзывов пользователей
 5. Пользователи - Управление учетными записями
-6. Django Admin - Расширенная панель администратора (только для staff)
+6. Отчёты и аналитика - Статистика и отчёты по системе (только для staff и модераторов)
+7. Django Admin - Расширенная панель администратора (только для staff)
 ====================================================================
 """
 
@@ -209,13 +210,25 @@ def admin_panel(request: HttpRequest) -> HttpResponse:
         },
     ]
 
+    if request.user.is_staff or request.user.is_moderator:
+        management_sections.append({
+            'title': 'Отчёты и аналитика',
+            'description': 'Статистика и отчёты по системе',
+            'icon': 'fa-chart-bar',
+            'url': None,
+            'external_url': '/admin/reports/',
+            'color': 'info',
+            'stats': [],
+            'actions': []
+        })
+
     # Добавляем ссылку на Django Admin только для staff пользователей
     if request.user.is_staff:
         management_sections.append({
             'title': 'Django Admin',
             'description': 'Расширенная панель администратора',
             'icon': 'fa-cog',
-            'url': None,  # Внешняя ссылка (не использует URL name)
+            'url': None,
             'external_url': '/admin/',
             'color': 'danger',
             'stats': [],

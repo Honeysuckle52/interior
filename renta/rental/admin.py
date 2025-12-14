@@ -1,12 +1,13 @@
 """
-НАСТРОЙКА АДМИН-ПАНЕЛИ ДЛЯ САЙТА АРЕНДЫ ООО "ИНТЕРЬЕР"
-С системой отчетности, логирования, PDF экспортом и бэкапом БД
+АДМИН-ПАНЕЛЬ DJANGO С РАСШИРЕННЫМИ ВОЗМОЖНОСТЯМИ
+Кастомный AdminSite с отчетами, PDF экспортом и бэкапом базы данных
 """
 
 from __future__ import annotations
 
 import json
 import os
+import subprocess
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from typing import Any, Optional
@@ -15,8 +16,8 @@ from django.contrib import admin, messages
 from django.contrib.admin import AdminSite
 from django.contrib.auth.admin import UserAdmin
 from django.conf import settings
-from django.db.models import Count, Avg, Sum, QuerySet
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.db.models import Count, Avg, Sum, QuerySet, Q
+from django.http import HttpRequest, HttpResponse, JsonResponse, FileResponse
 from django.shortcuts import render, redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -25,9 +26,8 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .models import (
-    CustomUser, Region, City, SpaceCategory,
-    PricingPeriod, Space, SpaceImage, SpacePrice,
-    BookingStatus, Booking, TransactionStatus, Transaction,
+    CustomUser, Region, City, SpaceCategory, Space, SpaceImage,
+    SpacePrice, PricingPeriod, TransactionStatus, BookingStatus, Booking, Transaction,
     Review, Favorite, ActionLog
 )
 from .forms import AdminUserCreationForm, AdminUserChangeForm
@@ -69,6 +69,7 @@ class InteriorAdminSite(AdminSite):
     site_header = 'ООО "ИНТЕРЬЕР" - Администрирование'
     site_title = 'ИНТЕРЬЕР Admin'
     index_title = 'Панель управления'
+    login_url = '/auth/login/'
 
     def get_urls(self):
         urls = super().get_urls()
@@ -86,8 +87,87 @@ class InteriorAdminSite(AdminSite):
         ]
         return custom_urls + urls
 
+    def has_permission(self, request: HttpRequest) -> bool:
+        """
+        Проверка прав доступа к админ-панели.
+        Разрешаем доступ модераторам только к отчетам.
+        """
+        user = request.user
+        if not user.is_active or not user.is_authenticated:
+            return False
+
+        # Суперпользователи и staff имеют полный доступ
+        if user.is_superuser or user.is_staff:
+            return True
+
+        # Модераторы имеют ограниченный доступ (только к отчетам)
+        if getattr(user, 'user_type', None) == 'moderator':
+            # Проверяем, пытается ли модератор получить доступ к разрешенным страницам
+            path = request.path
+            allowed_paths = ['/admin/reports/', '/admin/login/', '/admin/logout/']
+            for allowed in allowed_paths:
+                if path.startswith(allowed.replace('/admin/', f'/{self.name}/' if self.name != 'admin' else '/admin/')):
+                    return True
+            # Для главной страницы админки перенаправляем на отчеты
+            if path.rstrip('/').endswith('/admin') or path == f'/admin/':
+                return True
+
+        return False
+
+    def admin_view(self, view, cacheable=False):
+        """
+        Обёртка для view, которая проверяет права доступа модераторов.
+        """
+        def inner(request, *args, **kwargs):
+            user = request.user
+
+            # Если пользователь не аутентифицирован - стандартное поведение
+            if not user.is_authenticated:
+                from django.contrib.admin.views.decorators import staff_member_required
+                return staff_member_required(view)(request, *args, **kwargs)
+
+            # Модераторам разрешаем только отчеты
+            if getattr(user, 'user_type', None) == 'moderator' and not user.is_staff:
+                path = request.path
+                if '/reports/' in path:
+                    return view(request, *args, **kwargs)
+                else:
+                    messages.error(request, 'У вас нет прав для просмотра этой страницы.')
+                    return redirect('interior_admin:reports')
+
+            # Для остальных - стандартная проверка
+            if not self.has_permission(request):
+                from django.contrib.auth.views import redirect_to_login
+                return redirect_to_login(request.get_full_path(), self.login_url)
+
+            return view(request, *args, **kwargs)
+
+        return inner
+
+    def _check_backup_permission(self, request: HttpRequest) -> bool:
+        """Проверка прав доступа к бэкапам - только для администраторов."""
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        # Доступ только для суперпользователей или админов
+        return user.is_superuser or getattr(user, 'user_type', None) == 'admin'
+
+    def _check_reports_permission(self, request: HttpRequest) -> bool:
+        """Проверка прав доступа к отчетам - для модераторов и администраторов."""
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        # Доступ для модераторов, админов и суперпользователей
+        return (user.is_superuser or
+                getattr(user, 'user_type', None) in ['admin', 'moderator'] or
+                user.is_staff)
+
     def backup_view(self, request: HttpRequest) -> TemplateResponse:
         """Страница управления бэкапами базы данных."""
+        if not self._check_backup_permission(request):
+            messages.error(request, 'У вас нет прав для доступа к резервному копированию.')
+            return redirect('interior_admin:index')
+
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
         os.makedirs(backup_dir, exist_ok=True)
 
@@ -113,6 +193,10 @@ class InteriorAdminSite(AdminSite):
 
     def create_backup(self, request: HttpRequest) -> HttpResponse:
         """Создание бэкапа базы данных с прямой отдачей файла в браузер."""
+        if not self._check_backup_permission(request):
+            messages.error(request, 'У вас нет прав для создания резервных копий.')
+            return redirect('interior_admin:index')
+
         if request.method != 'POST':
             return redirect('interior_admin:backup')
 
@@ -168,6 +252,10 @@ class InteriorAdminSite(AdminSite):
 
     def download_backup(self, request: HttpRequest, filename: str) -> HttpResponse:
         """Скачивание файла бэкапа напрямую в браузер."""
+        if not self._check_backup_permission(request):
+            messages.error(request, 'У вас нет прав для скачивания резервных копий.')
+            return redirect('interior_admin:index')
+
         backup_dir = os.path.join(settings.BASE_DIR, 'backups')
         filepath = os.path.join(backup_dir, filename)
 
@@ -200,6 +288,10 @@ class InteriorAdminSite(AdminSite):
 
     def delete_backup(self, request: HttpRequest, filename: str) -> HttpResponse:
         """Удаление файла бэкапа."""
+        if not self._check_backup_permission(request):
+            messages.error(request, 'У вас нет прав для удаления резервных копий.')
+            return redirect('interior_admin:index')
+
         if request.method != 'POST':
             return redirect('interior_admin:backup')
 
@@ -228,6 +320,10 @@ class InteriorAdminSite(AdminSite):
 
     def schedule_backup_view(self, request: HttpRequest) -> HttpResponse:
         """Создание бэкапа по расписанию (выбор времени)."""
+        if not self._check_backup_permission(request):
+            messages.error(request, 'У вас нет прав для планирования резервных копий.')
+            return redirect('interior_admin:index')
+
         if request.method == 'POST':
             backup_time = request.POST.get('backup_time', 'now')
 
@@ -537,11 +633,16 @@ class InteriorAdminSite(AdminSite):
         return ua[:20]
 
     def reports_view(self, request: HttpRequest) -> TemplateResponse:
+        if not self._check_reports_permission(request):
+            messages.error(request, 'У вас нет прав для просмотра отчетов.')
+            return redirect('interior_admin:index')
+
         thirty_days_ago = timezone.now() - timedelta(days=30)
 
         context = {
             **self.each_context(request),
             'title': 'Отчеты и аналитика',
+            'can_access_backup': self._check_backup_permission(request),
             'stats': {
                 'total_users': CustomUser.objects.count(),
                 'new_users_month': CustomUser.objects.filter(
@@ -573,6 +674,10 @@ class InteriorAdminSite(AdminSite):
         return TemplateResponse(request, 'admin/reports/index.html', context)
 
     def action_logs_view(self, request: HttpRequest) -> TemplateResponse:
+        if not self._check_reports_permission(request):
+            messages.error(request, 'У вас нет прав для просмотра журнала действий.')
+            return redirect('interior_admin:index')
+
         user_id = request.GET.get('user')
         action_type = request.GET.get('action_type')
         model_name = request.GET.get('model')
@@ -622,6 +727,10 @@ class InteriorAdminSite(AdminSite):
         return TemplateResponse(request, 'admin/reports/action_logs.html', context)
 
     def export_json_view(self, request: HttpRequest) -> HttpResponse:
+        if not self._check_reports_permission(request):
+            messages.error(request, 'У вас нет прав для экспорта отчетов.')
+            return redirect('interior_admin:index')
+
         report_type = request.GET.get('type', 'actions')
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
@@ -648,6 +757,10 @@ class InteriorAdminSite(AdminSite):
         return response
 
     def dashboard_view(self, request: HttpRequest) -> TemplateResponse:
+        if not self._check_reports_permission(request):
+            messages.error(request, 'У вас нет прав для просмотра дашборда.')
+            return redirect('interior_admin:index')
+
         today = timezone.now().date()
         thirty_days_ago = today - timedelta(days=30)
 
@@ -690,6 +803,182 @@ class InteriorAdminSite(AdminSite):
             'status_distribution': list(status_distribution),
         }
         return TemplateResponse(request, 'admin/reports/dashboard.html', context)
+
+    def export_pdf_view(self, request: HttpRequest) -> HttpResponse:
+        if not self._check_reports_permission(request):
+            messages.error(request, 'У вас нет прав для экспорта PDF отчетов.')
+            return redirect('interior_admin:index')
+
+        report_type = request.GET.get('type', 'actions')
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4, landscape
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import cm, mm
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+
+            font_registered = False
+            font_paths = [
+                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+                '/usr/share/fonts/TTF/DejaVuSans.ttf',
+                'C:/Windows/Fonts/DejaVuSans.ttf',
+                '/Library/Fonts/DejaVuSans.ttf',
+                '/System/Library/Fonts/Supplemental/DejaVuSans.ttf',
+                os.path.join(settings.BASE_DIR, 'renta', 'bolt', 'DejaVuSans.ttf'),
+                os.path.join(settings.BASE_DIR, 'bolt', 'DejaVuSans.ttf'),
+            ]
+
+            for font_path in font_paths:
+                if os.path.exists(font_path):
+                    try:
+                        pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+                        bold_path = font_path.replace('DejaVuSans.ttf', 'DejaVuSans-Bold.ttf')
+                        if os.path.exists(bold_path):
+                            pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', bold_path))
+                        font_registered = True
+                        break
+                    except Exception:
+                        continue
+
+            font_name = 'DejaVuSans' if font_registered else 'Helvetica'
+
+            buffer = BytesIO()
+
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4),
+                rightMargin=1*cm,
+                leftMargin=1*cm,
+                topMargin=1.5*cm,
+                bottomMargin=1*cm
+            )
+
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                fontName=font_name,
+                fontSize=18,
+                spaceAfter=20,
+                alignment=1,
+                textColor=colors.HexColor('#1a1a1a')
+            )
+
+            subtitle_style = ParagraphStyle(
+                'CustomSubtitle',
+                fontName=font_name,
+                fontSize=10,
+                spaceAfter=15,
+                alignment=1,
+                textColor=colors.HexColor('#666666')
+            )
+
+            normal_style = ParagraphStyle(
+                'CustomNormal',
+                fontName=font_name,
+                fontSize=9,
+            )
+
+            elements = []
+
+            title_text = {
+                'actions': 'Отчёт по действиям пользователей',
+                'bookings': 'Отчёт по бронированиям',
+                'revenue': 'Отчёт по доходам',
+                'users': 'Отчёт по пользователям',
+                'logins': 'Отчёт по подключениям'
+            }.get(report_type, 'Отчёт')
+
+            elements.append(Paragraph(title_text, title_style))
+            elements.append(Paragraph(
+                f"ООО ИНТЕРЬЕР | Сгенерировано: {timezone.now().strftime('%d.%m.%Y %H:%M')}",
+                subtitle_style
+            ))
+            elements.append(Spacer(1, 15))
+
+            if report_type == 'actions':
+                data = self._get_pdf_actions_data(date_from, date_to)
+                headers = ['Дата', 'Пользователь', 'Действие', 'Модель', 'Объект', 'IP']
+            elif report_type == 'bookings':
+                data = self._get_pdf_bookings_data(date_from, date_to)
+                headers = ['ID', 'Помещение', 'Клиент', 'Статус', 'Сумма', 'Дата']
+            elif report_type == 'revenue':
+                data = self._get_pdf_revenue_data(date_from, date_to)
+                headers = ['Период', 'Бронирований', 'Сумма']
+            elif report_type == 'users':
+                data = self._get_pdf_users_data(date_from, date_to)
+                headers = ['Пользователь', 'Email', 'Тип', 'Регистрация', 'Бронирований']
+            elif report_type == 'logins':
+                data = self._get_pdf_logins_data(date_from, date_to)
+                headers = ['Дата', 'Пользователь', 'IP адрес', 'Браузер']
+            else:
+                data = []
+                headers = []
+
+            if data:
+                table_data = [headers] + data
+
+                col_widths = None
+                if report_type == 'actions':
+                    col_widths = [3*cm, 3*cm, 2.5*cm, 2.5*cm, 8*cm, 3*cm]
+                elif report_type == 'bookings':
+                    col_widths = [1.5*cm, 7*cm, 4*cm, 3*cm, 3*cm, 3*cm]
+
+                table = Table(table_data, repeatRows=1, colWidths=col_widths)
+
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4af37')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1a1a1a')),
+                    ('FONTNAME', (0, 0), (-1, 0), font_name),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                    ('TOPPADDING', (0, 0), (-1, 0), 10),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1a1a1a')),
+                    ('FONTNAME', (0, 1), (-1, -1), font_name),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')]),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d4af37')),
+                    ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#b8941f')),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+
+                elements.append(table)
+            else:
+                elements.append(Paragraph("Нет данных для отображения", normal_style))
+
+            doc.build(elements)
+
+            buffer.seek(0)
+            filename = f'report_{report_type}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+
+            response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            ActionLog.objects.create(
+                user=request.user,
+                action_type=ActionLog.ActionType.OTHER,
+                model_name='report',
+                object_repr=f'Скачан PDF отчёт: {report_type}',
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+
+            return response
+
+        except ImportError:
+            messages.warning(request, 'Для генерации PDF установите: pip install reportlab')
+            return redirect('interior_admin:reports')
+        except Exception as e:
+            messages.error(request, f'Ошибка генерации PDF: {e}')
+            return redirect('interior_admin:reports')
 
     def _get_actions_queryset(self, date_from: Optional[str], date_to: Optional[str]) -> QuerySet:
         logs = ActionLog.objects.select_related('user').order_by('-created_at')

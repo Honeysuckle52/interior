@@ -366,7 +366,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
             messages.info(request, f'До свидания, {username}!')
             return redirect('home')
 
-        return render(request, 'auth/logout_confirm.html')
+        return render(request, 'auth/login.html')
 
     except Exception as e:
         logger.error(f"Error in logout_view: {e}", exc_info=True)

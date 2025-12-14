@@ -103,6 +103,7 @@ urlpatterns = [
 
     # ============== БРОНИРОВАНИЯ ==============
     path('spaces/<int:pk>/book/', create_booking, name='create_booking'),
+    path('api/pricing/get-price/', get_price_for_period, name='get_price_for_period'),
     path('bookings/<int:pk>/', booking_detail, name='booking_detail'),
     path('bookings/<int:pk>/cancel/', cancel_booking, name='cancel_booking'),
     path('bookings/<int:pk>/confirm/', confirm_booking, name='confirm_booking'),
