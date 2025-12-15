@@ -1,0 +1,49 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.2.7">
+  <diagram name="Страница 1" id="b4IdRLmBmoGDkmSwIrGP">
+    <mxGraphModel dx="2066" dy="1155" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="container" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="480" width="400" x="200" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="header" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=20;" value="&lt;div style=&quot;text-align: center; font-size: 32px; font-weight: bold;&quot;&gt;INTERIOR&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="200" x="300" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="subheader" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" value="&lt;div style=&quot;text-align: center;&quot;&gt;Войдите в свой аккаунт&lt;/div&gt;" vertex="1">
+          <mxGeometry height="30" width="200" x="300" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="label1" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;Имя пользователя или Email&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="160" x="240" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="input1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" value="- Введите логин или email" vertex="1">
+          <mxGeometry height="40" width="320" x="240" y="285" as="geometry" />
+        </mxCell>
+        <mxCell id="label2" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;Пароль&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="160" x="240" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="input2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" value="- Введите пароль" vertex="1">
+          <mxGeometry height="40" width="320" x="240" y="365" as="geometry" />
+        </mxCell>
+        <mxCell id="checkContainer" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=none;strokeColor=#000000;strokeWidth=1;overflow=hidden;" value="" vertex="1">
+          <mxGeometry height="25" width="140" x="240" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="checkbox" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="245" y="423" as="geometry" />
+        </mxCell>
+        <mxCell id="label3" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="Запомнить меня" vertex="1">
+          <mxGeometry height="25" width="110" x="265" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="link1" parent="1" style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;u&gt;Забыли пароль?&lt;/u&gt;" vertex="1">
+          <mxGeometry height="25" width="120" x="440" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="button" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;fontColor=#ffffff;" value="&lt;div style=&quot;text-align: center; font-weight: bold;&quot;&gt;Войти&lt;/div&gt;" vertex="1">
+          <mxGeometry height="50" width="320" x="240" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="footer" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;div style=&quot;text-align: center;&quot;&gt;Нет аккаунта? &lt;b&gt;Зарегистрироваться&lt;/b&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="30" width="200" x="300" y="530" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
