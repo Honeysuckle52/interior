@@ -1,125 +1,125 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.2.7">
-  <diagram name="Страница" id="0">
-    <mxGraphModel dx="2066" dy="1155" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <diagram name="Страница помещений" id="0">
+    <mxGraphModel dx="1311" dy="1649" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;" value="Главное / Вы понимаете" vertex="1">
-          <mxGeometry height="40" width="700" x="50" y="30" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="836" width="1231" x="12" y="4" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" value="Все помещения" vertex="1">
-          <mxGeometry height="30" width="700" x="50" y="80" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 24px;&quot;&gt;Карточка помещения&lt;/font&gt;" vertex="1">
+          <mxGeometry height="428" width="352" x="36" y="388" as="geometry" />
         </mxCell>
-        <mxCell id="description" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Найдите идеальное пространство для вашего бизнеса" vertex="1">
-          <mxGeometry height="20" width="700" x="50" y="110" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="131" width="1177" x="39" y="171" as="geometry" />
         </mxCell>
-        <mxCell id="filters" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#ffffff;strokeColor=#000000;" value="" vertex="1">
-          <mxGeometry height="120" width="700" x="50" y="150" as="geometry" />
+        <mxCell id="header" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=32;fontStyle=1" value="INTERIER" vertex="1">
+          <mxGeometry height="40" width="200" x="26" y="17" as="geometry" />
         </mxCell>
-        <mxCell id="label1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="Помест:" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="160" as="geometry" />
+        <mxCell id="pageTitle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=28;fontStyle=1" value="Все помещения" vertex="1">
+          <mxGeometry height="40" width="300" x="50" y="90" as="geometry" />
         </mxCell>
-        <mxCell id="label2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Глава:" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="190" as="geometry" />
+        <mxCell id="subtitle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;" value="Найдите идеальное пространство для вашего бизнеса." vertex="1">
+          <mxGeometry height="30" width="500" x="50" y="130" as="geometry" />
         </mxCell>
-        <mxCell id="label3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Категория:" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="220" as="geometry" />
+        <mxCell id="filterPanel" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="80" width="1100" x="50" y="180" as="geometry" />
         </mxCell>
-        <mxCell id="label4" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Площадь:" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="250" as="geometry" />
+        <mxCell id="filtersLabel" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" value="Фильтры:" vertex="1">
+          <mxGeometry height="25" width="80" x="60" y="190" as="geometry" />
         </mxCell>
-        <mxCell id="value1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Без варяжа" vertex="1">
-          <mxGeometry height="20" width="150" x="150" y="190" as="geometry" />
+        <mxCell id="cityLabel" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Город:" vertex="1">
+          <mxGeometry height="25" width="50" x="60" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="value2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Для категории" vertex="1">
-          <mxGeometry height="20" width="150" x="150" y="220" as="geometry" />
+        <mxCell id="cityDropdown" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;align=center;" value="Все города" vertex="1">
+          <mxGeometry height="25" width="120" x="110" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="value3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="До" vertex="1">
-          <mxGeometry height="20" width="150" x="150" y="250" as="geometry" />
+        <mxCell id="categoryLabel" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Категория" vertex="1">
+          <mxGeometry height="25" width="70" x="250" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="line" parent="1" style="shape=line;html=1;strokeWidth=1;strokeColor=#000000;" value="" vertex="1">
-          <mxGeometry height="10" width="700" x="50" y="280" as="geometry" />
+        <mxCell id="categoryDropdown" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;align=center;" value="Все категории" vertex="1">
+          <mxGeometry height="25" width="120" x="320" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#ffffff;strokeColor=#000000;" value="" vertex="1">
-          <mxGeometry height="120" width="700" x="50" y="300" as="geometry" />
+        <mxCell id="areaLabel" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Площадь, м²" vertex="1">
+          <mxGeometry height="25" width="80" x="460" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="Контрольный опыт &quot;Файрмак&quot;" vertex="1">
-          <mxGeometry height="20" width="300" x="70" y="310" as="geometry" />
+        <mxCell id="areaFrom" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;align=center;" value="от" vertex="1">
+          <mxGeometry height="25" width="40" x="540" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1_price" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="от 4.6.00 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="340" as="geometry" />
+        <mxCell id="areaTo" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;align=center;" value="до" vertex="1">
+          <mxGeometry height="25" width="40" x="590" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1_label1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Максимальная" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="370" as="geometry" />
+        <mxCell id="capacityLabel" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Вместимость" vertex="1">
+          <mxGeometry height="25" width="80" x="650" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1_value1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="250,00 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="180" y="370" as="geometry" />
+        <mxCell id="capacityFrom" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;align=center;" value="от человек" vertex="1">
+          <mxGeometry height="25" width="90" x="730" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1_label2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="До 30 час" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="390" as="geometry" />
+        <mxCell id="priceLabel" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Цена, ₽" vertex="1">
+          <mxGeometry height="25" width="60" x="840" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1_desc" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Торжественный автономный срок в линейке Контрольные сроки: Открытие обзора, нагревание..." vertex="1">
-          <mxGeometry height="40" width="300" x="400" y="340" as="geometry" />
+        <mxCell id="priceFrom" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;align=center;" value="от" vertex="1">
+          <mxGeometry height="25" width="40" x="900" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1_price2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="от 4000 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="400" y="390" as="geometry" />
+        <mxCell id="priceTo" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;align=center;" value="до" vertex="1">
+          <mxGeometry height="25" width="40" x="950" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="card1_label3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Отличная сумма" vertex="1">
-          <mxGeometry height="20" width="100" x="510" y="390" as="geometry" />
+        <mxCell id="sortLabel" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Сортировка:" vertex="1">
+          <mxGeometry height="25" width="70" x="60" y="250" as="geometry" />
         </mxCell>
-        <mxCell id="card2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#ffffff;strokeColor=#000000;" value="" vertex="1">
-          <mxGeometry height="120" width="700" x="50" y="440" as="geometry" />
+        <mxCell id="sortDropdown" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;align=center;" value="Новые" vertex="1">
+          <mxGeometry height="25" width="100" x="130" y="250" as="geometry" />
         </mxCell>
-        <mxCell id="card2_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="Торжетка помещения &quot;Круглог-Центр&quot;" vertex="1">
-          <mxGeometry height="20" width="300" x="70" y="450" as="geometry" />
+        <mxCell id="resultsCount" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" value="Найдено: 10 помещений" vertex="1">
+          <mxGeometry height="30" width="200" x="50" y="327" as="geometry" />
         </mxCell>
-        <mxCell id="card2_price" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="от 4.6.00 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="480" as="geometry" />
+        <mxCell id="card3" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;top=0;bottom=0;fillColor=none;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="140" width="1100" x="50" y="700" as="geometry" />
         </mxCell>
-        <mxCell id="card2_label1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Максимальная" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="510" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-2" edge="1" parent="1" source="nJd2lAd3hiTb6FqkcGbp-1" style="endArrow=none;html=1;rounded=0;exitX=0.002;exitY=0.073;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1.001;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;" target="nJd2lAd3hiTb6FqkcGbp-1" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="78" y="107" as="sourcePoint" />
+            <mxPoint x="1140" y="-76" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
-        <mxCell id="card2_value1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="350,00 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="180" y="510" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-4" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Главная" vertex="1">
+          <mxGeometry height="25" width="70" x="217" y="24.5" as="geometry" />
         </mxCell>
-        <mxCell id="card2_label2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="До 30 час" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="530" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-5" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Помещения" vertex="1">
+          <mxGeometry height="25" width="70" x="301" y="24.5" as="geometry" />
         </mxCell>
-        <mxCell id="card2_desc" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Торжетка помещения за спиной легко и внутри Круглого. Клеммы внутренних снов, сухожилий вин..." vertex="1">
-          <mxGeometry height="40" width="300" x="400" y="480" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-6" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Избранное" vertex="1">
+          <mxGeometry height="25" width="70" x="411" y="24.5" as="geometry" />
         </mxCell>
-        <mxCell id="card2_price2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="от 500 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="400" y="530" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-7" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" value="" vertex="1">
+          <mxGeometry height="45" width="45" x="1068" y="14.5" as="geometry" />
         </mxCell>
-        <mxCell id="card2_label3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Отличная сумма" vertex="1">
-          <mxGeometry height="20" width="100" x="510" y="530" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-8" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" value="Имя пользователя" vertex="1">
+          <mxGeometry height="25" width="122" x="1116" y="24.5" as="geometry" />
         </mxCell>
-        <mxCell id="card3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#ffffff;strokeColor=#000000;" value="" vertex="1">
-          <mxGeometry height="120" width="700" x="50" y="580" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-10" edge="1" parent="1" source="nJd2lAd3hiTb6FqkcGbp-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="nJd2lAd3hiTb6FqkcGbp-8">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="card3_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="Склад &quot;Логично-Центр&quot;" vertex="1">
-          <mxGeometry height="20" width="300" x="70" y="590" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 24px;&quot;&gt;Карточка помещения&lt;/font&gt;" vertex="1">
+          <mxGeometry height="428" width="352" x="448" y="388" as="geometry" />
         </mxCell>
-        <mxCell id="card3_price" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="от 4.6.00 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="620" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="&lt;font face=&quot;Times New Roman&quot; style=&quot;font-size: 24px;&quot;&gt;Карточка помещения&lt;/font&gt;" vertex="1">
+          <mxGeometry height="428" width="352" x="860" y="390" as="geometry" />
         </mxCell>
-        <mxCell id="card3_label1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Максимальная" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="650" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;Сбросить фильтр&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="187" x="997" y="250" as="geometry" />
         </mxCell>
-        <mxCell id="card3_value1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="300,00 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="180" y="650" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-19" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;Подробнее&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="106" x="265" y="750" as="geometry" />
         </mxCell>
-        <mxCell id="card3_label2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="До 30 час" vertex="1">
-          <mxGeometry height="20" width="100" x="70" y="670" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;Подробнее&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="106" x="675" y="750" as="geometry" />
         </mxCell>
-        <mxCell id="card3_desc" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Содержание автономных выводов перед П-Россией является 3 метров, при 5 установленных." vertex="1">
-          <mxGeometry height="40" width="300" x="400" y="620" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-21" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;Подробнее&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="106" x="1085" y="750" as="geometry" />
         </mxCell>
-        <mxCell id="card3_price2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;" value="от 500 ₽" vertex="1">
-          <mxGeometry height="20" width="100" x="400" y="670" as="geometry" />
-        </mxCell>
-        <mxCell id="card3_label3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Отличная сумма" vertex="1">
-          <mxGeometry height="20" width="100" x="510" y="670" as="geometry" />
+        <mxCell id="nJd2lAd3hiTb6FqkcGbp-23" edge="1" parent="1" source="nJd2lAd3hiTb6FqkcGbp-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="nJd2lAd3hiTb6FqkcGbp-1">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
