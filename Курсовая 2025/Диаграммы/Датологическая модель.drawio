@@ -1,0 +1,209 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.3.0">
+  <diagram name="Страница — 1" id="t_NkBBw7C34DsIJPNcIT">
+    <mxGraphModel dx="2253" dy="795" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="table1" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Пользователи&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код пользователя&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Логин&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Email&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Пароль&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Тип пользователя&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Телефон&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Биография&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;ВКонтакте&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Заблокирован&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата создания&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Имя&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Фамилия&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="273" width="180" x="-64" y="249" as="geometry" />
+        </mxCell>
+        <mxCell id="table2" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Токены верификации email&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код токена&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код пользователя&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Токен&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Срок действия&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата создания&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="135" width="180" x="282" y="603" as="geometry" />
+        </mxCell>
+        <mxCell id="table3" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Токены сброса пароля&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код токена&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код пользователя&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Токен&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Срок действия&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата создания&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="135" width="180" x="128" y="457.5" as="geometry" />
+        </mxCell>
+        <mxCell id="table4" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Регионы&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код региона&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Название&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Код региона&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="95" width="150" x="98" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="table5" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Города&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код города&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код региона&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Название&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Активен&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="110" width="150" x="280" y="62.5" as="geometry" />
+        </mxCell>
+        <mxCell id="table6" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Помещения&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код помещения&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код города&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Название&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Адрес&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Категория&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Площадь, м²&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Вместимость&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Описание&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Просмотры&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Широта&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Долгота&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата создания&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата обновления&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="304" width="180" x="493" y="17" as="geometry" />
+        </mxCell>
+        <mxCell id="table7" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Изображения помещений&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код изображения&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код помещения&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Изображение&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Альтернативный текст&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="115" width="180" x="487" y="606" as="geometry" />
+        </mxCell>
+        <mxCell id="table8" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Периоды аренды&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код периода&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Название&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Описание&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Количество часов&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="115" width="150" x="720" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="table9" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Цены помещений&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код цены&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код помещения&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код периода&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Цена&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Активна&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Количество периодов&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="149" width="180" x="950" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="table10" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Статусы бронирования&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код статуса&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Код статуса&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Название&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="90" width="150" x="410" y="453" as="geometry" />
+        </mxCell>
+        <mxCell id="table12" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;strokeColor=default;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Статусы транзакций&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код статуса&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Код статуса&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Название&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="90" width="150" x="1148" y="143" as="geometry" />
+        </mxCell>
+        <mxCell id="table13" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Транзакции&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код транзакции&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код бронирования&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код статуса&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Сумма&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;ID платежа&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата создания&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="149" width="150" x="1127" y="297" as="geometry" />
+        </mxCell>
+        <mxCell id="table14" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Отзывы&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код отзыва&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код помещения&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код автора&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код бронирования&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Оценка&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Комментарий&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Одобрен&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата создания&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="190" width="150" x="942" y="435" as="geometry" />
+        </mxCell>
+        <mxCell id="table15" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Избранное&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код избранного&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код пользователя&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код помещения&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата добавления&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="115" width="150" x="246" y="252" as="geometry" />
+        </mxCell>
+        <mxCell id="link1" edge="1" parent="1" source="table1" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="38" y="194" />
+              <mxPoint x="212" y="194" />
+              <mxPoint x="212" y="425" />
+              <mxPoint x="800" y="425" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link2" edge="1" parent="1" source="table1" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="380" />
+              <mxPoint x="140" y="435" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link3" edge="1" parent="1" source="table1" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="380" />
+              <mxPoint x="140" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link4" edge="1" parent="1" source="table4" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="375" y="145" />
+              <mxPoint x="375" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link5" edge="1" parent="1" source="table5" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="220" />
+              <mxPoint x="590" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link6" edge="1" parent="1" source="table6" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="410" />
+              <mxPoint x="590" y="455" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link7" edge="1" parent="1" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table9">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="673" y="230" />
+              <mxPoint x="1040" y="230" />
+            </Array>
+            <mxPoint x="673" y="234" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link8" edge="1" parent="1" source="table8" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table9">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="795" y="107" />
+              <mxPoint x="810" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link9" edge="1" parent="1" source="table10" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="795" y="390" />
+              <mxPoint x="1050" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link10" edge="1" parent="1" source="table6" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="180" />
+              <mxPoint x="1050" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link11" edge="1" parent="1" source="table8" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="795" y="107" />
+              <mxPoint x="1050" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link12" edge="1" parent="1" source="table6" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" target="table14">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="673" y="283" />
+              <mxPoint x="712" y="283" />
+              <mxPoint x="712" y="329" />
+              <mxPoint x="1017" y="329" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link13" edge="1" parent="1" source="table1" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table14">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="180" />
+              <mxPoint x="1275" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link14" edge="1" parent="1" source="table11" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;entryX=0.358;entryY=0.007;entryDx=0;entryDy=0;entryPerimeter=0;" target="table14">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="808" y="368" />
+              <mxPoint x="996" y="368" />
+              <mxPoint x="996" y="435" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link15" edge="1" parent="1" source="table1" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;" target="table15">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="26" y="180" />
+              <mxPoint x="230" y="180" />
+              <mxPoint x="230" y="452" />
+              <mxPoint x="321" y="452" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link16" edge="1" parent="1" source="table6" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" target="table15">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="467" y="197" />
+              <mxPoint x="467" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link17" edge="1" parent="1" source="table11" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="848" y="309" />
+              <mxPoint x="1127" y="309" />
+            </Array>
+            <mxPoint x="1127" y="311" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="link18" edge="1" parent="1" source="table12" style="endArrow=ERoneToMany;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="table13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1231" y="242" />
+              <mxPoint x="1202" y="242" />
+            </Array>
+            <mxPoint x="1193" y="244" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="table11" parent="1" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" value="&lt;div style=&quot;box-sizing: border-box; width: 100%; background: rgb(228, 228, 228); padding: 2px;&quot;&gt;Бронирования&lt;/div&gt;&lt;table style=&quot;width:100%;font-size:0.9em;&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;PK&lt;/td&gt;&lt;td&gt;Код бронирования&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код помещения&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код арендатора&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код периода&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;Код статуса&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата и время начала&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата и время окончания&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Количество периодов&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Общая сумма&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Предоплата внесена&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Сумма предоплаты&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата внесения предоплаты&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Комментарий модератора&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата создания&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;Дата обновления&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" vertex="1">
+          <mxGeometry height="341" width="200" x="700" y="439" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
