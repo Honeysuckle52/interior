@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.3.0">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.3.1">
   <diagram name="Страница — 1" id="8SVWduf1wq-U15QNxMIz">
-    <mxGraphModel dx="1826" dy="1195" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1825" dy="1197" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -76,38 +76,26 @@
             <mxPoint x="470" y="330" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="SAbJS_o28y-lAnD-u-yx-44" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=0.332;exitY=0.02;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.072;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" value="">
+        <mxCell id="SAbJS_o28y-lAnD-u-yx-44" edge="1" parent="1" source="SAbJS_o28y-lAnD-u-yx-3" style="endArrow=classic;html=1;rounded=0;exitX=0.594;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" target="SAbJS_o28y-lAnD-u-yx-29" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="350" y="721" as="sourcePoint" />
             <mxPoint x="350" y="420" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="SAbJS_o28y-lAnD-u-yx-45" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=0.332;exitY=0.02;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.072;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="435" y="720" as="sourcePoint" />
-            <mxPoint x="435" y="419" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="SAbJS_o28y-lAnD-u-yx-46" edge="1" parent="1" source="SAbJS_o28y-lAnD-u-yx-29" style="endArrow=classic;html=1;rounded=0;exitX=0.781;exitY=0.995;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.6;entryY=0.04;entryDx=0;entryDy=0;entryPerimeter=0;" target="SAbJS_o28y-lAnD-u-yx-3" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="510" y="721" as="sourcePoint" />
-            <mxPoint x="510" y="420" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="SAbJS_o28y-lAnD-u-yx-47" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Информация о помещение" vertex="1">
-          <mxGeometry height="30" width="80" x="270" y="540" as="geometry" />
+          <mxGeometry height="30" width="80" x="280" y="530" as="geometry" />
         </mxCell>
         <mxCell id="SAbJS_o28y-lAnD-u-yx-49" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Информация о пользователе" vertex="1">
-          <mxGeometry height="30" width="80" x="353" y="520" as="geometry" />
-        </mxCell>
-        <mxCell id="SAbJS_o28y-lAnD-u-yx-50" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Транзакция" vertex="1">
-          <mxGeometry height="30" width="80" x="490" y="510" as="geometry" />
+          <mxGeometry height="30" width="80" x="490" y="477" as="geometry" />
         </mxCell>
         <mxCell id="WOZomYHH4cKc4yD5GIEM-2" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="Письмо на почту" vertex="1">
           <mxGeometry height="30" width="120" x="630" y="330" as="geometry" />
         </mxCell>
         <mxCell id="T8Eg1ggrRopiPRroTTKN-1" parent="1" style="text;whiteSpace=wrap;html=1;" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-family: Helvetica; font-size: 12px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(236, 236, 236); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;&quot;&gt;А0&lt;/span&gt;" vertex="1">
           <mxGeometry height="36" width="43" x="527" y="384" as="geometry" />
+        </mxCell>
+        <mxCell id="95yYasl6a6YowHXR-SYG-2" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="Цель: Рассмотреть механизмы и процессы при генерации письма.&lt;div&gt;Точка зрения: Березин А.А.&amp;nbsp;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="113" width="200.25" x="9.879999999999995" y="599" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
